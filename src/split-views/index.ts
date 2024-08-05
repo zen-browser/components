@@ -45,8 +45,14 @@ class SplitViewsBase extends Component {
   }
 }
 
+declare global {
+  interface Window { 
+    gSplitViewsComponent: typeof SplitViewsBase;
+  }
+}
+
 // Public API exposed by the module
-export class gSplitViews extends SplitViewsBase {
+window.gSplitViewsComponent = class extends SplitViewsBase {
   constructor(config: SplitViewConfig) {
     super(config);
   }
