@@ -1,14 +1,15 @@
+import { Config } from "../common/config";
 
-type SplitType = 'horizontal' | 'vertical' | 'grid';
+export type SplitType = 'horizontal' | 'vertical' | 'grid';
 
-interface Config {
+export interface SplitViewConfig extends Config {
   keyIndicator: string; // e.g. "split-tab='true'"
   defaultSplitView: SplitType;
 };
 
-type Tab = any;
+export type Tab = HTMLDivElement;
 
-interface SplitView {
+export interface SplitView {
   type: SplitType;
   tabs: Tab[];
 };
