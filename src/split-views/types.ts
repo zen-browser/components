@@ -7,9 +7,7 @@ export interface SplitViewConfig extends Config {
   defaultSplitView: SplitType;
 };
 
-export type Tab = HTMLDivElement;
-
 export interface SplitView {
   type: SplitType;
-  tabs: Tab[];
+  tabs: MockedExports.BrowserTab[];
 };
