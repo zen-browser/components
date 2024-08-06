@@ -4,7 +4,7 @@ Some components used by @zen-browser and @Floorp-Projects as an attempt to make 
 ## Example usage
 
 ```js
-import("chrome://../browser-splitView.mjs").then(
+import("chrome://../browser-splitViews.mjs").then(
   ({ SplitViews }) => {
     window.gSplitView = new SplitViews({
       splitIndicator: "zen-splitted",

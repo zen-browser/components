@@ -9,4 +9,5 @@ declare interface SplitViewConfig extends Config {
 declare interface SplitView {
   type: SplitType;
   tabs: MockedExports.BrowserTab[];
+  id: number;
 };
