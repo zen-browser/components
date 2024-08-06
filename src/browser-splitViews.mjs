@@ -126,6 +126,7 @@ class SplitViewsBase extends SplitViewsUtils {
    */
   styleContainer(container, isActive, index, gridType) {
     container.removeAttribute("split-active");
+    container.setAttribute(this.config.splitIndicator, "true");
     if (isActive) {
       container.setAttribute("split-active", "true");
     }
