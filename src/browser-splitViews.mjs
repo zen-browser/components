@@ -227,6 +227,7 @@ class SplitViewsBase extends SplitViewsUtils {
    */
   createOrChangeSplitView(tabs, type) {
     let activeTab = tabs.find(tab => this.isTabSplit(tab));
+    this.log(`createOrChangeSplitView: ${type}`);
     let viewId = -1;
     if (activeTab) {
       viewId = this.changeSplitViewBase(activeTab, type, tabs);
