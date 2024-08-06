@@ -1,17 +1,27 @@
 
 class SplitViewsBase {
   /**
-   * @param {SplitViewConfig} config
-   * @param {SplitViewData[]} data
-   * @param {number} currentView
+   * @type {SplitView[]}
+   */
+  data;
+
+  /**
    * @param {SplitViewConfig} config
    */
   constructor(config) {
-    this.config = config.awd;
+    this.config = config;
     this.data = [];
     this.currentView = -1;
     this.addEventListeners();
     this.log('SplitViewsBase initialized');
+  }
+
+  /**
+   * @param {string} message
+   * @protected
+   */
+  log(message) {
+    console.log(`SplitViews: ${message}`);
   }
 
   addEventListeners() {
@@ -92,7 +102,7 @@ export class SplitViews extends SplitViewsBase {
    * @param {SplitType} type
    * @private
    */
-  createSplitView(tabs, type = this.viewConfig.defaultSplitView) {
+  createSplitView(tabs, type = this.config.defaultSplitView) {
     this.log('createSplitView');
   }
 };
