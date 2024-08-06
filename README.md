@@ -7,7 +7,7 @@ Some components used by @zen-browser and @Floorp-Projects as an attempt to make 
 import("chrome://../browser-splitView.mjs").then(
   ({ SplitViews }) => {
     window.gSplitView = new SplitViews({
-      keyIndicator: "zen-splitted",
+      splitIndicator: "zen-splitted",
       browserName: "zen",
       defaultSplitView: "grid",
     });

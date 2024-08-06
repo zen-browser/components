@@ -13,6 +13,8 @@ class SplitViewsBase {
     this.data = [];
     this.currentView = -1;
     this.addEventListeners();
+    // Added to "navigator-toolbox" element
+    this.parentSplitIndicator = this.config.splitIndicator + '-view';
     this.log('SplitViewsBase initialized');
   }
 

@@ -2,7 +2,7 @@
 declare type SplitType = 'horizontal' | 'vertical' | 'grid';
 
 declare interface SplitViewConfig extends Config {
-  keyIndicator: string; // e.g. "split-tab='true'"
+  splitIndicator: string; // e.g. "split-tab='true'"
   defaultSplitView: SplitType;
 };
 
