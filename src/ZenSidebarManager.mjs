@@ -1,7 +1,7 @@
 
 
 
-export var gZenBrowserManagerSidebar = {
+var gZenBrowserManagerSidebar = {
   _sidebarElement: null,
   _currentPanel: null,
   _lastOpenedPanel: null,

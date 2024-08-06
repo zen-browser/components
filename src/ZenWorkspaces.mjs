@@ -1,5 +1,5 @@
 
-export var ZenWorkspaces = {
+var ZenWorkspaces = {
   async init() {
     let docElement = document.documentElement;
     if (docElement.getAttribute("chromehidden").includes("toolbar")

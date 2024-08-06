@@ -1,5 +1,5 @@
 
-export var gZenViewSplitter = {
+var gZenViewSplitter = {
   /**
    * [ 
    *   {
@@ -16,7 +16,6 @@ export var gZenViewSplitter = {
   currentView: -1,
 
   init() {
-    Services.prefs.setBoolPref("zen.splitView.working", false);
     window.addEventListener("TabClose", this);
     this.initializeUI();
     console.log("ZenViewSplitter initialized");
@@ -117,8 +116,7 @@ export var gZenViewSplitter = {
         this.currentView = -1;
         this.tabBrowserPanel.removeAttribute("zen-split-view");
         this.tabBrowserPanel.style.gridTemplateAreas = "";
-        this.tabBrowserPanel.style.gridGap = "0px";     
-        Services.prefs.setBoolPref("zen.splitView.working", false);
+        this.tabBrowserPanel.style.gridGap = "0px";
         for (const tab of dataTab) {
           let container = tab.linkedBrowser.closest(".browserSidebarContainer");
           container.removeAttribute("zen-split");
@@ -207,7 +205,6 @@ export var gZenViewSplitter = {
       }
       this.tabBrowserPanel.removeAttribute("zen-split-view");
       this.tabBrowserPanel.style.gridTemplateAreas = "";
-      Services.prefs.setBoolPref("zen.splitView.working", false);
       modifyDecks(this._data[this.currentView].tabs, false);
       // console.log("Setting the active tab to be active", gBrowser.selectedTab);
       gBrowser.selectedTab.linkedBrowser.docShellIsActive = true; // Make sure the active tab is active
@@ -217,7 +214,6 @@ export var gZenViewSplitter = {
       }
     }
     this.tabBrowserPanel.setAttribute("zen-split-view", "true");
-    Services.prefs.setBoolPref("zen.splitView.working", true);
     this.currentView = this._data.indexOf(splitData);
     let gridType = splitData.gridType || "grid"; // TODO: let user decide the grid type
     let i = 0;
@@ -335,7 +331,7 @@ export var gZenViewSplitter = {
         }
         this._data[this.currentView].gridType = gridType;
         this._showSplitView(gBrowser.selectedTab);
-        panel.hidePopup();
+        // panel.hidePopup();
       }).bind(this, gridType));
     } 
     this.__hasSetMenuListener = true;
