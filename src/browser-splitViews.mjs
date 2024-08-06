@@ -1,5 +1,14 @@
 
-class SplitViewsBase {
+class SplitViewsUtils {
+  get tabBrowser() {
+    if (!this._tabBrowser) {
+      this._tabBrowser = document.getElementById('tabbrowser-tabpanels');
+    }
+    return this._tabBrowser;
+  }
+}
+
+class SplitViewsBase extends SplitViewsUtils {
   /**
    * @type {SplitView[]}
    */
@@ -9,6 +18,7 @@ class SplitViewsBase {
    * @param {SplitViewConfig} config
    */
   constructor(config) {
+    super();
     this.config = config;
     this.data = [];
     this.currentView = -1;
@@ -90,7 +100,7 @@ class SplitViewsBase {
     if (!view) {
       return;
     }
-    // TODO: Update tab DOM here
+    
   }
 
   /**
