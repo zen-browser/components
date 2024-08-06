@@ -1,8 +1,8 @@
-import { Config } from "../common/config";
+import { Config } from "./common";
 
 export type SplitType = 'horizontal' | 'vertical' | 'grid';
 
-export interface SplitViewConfig extends Config {
+export interface SplitViewConfig {
   keyIndicator: string; // e.g. "split-tab='true'"
   defaultSplitView: SplitType;
 };

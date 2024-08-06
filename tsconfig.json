@@ -23,14 +23,15 @@
     // "useDefineForClassFields": true,                  /* Emit ECMAScript-standard-compliant class fields. */
     // Make the type checking as strict as possible.
     // TypeScript will check JS files only if they have a @ts-check comment in them.
-    // "allowJs": true,
+    "allowJs": true,
     // Allow esnext syntax. Otherwise the default is ES5 only.
     "target": "esnext",
     "lib": ["esnext", "dom"],
+    "noEmit": true,
 
     /* Modules */
     "module": "CommonJS",                                /* Specify what module code is generated. */
-    "rootDir": "./src",                                  /* Specify the root folder within your source files. */
+    //"rootDir": "./src",                                  /* Specify the root folder within your source files. */
     // "moduleResolution": "NodeNext",                       /* Specify how TypeScript looks up a file from a given module specifier. */
     // "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
     // "paths": {},                                      /* Specify a set of entries that re-map imports to additional lookup locations. */
@@ -43,7 +44,7 @@
 
     /* JavaScript Support */
     // "allowJs": true,                                  /* Allow JavaScript files to be a part of your program. Use the `checkJS` option to get errors from these files. */
-    // "checkJs": true,                                  /* Enable error reporting in type-checked JavaScript files. */
+    "checkJs": true,                                  /* Enable error reporting in type-checked JavaScript files. */
     // "maxNodeModuleJsDepth": 1,                        /* Specify the maximum folder depth used for checking JavaScript files from `node_modules`. Only applicable with `allowJs`. */
 
     /* Emit */
