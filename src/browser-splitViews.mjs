@@ -209,6 +209,7 @@ class SplitViewsBase extends SplitViewsUtils {
    */
   updateSplitView(viewId) {
     let view = this.data.find(view => view.id === viewId);
+    this.log(`updateSplitView: ${viewId}`);
     this.currentView = viewId;
     if (!view) {
       this.tabBrowser.removeAttribute(this.parentSplitIndicator);
@@ -316,10 +317,8 @@ export class SplitViews extends SplitViewsBase {
   /**
    * @param {MockedExports.BrowserTab[]} tabs
    * @param {SplitType} type
-   * @private
+   * @public
    */
-  // @ts-ignore
-  // @ts-ignore
   createSplitView(tabs, type = this.config.defaultSplitView) {
     if (tabs.length < 2) {
       return;
