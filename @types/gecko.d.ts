@@ -197,7 +197,7 @@ declare namespace MockedExports {
     addMessageListener: (event: string, listener: (event: any) => void) => void;
   }
 
-  interface Browser {
+  interface Browser extends HTMLElement {
     addWebTab: (url: string, options: any) => BrowserTab;
     contentPrincipal: any;
     selectedTab: BrowserTab;
@@ -517,4 +517,9 @@ interface Function {
 declare module "resource://gre/modules/FileUtils.sys.mjs" {
   const FileUtils: MockedExports.IFileUtils;
   export { FileUtils };
+}
+
+// Extend "window" to extend "ChromeWindow"
+declare global {
+  interface Window extends ChromeWindow {}
 }

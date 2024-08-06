@@ -1,9 +1,13 @@
 
 class SplitViewsUtils {
+  /**
+   * @returns {HTMLDivElement}
+   */
   get tabBrowser() {
     if (!this._tabBrowser) {
       this._tabBrowser = document.getElementById('tabbrowser-tabpanels');
     }
+    // @ts-ignore
     return this._tabBrowser;
   }
 }
@@ -92,15 +96,127 @@ class SplitViewsBase extends SplitViewsUtils {
   }
 
   /**
+   * Applies the grid layout to the tabs.
+   *
+   * @param {MockedExports.BrowserTab[]} tabs - The tabs to apply the grid layout to.
+   * @param {string} gridType - The type of grid layout.
+   * @param {MockedExports.BrowserTab} activeTab - The active tab.
+   */
+  applyGridLayout(tabs, gridType, activeTab) {
+    const gridAreas = this.calculateGridAreas(tabs, gridType);
+    this.tabBrowser.style.gridTemplateAreas = gridAreas;
+
+    tabs.forEach((tab, index) => {
+      tab.setAttribute(this.config.splitIndicator, "true");
+      const container = tab.linkedBrowser.closest(".browserSidebarContainer");
+      if (!container) {
+        throw new Error("Container not found");
+      }
+      this.styleContainer(container, tab === activeTab, index, gridType);
+    });
+  }
+
+  /**
+   * Styles the container for a tab.
+   *
+   * @param {Element} container - The container element.
+   * @param {boolean} isActive - Indicates if the tab is active.
+   * @param {number} index - The index of the tab.
+   * @param {string} gridType - The type of grid layout.
+   */
+  styleContainer(container, isActive, index, gridType) {
+    container.removeAttribute("split-active");
+    if (isActive) {
+      container.setAttribute("split-active", "true");
+    }
+    container.setAttribute("split-anim", "true");
+    container.addEventListener("click", this.handleTabClick);
+
+    if (gridType === "grid") {
+      // @ts-ignore
+      container.style.gridArea = `tab${index + 1}`;
+    }
+  }
+
+  /**
+   * Calculates the grid areas for the tabs.
+   *
+   * @param {MockedExports.BrowserTab[]} tabs - The tabs.
+   * @param {string} gridType - The type of grid layout.
+   * @returns {string} The calculated grid areas.
+   */
+  calculateGridAreas(tabs, gridType) {
+    if (gridType === "grid") {
+      return this.calculateGridAreasForGrid(tabs);
+    }
+    if (gridType === "vsep") {
+      return `'${tabs.map((_, j) => `tab${j + 1}`).join(" ")}'`;
+    }
+    if (gridType === "hsep") {
+      return tabs.map((_, j) => `'tab${j + 1}'`).join(" ");
+    }
+    return "";
+  }
+
+  /**
+   * Handles the tab click event.
+   *
+   * @param {Event} event - The click event.
+   */
+  handleTabClick(event) {
+    const container = event.currentTarget;
+    // @ts-ignore
+    const tab = window.gBrowser.tabs.find(
+      // @ts-ignore
+      t => t.linkedBrowser.closest(".browserSidebarContainer") === container
+    );
+    if (tab) {
+      // @ts-ignore
+      window.gBrowser.selectedTab = tab;
+    }
+  };
+
+  /**
+   * Calculates the grid areas for the tabs in a grid layout.
+   *
+   * @param {MockedExports.BrowserTab[]} tabs - The tabs.
+   * @returns {string} The calculated grid areas.
+   */
+  calculateGridAreasForGrid(tabs) {
+    const rows = ["", ""];
+    tabs.forEach((_, i) => {
+      if (i % 2 === 0) {
+        rows[0] += ` tab${i + 1}`;
+      } else {
+        rows[1] += ` tab${i + 1}`;
+      }
+    });
+
+    if (tabs.length === 2) {
+      return "'tab1 tab2'";
+    }
+
+    if (tabs.length % 2 !== 0) {
+      rows[1] += ` tab${tabs.length}`;
+    }
+
+    return `'${rows[0].trim()}' '${rows[1].trim()}'`;
+  }
+
+  /**
    * @param {number} viewId
    * @protected
    */
   updateSplitView(viewId) {
     let view = this.data.find(view => view.id === viewId);
+    this.currentView = viewId;
     if (!view) {
+      this.tabBrowser.removeAttribute(this.parentSplitIndicator);
+      throw new Error('TODO: Remove split view');
       return;
     }
-    
+    this.tabBrowser.setAttribute(this.parentSplitIndicator, "true");
+    this.applyGridLayout(view.tabs, view.type, view.tabs[0]);
   }
 
   /**
@@ -148,12 +264,16 @@ export class SplitViews extends SplitViewsBase {
   /**
    * @param {Event} event
    */
+  // @ts-ignore
+  // @ts-ignore
   onTabClose(event) {
   }
 
   /**
    * @param {MockedExports.Browser} browser
    */
+  // @ts-ignore
+  // @ts-ignore
   onLocationChange(browser) {
     this.log('onLocationChange');
   }
@@ -161,6 +281,8 @@ export class SplitViews extends SplitViewsBase {
   /**
    * @param {SplitType} type
    */
+  // @ts-ignore
+  // @ts-ignore
   tileCurrentView(type) {
     this.log('tileCurrentView');
   }
@@ -172,6 +294,8 @@ export class SplitViews extends SplitViewsBase {
   /**
    * @param {MockedExports.BrowserTab} tab
    */
+  // @ts-ignore
+  // @ts-ignore
   tabIsInActiveView(tab) {
     this.log('tabIsInActiveView');
     return false;
@@ -194,6 +318,8 @@ export class SplitViews extends SplitViewsBase {
    * @param {SplitType} type
    * @private
    */
+  // @ts-ignore
+  // @ts-ignore
   createSplitView(tabs, type = this.config.defaultSplitView) {
     if (tabs.length < 2) {
       return;
