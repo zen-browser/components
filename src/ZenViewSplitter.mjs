@@ -331,7 +331,7 @@ var gZenViewSplitter = {
         }
         this._data[this.currentView].gridType = gridType;
         this._showSplitView(gBrowser.selectedTab);
-        // panel.hidePopup();
+        panel.hidePopup();
       }).bind(this, gridType));
     } 
     this.__hasSetMenuListener = true;
