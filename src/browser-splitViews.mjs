@@ -172,6 +172,13 @@ export class SplitViews extends SplitViewsBase {
     return [];
   }
 
+  getActiveViewType() {
+    if (!this.isActivated) {
+      return undefined;
+    }
+    return this.activeView.type;
+  }
+
   /**
    * @param {MockedExports.BrowserTab[]} tabs
    * @param {SplitType} type
