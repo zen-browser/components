@@ -429,13 +429,6 @@ var gZenViewSplitter = new class {
       const browser = tab.linkedBrowser.closest(".browserSidebarContainer");
       if (active) {
         browser.setAttribute("zen-split", "true");
-        const currentStyle = browser.getAttribute("style");
-        browser.setAttribute(
-          "style",
-          `${currentStyle}
-          -moz-subtree-hidden-only-visually: 0;
-          visibility: visible !important;`
-        );
       } else {
         browser.removeAttribute("zen-split");
         browser.removeAttribute("style");
