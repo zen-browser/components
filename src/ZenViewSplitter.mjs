@@ -220,6 +220,7 @@ var gZenViewSplitter = new class {
     this.updateSplitViewButton(!tab?.splitView);
     if (tab) {
       this.updateSplitView(tab);
+      tab.linkedBrowser.docShellIsActive = true;
     }
   }
 
