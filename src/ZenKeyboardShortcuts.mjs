@@ -121,6 +121,7 @@ const kZKSActions = {
 const kZKSStorageKey = "zen.keyboard.shortcuts";
 var gZenKeyboardShortcuts = {
   init() {
+    return;
     this._initShortcuts();
   },
 
