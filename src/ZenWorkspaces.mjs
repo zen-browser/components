@@ -184,6 +184,7 @@ var ZenWorkspaces = {
         await this.changeWorkspace(workspace)
         let panel = document.getElementById("PanelUI-zen-workspaces");
         PanelMultiView.hidePopup(panel);
+        document.getElementById("zen-workspaces-button").removeAttribute("open");
       }).bind(this, workspace);
       return element;
     }
