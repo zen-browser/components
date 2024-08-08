@@ -136,7 +136,9 @@ var gZenKeyboardShortcuts = {
   },
 
   _initShortcuts() {
-    this._initSavedShortcuts();
+    if (window.location.href == "chrome://browser/content/browser.xhtml") {
+      this._initSavedShortcuts();
+    }
   },
 
   _createShortcutElement(action) {

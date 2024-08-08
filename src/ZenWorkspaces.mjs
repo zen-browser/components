@@ -71,7 +71,7 @@ var ZenWorkspaces = {
           activeWorkspace.used = true;
           await this.saveWorkspaces();
         }
-        await this.changeWorkspace(activeWorkspace);
+        await this.changeWorkspace(activeWorkspace, true);
       }
       this._initializeWorkspaceIcons();
     }
@@ -328,7 +328,7 @@ var ZenWorkspaces = {
     button.removeAttribute("disabled");
   },
 
-  async changeWorkspace(window) {
+  async changeWorkspace(window, onInit = false) {
     if (!this.workspaceEnabled) {
       return;
     }
@@ -348,7 +348,7 @@ var ZenWorkspaces = {
         gBrowser.showTab(tab);
       }
     }
-    if (typeof firstTab === "undefined") {
+    if (typeof firstTab === "undefined" && !onInit) {
       this._createNewTabForWorkspace(window);
     }
     for (let tab of gBrowser.tabs) {
@@ -389,7 +389,7 @@ var ZenWorkspaces = {
     if (!workspaceID) {
       let workspaces = await this._workspaces();
       let activeWorkspace = workspaces.workspaces.find(workspace => workspace.used);
-      if (!activeWorkspace) {
+      if (!activeWorkspace || tab.hasAttribute("hidden")) {
         return;
       }
       tab.setAttribute("zen-workspace-id", activeWorkspace.uuid);
