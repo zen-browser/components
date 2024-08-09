@@ -83,6 +83,7 @@ const kZKSActions = {
   reverseSidebarPosition: ["SidebarUI.reversePosition()", "reverse-sidebar", "sidebar-action"],
   hideSidebar: ["SidebarUI.hide()", "hide-sidebar", "sidebar-action"],
   toggleSidebar: ["SidebarUI.toggle()", "toggle-sidebar", "sidebar-action"],
+  zenToggleWebPanels: ["gZenBrowserManagerSidebar.toggle()", "zen-toggle-web-panels", "sidebar-action"],
 };
 
 // Section: ZenKeyboardShortcuts
