@@ -1,49 +1,52 @@
 
 const kZKSActions = {
+  // Note: If they start with "command:", it means that "command=" will be added to the key element,
+  // otherwise "oncommand=" will be added.
+
   // manage actions
-  openNewTab: ["console.log('hellooooo')","open-new-tab", "tab-action"],
-  closeTab: ["BrowserCloseTabOrWindow()", "close-tab", "tab-action"],
-  openNewWindow: ["OpenBrowserWindow()", "open-new-window", "tab-action"],
-  openNewPrivateWindow: ["OpenBrowserWindow({private: true})", "open-new-private-window", "tab-action"],
-  closeWindow: ["BrowserTryToCloseWindow()", "close-window", "tab-action"],
+  openNewTab: ["command:cmd_newNavigatorTabNoEvent","open-new-tab", "tab-action"],
+  closeTab: ["command:cmd_close", "close-tab", "tab-action"],
+  openNewWindow: ["command:cmd_newNavigator", "open-new-window", "tab-action"],
+  openNewPrivateWindow: ["command:Tools:PrivateBrowsing", "open-new-private-window", "tab-action"],
+  closeWindow: ["command:cmd_closeWindow", "close-window", "tab-action"],
   restoreLastTab: ["undoCloseTab()", "restore-last-session", "tab-action"],
-  restoreLastWindow: ["undoCloseWindow()", "restore-last-window", "tab-action"],
+  restoreLastWindow: ["command:History:UndoCloseWindow", "restore-last-window", "tab-action"],
   showNextTab: ["gBrowser.tabContainer.advanceSelectedTab(1, true)", "show-next-tab", "tab-action"],
   showPreviousTab: ["gBrowser.tabContainer.advanceSelectedTab(-1, true)", "show-previous-tab", "tab-action"],
   showAllTabsPanel: ["gTabsPanel.showAllTabsPanel()", "show-all-tabs-panel", "tab-action"],
 
   // Page actions
-  sendWithMail: ["MailIntegration.sendLinkForBrowser(gBrowser.selectedBrowser)", "send-with-mail", "page-action"],
-  savePage: ["saveBrowser(gBrowser.selectedBrowser)", "save-page", "page-action"],
-  printPage: ["PrintUtils.startPrintWindow(gBrowser.selectedBrowser.browsingContext)", "print-page", "page-action"],
-  muteCurrentTab: ["gBrowser.toggleMuteAudioOnMultiSelectedTabs(gBrowser.selectedTab)", "mute-current-tab", "page-action"],
-  showSourceOfPage: ["BrowserViewSource(window.gBrowser.selectedBrowser)", "show-source-of-page", "page-action"],
-  showPageInfo: ["BrowserPageInfo()", "show-page-info", "page-action"],
+  sendWithMail: ["command:Browser:SendLink", "send-with-mail", "page-action"],
+  savePage: ["command:Browser:SavePage", "save-page", "page-action"],
+  printPage: ["command:cmd_print", "print-page", "page-action"],
+  muteCurrentTab: ["command:cmd_toggleMute", "mute-current-tab", "page-action"],
+  showSourceOfPage: ["command:View:PageSource", "show-source-of-page", "page-action"],
+  showPageInfo: ["command:View:PageInfo", "show-page-info", "page-action"],
   
   // Visible actions
-  zoomIn: ["FullZoom.enlarge()", "zoom-in", "visible-action"],
-  zoomOut: ["FullZoom.reduce()", "zoom-out", "visible-action"],
-  resetZoom: ["FullZoom.reset()", "reset-zoom", "visible-action"],
+  zoomIn: ["command:cmd_fullZoomEnlarge", "zoom-in", "visible-action"],
+  zoomOut: ["command:cmd_fullZoomReduce", "zoom-out", "visible-action"],
+  resetZoom: ["command:cmd_fullZoomReset", "reset-zoom", "visible-action"],
 
   // History actions
-  back: ["BrowserBack()", "back", "history-action"],
-  forward: ["BrowserForward()", "forward", "history-action"],
-  stop: ["BrowserStop()", "stop", "history-action"],
-  reload: ["BrowserReload()", "reload", "history-action"],
-  forceReload: ["BrowserReloadSkipCache()", "force-reload", "history-action"],
+  back: ["command:Browser:Back", "back", "history-action"],
+  forward: ["command:Browser:Forward", "forward", "history-action"],
+  stop: ["command:Browser:Stop", "stop", "history-action"],
+  reload: ["command:Browser:Reload", "reload", "history-action"],
+  forceReload: ["command:Browser:ReloadSkipCache", "force-reload", "history-action"],
 
   // search actions
   searchInThisPage: ["gLazyFindCommand('onFindCommand')", "search-in-this-page", "search-action"],
   showNextSearchResult: ["gLazyFindCommand('onFindAgainCommand', false)", "show-next-search-result", "search-action"],
   showPreviousSearchResult: ["gLazyFindCommand('onFindAgainCommand', true)", "show-previous-search-result", "search-action"],
-  searchTheWeb: ["BrowserSearch.webSearch()", "search-the-web", "search-action"],
+  searchTheWeb: ["command:Tools:Search", "search-the-web", "search-action"],
 
   // Tools actions
-  openMigrationWizard: ["MigrationUtils.showMigrationWizard(window, { entrypoint: MigrationUtils.MIGRATION_ENTRYPOINTS.FILE_MENU })", "open-migration-wizard", "tools-action"],
-  quitFromApplication: ["Services.startup.quit(Ci.nsIAppStartup.eForceQuit);", "quit-from-application", "tools-action"],
+  openMigrationWizard: ["command:cmd_file_importFromAnotherBrowser", "open-migration-wizard", "tools-action"],
+  quitFromApplication: ["command:goQuitApplication", "quit-from-application", "tools-action"],
   enterIntoCustomizeMode: ["gCustomizeMode.enter()", "enter-into-customize-mode", "tools-action"],
-  enterIntoOfflineMode: ["BrowserOffline.toggleOfflineStatus()", "enter-into-offline-mode", "tools-action"],
-  openScreenCapture: ["ScreenshotsUtils.notify(window, 'shortcut')", "open-screen-capture", "tools-action"],
+  enterIntoOfflineMode: ["command:cmd_toggleOfflineStatus", "enter-into-offline-mode", "tools-action"],
+  openScreenCapture: ["command:Browser:Screenshot", "open-screen-capture", "tools-action"],
 
   // Bookmark actions
   bookmarkThisPage: ["BrowserPageActions.doCommandForAction(PageActions.actionForID('bookmark'), event, this);", "bookmark-this-page", "bookmark-action"],
@@ -58,16 +61,16 @@ const kZKSActions = {
   openContainersPreferences: ["openPreferences('paneContainers')", "open-containers-preferences", "open-page-action"],
   openSearchPreferences: ["openPreferences('paneSearch')", "open-search-preferences", "open-page-action"],
   openSyncPreferences: ["openPreferences('paneSync')", "open-sync-preferences", "open-page-action"],
-  openTaskManager: ["switchToTabHavingURI('about:processes', true)", "open-task-manager", "open-page-action"],
-  openAddonsManager: ["BrowserOpenAddonsMgr()", "open-addons-manager", "open-page-action"],
+  openTaskManager: ["command:View:AboutProcesses", "open-task-manager", "open-page-action"],
+  openAddonsManager: ["command:Tools:Addons", "open-addons-manager", "open-page-action"],
   openHomePage: ["BrowserHome()", "open-home-page", "open-page-action"],
 
   // History actions
-  forgetHistory: ["Sanitizer.showUI(window)", "forget-history", "history-action"],
+  forgetHistory: ["command:Tools:Sanitize", "forget-history", "history-action"],
   quickForgetHistory: ["PlacesUtils.history.clear(true)", "quick-forget-history", "history-action"],
-  clearRecentHistory: ["BrowserTryToCloseWindow()", "clear-recent-history", "history-action"],
-  restoreLastSession: ["SessionStore.restoreLastSession()", "restore-last-session", "history-action"],
-  searchHistory: ["PlacesCommandHook.searchHistory()", "search-history", "history-action"],
+  clearRecentHistory: ["command:cmd_closeWindow", "clear-recent-history", "history-action"],
+  restoreLastSession: ["command:Browser:RestoreLastSession", "restore-last-session", "history-action"],
+  searchHistory: ["command:History:SearchHistory", "search-history", "history-action"],
   manageHistory: ["PlacesCommandHook.showPlacesOrganizer('History')", "manage-history", "history-action"],
 
   // Downloads actions
@@ -80,13 +83,6 @@ const kZKSActions = {
   reverseSidebarPosition: ["SidebarUI.reversePosition()", "reverse-sidebar", "sidebar-action"],
   hideSidebar: ["SidebarUI.hide()", "hide-sidebar", "sidebar-action"],
   toggleSidebar: ["SidebarUI.toggle()", "toggle-sidebar", "sidebar-action"],
-
-  // Custom actions
-  customAction1: ["gZenKeyboardShortcutsFunctions.evalCustomeActionWithNum(1)", "custom-action-1", "custom-action"],
-  customAction2: ["gZenKeyboardShortcutsFunctions.evalCustomeActionWithNum(2)", "custom-action-2", "custom-action"],
-  customAction3: ["gZenKeyboardShortcutsFunctions.evalCustomeActionWithNum(3)", "custom-action-3", "custom-action"],
-  customAction4: ["gZenKeyboardShortcutsFunctions.evalCustomeActionWithNum(4)", "custom-action-4", "custom-action"],
-  customAction5: ["gZenKeyboardShortcutsFunctions.evalCustomeActionWithNum(5)", "custom-action-5", "custom-action"]
 };
 
 // Section: ZenKeyboardShortcuts
@@ -115,8 +111,9 @@ var gZenKeyboardShortcuts = {
   get _savedShortcuts() {
     if (!this.__savedShortcuts) {
       try {
-        this.__savedShortcuts = JSON.parse(Services.prefs.getCharPref(kZKSStorageKey));
+        this.__savedShortcuts = JSON.parse(Services.prefs.getStringPref(kZKSStorageKey));
       } catch (e) {
+        console.error("Zen CKS: Error parsing saved shortcuts", e);
         this.__savedShortcuts = {};
       }
     }
