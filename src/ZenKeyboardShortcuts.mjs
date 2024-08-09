@@ -1,7 +1,7 @@
 
 const kZKSActions = {
   // manage actions
-  openNewTab: ["BrowserOpenTab()","open-new-tab", "tab-action"],
+  openNewTab: ["console.log('hellooooo')","open-new-tab", "tab-action"],
   closeTab: ["BrowserCloseTabOrWindow()", "close-tab", "tab-action"],
   openNewWindow: ["OpenBrowserWindow()", "open-new-window", "tab-action"],
   openNewPrivateWindow: ["OpenBrowserWindow({private: true})", "open-new-private-window", "tab-action"],
@@ -19,8 +19,7 @@ const kZKSActions = {
   muteCurrentTab: ["gBrowser.toggleMuteAudioOnMultiSelectedTabs(gBrowser.selectedTab)", "mute-current-tab", "page-action"],
   showSourceOfPage: ["BrowserViewSource(window.gBrowser.selectedBrowser)", "show-source-of-page", "page-action"],
   showPageInfo: ["BrowserPageInfo()", "show-page-info", "page-action"],
-  EnableRestMode: ["gFloorpCommands.enableRestMode();", "rest-mode", "page-action"],
-
+  
   // Visible actions
   zoomIn: ["FullZoom.enlarge()", "zoom-in", "visible-action"],
   zoomOut: ["FullZoom.reduce()", "zoom-out", "visible-action"],
@@ -45,9 +44,6 @@ const kZKSActions = {
   enterIntoCustomizeMode: ["gCustomizeMode.enter()", "enter-into-customize-mode", "tools-action"],
   enterIntoOfflineMode: ["BrowserOffline.toggleOfflineStatus()", "enter-into-offline-mode", "tools-action"],
   openScreenCapture: ["ScreenshotsUtils.notify(window, 'shortcut')", "open-screen-capture", "tools-action"],
-
-  // PIP actions
-  showPIP: ["gFloorpCSKActionFunctions.PictureInPicture.togglePictureInPicture(event)", "show-pip", "pip-action"],
 
   // Bookmark actions
   bookmarkThisPage: ["BrowserPageActions.doCommandForAction(PageActions.actionForID('bookmark'), event, this);", "bookmark-this-page", "bookmark-action"],
@@ -85,29 +81,6 @@ const kZKSActions = {
   hideSidebar: ["SidebarUI.hide()", "hide-sidebar", "sidebar-action"],
   toggleSidebar: ["SidebarUI.toggle()", "toggle-sidebar", "sidebar-action"],
 
-  // Workspaces actions
-  changeWorkspaceToPrevious: ["gWorkspaces.changeWorkspaceToNextOrBeforeWorkspace()", "open-previous-workspace", "workspaces-action"],
-  changeWorkspaceToNext: ["gWorkspaces.changeWorkspaceToNextOrBeforeWorkspace(true)", "open-next-workspace", "workspaces-action"],
-
-  // BMS actions
-  toggleBMS: ["gBrowserManagerSidebar.controllFunctions.toggleBMSShortcut()", "show-bms", "bms-action"],
-  togglePanel: ["gBrowserManagerSidebar.controllFunctions.togglePanelShortcut()", "show-current-panel", "bms-action"],
-  showPanel1: ["gBrowserManagerSidebar.contextMenu.showWithNumber(0)", "show-panel-1", "bms-action"],
-  showPanel2: ["gBrowserManagerSidebar.contextMenu.showWithNumber(1)", "show-panel-2", "bms-action"],
-  showPanel3: ["gBrowserManagerSidebar.contextMenu.showWithNumber(2)", "show-panel-3", "bms-action"],
-  showPanel4: ["gBrowserManagerSidebar.contextMenu.showWithNumber(3)", "show-panel-4", "bms-action"],
-  showPanel5: ["gBrowserManagerSidebar.contextMenu.showWithNumber(4)", "show-panel-5", "bms-action"],
-  showPanel6: ["gBrowserManagerSidebar.contextMenu.showWithNumber(5)", "show-panel-6", "bms-action"],
-  showPanel7: ["gBrowserManagerSidebar.contextMenu.showWithNumber(6)", "show-panel-7", "bms-action"],
-  showPanel8: ["gBrowserManagerSidebar.contextMenu.showWithNumber(7)", "show-panel-8", "bms-action"],
-  showPanel9: ["gBrowserManagerSidebar.contextMenu.showWithNumber(8)", "show-panel-9", "bms-action"],
-  showPanel10: ["gBrowserManagerSidebar.contextMenu.showWithNumber(9)", "show-panel-10", "bms-action"],
-
-  // Split View actions
-  openSplitViewOnLeft: ["gSplitView.Functions.setSplitView(gBrowser.selectedTab, 'left')", "open-split-view-on-left", "split-view-action"],
-  openSplitViewOnRight: ["gSplitView.Functions.setSplitView(gBrowser.selectedTab, 'right')", "open-split-view-on-right", "split-view-action"],
-  closeSplitView: ["gSplitView.Functions.removeSplitView()", "close-split-view", "split-view-action"],
-
   // Custom actions
   customAction1: ["gZenKeyboardShortcutsFunctions.evalCustomeActionWithNum(1)", "custom-action-1", "custom-action"],
   customAction2: ["gZenKeyboardShortcutsFunctions.evalCustomeActionWithNum(2)", "custom-action-2", "custom-action"],
@@ -119,9 +92,23 @@ const kZKSActions = {
 // Section: ZenKeyboardShortcuts
 
 const kZKSStorageKey = "zen.keyboard.shortcuts";
+const kZKSKeyCodeMap = {
+  F1: "VK_F1",
+  F2: "VK_F2",
+  F3: "VK_F3",
+  F4: "VK_F4",
+  F5: "VK_F5",
+  F6: "VK_F6",
+  F7: "VK_F7",
+  F8: "VK_F8",
+  F9: "VK_F9",
+  F10: "VK_F10",
+  F11: "VK_F11",
+  F12: "VK_F12",
+};
+
 var gZenKeyboardShortcuts = {
   init() {
-    return;
     this._initShortcuts();
   },
 
@@ -136,24 +123,34 @@ var gZenKeyboardShortcuts = {
     return this.__savedShortcuts;
   },
 
+  setShortcut(id, shortcut) {
+    if (!shortcut) {
+      delete this._savedShortcuts[id];
+    } else if (this.isValidShortcut(shortcut)) {
+      this._savedShortcuts[id] = shortcut;
+    }
+    Services.prefs.setStringPref(kZKSStorageKey, JSON.stringify(this._savedShortcuts));
+  },
+    
   _initShortcuts() {
     if (window.location.href == "chrome://browser/content/browser.xhtml") {
+      Services.prefs.addObserver(kZKSStorageKey, this._initSavedShortcuts.bind(this));
       this._initSavedShortcuts();
     }
   },
 
-  _createShortcutElement(action) {
-    let shortcut = this._savedShortcuts[action];
+  _createShortcutElement(_action) {
+    let shortcut = this._savedShortcuts[_action];
     if (!shortcut) {
       return null;
     }
 
-    const action = kZKSActions[action][0];
-    const keycode = shortcut.keycode;
-    const key = shortcut.key;
-    const modifiers = {
+    const action = kZKSActions[_action][0];
+    const keycode = shortcut.keycode?.toUpperCase();
+    const key = shortcut.key?.toUpperCase();
+    let modifiers = {
+      control: shortcut.ctrl,
       alt: shortcut.alt,
-      ctrl: shortcut.ctrl,
       shift: shortcut.shift,
       meta: shortcut.meta
     };
@@ -161,11 +158,12 @@ var gZenKeyboardShortcuts = {
     modifiers = Object.keys(modifiers).filter(mod => modifiers[mod]).join(",");
 
     if (keycode) {
+      const key = kZKSKeyCodeMap[keycode] || keycode;
       return window.MozXULElement.parseXULToFragment(`
         <key 
-          id="zen-key_${action}"
+          id="zen-key_${_action}"
           class="zen-keyboard-shortcut"
-          keycode="${keycode}" 
+          keycode="${keycode}"
           oncommand="${action}" 
           modifiers="${modifiers}"/>
       `);
@@ -173,7 +171,7 @@ var gZenKeyboardShortcuts = {
 
     return window.MozXULElement.parseXULToFragment(`
       <key 
-        id="zen-key_${action}"
+        id="zen-key_${_action}"
         class="zen-keyboard-shortcut"
         key="${key}" 
         oncommand="${action}" 
@@ -188,12 +186,47 @@ var gZenKeyboardShortcuts = {
     }
     
     for (let action in kZKSActions) {
+      let id = `zen-key_${action}`;
+      let existing = document.getElementById(id);
+      if (existing) {
+        existing.remove();
+      }
       let shortcut = this._createShortcutElement(action);
       if (shortcut) {
         keySet.appendChild(shortcut);
       }
     }
-  }
+  },
+
+  getShortcut(action) {
+    return this._savedShortcuts[action];
+  },
+
+  isValidShortcut(shortcut) {
+    return shortcut && (shortcut.key || shortcut.keycode);
+  },
+
+  shortCutToString(shortcut) {
+    let str = "";
+    if (shortcut.ctrl) {
+      str += "Ctrl+";
+    }
+    if (shortcut.alt) {
+      str += "Alt+";
+    }
+    if (shortcut.shift) {
+      str += "Shift+";
+    }
+    if (shortcut.meta) {
+      str += "Meta+";
+    }
+    if (shortcut.keycode) {
+      str += shortcut.keycode;
+    } else if (shortcut.key) { // It can be undefined if edited from the settings
+      str += shortcut.key;
+    }
+    return str;
+  },
 };
 
 gZenKeyboardShortcuts.init();

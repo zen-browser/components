@@ -19,7 +19,6 @@ var gZenThemeBuilder = {
 
   _initBuilderUI() {
     let wrapper = this._builderWrapper;
-    console.log(wrapper);
     if (!wrapper) {
       return;
     }
@@ -177,5 +176,3 @@ var gZenThemeBuilder = {
     Services.prefs.setStringPref(kZenAccentColorConfigKey, this._rgbToHex(...imageData.data));
   },
 };
-
-gZenThemeBuilder.init();
