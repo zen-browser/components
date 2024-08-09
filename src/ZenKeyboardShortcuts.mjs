@@ -135,8 +135,33 @@ var gZenKeyboardShortcuts = {
   _initShortcuts() {
     if (window.location.href == "chrome://browser/content/browser.xhtml") {
       Services.prefs.addObserver(kZKSStorageKey, this._initSavedShortcuts.bind(this));
+      Services.prefs.addObserver("zen.keyboard.shortcuts.disable-firefox", this._disableFirefoxShortcuts.bind(this));
       this._initSavedShortcuts();
+      this._disableFirefoxShortcuts();
     }
+  },
+
+  _disableFirefoxShortcuts() {
+    let disable = Services.prefs.getBoolPref("zen.keyboard.shortcuts.disable-firefox");
+    let keySet = document.getElementById("mainKeyset");
+    if (!keySet) {
+      throw new Error("Zen CKS: No main keyset found");
+    }
+    if (disable) {
+      console.log("Zen CKS: Disabling Firefox shortcuts");
+      for (let child of keySet.children) {
+        if (!child.id.startsWith("zen-key_")) {
+          child.setAttribute("disabled", true);
+        }
+      }
+    }
+  },
+
+  _getCommandAttribute(action) {
+    if (action.startsWith("command:")) {
+      return `command="${action.substring(8)}"`;
+    }
+    return `oncommand="${action}"`;
   },
 
   _createShortcutElement(_action) {
@@ -163,8 +188,8 @@ var gZenKeyboardShortcuts = {
         <key 
           id="zen-key_${_action}"
           class="zen-keyboard-shortcut"
-          keycode="${keycode}"
-          oncommand="${action}" 
+          keycode="${key}"
+          ${this._getCommandAttribute(action)}
           modifiers="${modifiers}"/>
       `);
     }
@@ -174,7 +199,7 @@ var gZenKeyboardShortcuts = {
         id="zen-key_${_action}"
         class="zen-keyboard-shortcut"
         key="${key}" 
-        oncommand="${action}" 
+        ${this._getCommandAttribute(action)}
         modifiers="${modifiers}"/>
     `);
   },

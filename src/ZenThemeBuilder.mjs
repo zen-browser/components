@@ -3,6 +3,7 @@ const kZenAccentColorConfigKey = "zen.theme.accent-color";
 
 var gZenThemeBuilder = {
   init() {
+    return; // TODO:
     this._mouseMoveListener = this._handleThumbMouseMove.bind(this);
     setTimeout(() => {
       this._initBuilderUI();
