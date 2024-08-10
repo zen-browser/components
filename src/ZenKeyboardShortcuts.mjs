@@ -187,7 +187,7 @@ var gZenKeyboardShortcuts = {
     const keycode = shortcut.keycode?.toUpperCase();
     const key = shortcut.key?.toUpperCase();
     let modifiers = {
-      control: shortcut.ctrl,
+      accel: shortcut.ctrl,
       alt: shortcut.alt,
       shift: shortcut.shift,
       meta: shortcut.meta
