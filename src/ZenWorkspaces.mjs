@@ -8,9 +8,9 @@ var ZenWorkspaces = {
       console.warn("ZenWorkspaces: !!! ZenWorkspaces is disabled in hidden windows !!!");
       return; // We are in a hidden window, don't initialize ZenWorkspaces
     } 
-    console.log("ZenWorkspaces: Initializing ZenWorkspaces...");
+    console.info("ZenWorkspaces: Initializing ZenWorkspaces...");
     await this.initializeWorkspaces();
-    console.log("ZenWorkspaces: ZenWorkspaces initialized");
+    console.info("ZenWorkspaces: ZenWorkspaces initialized");
   },
 
   get workspaceEnabled() {
@@ -100,14 +100,14 @@ var ZenWorkspaces = {
       json.workspaces = [];
     }
     json.workspaces.push(workspaceData);
-    console.log("ZenWorkspaces: Saving workspace", workspaceData);
+    console.info("ZenWorkspaces: Saving workspace", workspaceData);
     await IOUtils.writeJSON(this._storeFile, json);
     this._workspaceCache = null;
   },
 
   async removeWorkspace(windowID) {
     let json = await this._workspaces();
-    console.log("ZenWorkspaces: Removing workspace", windowID);
+    console.info("ZenWorkspaces: Removing workspace", windowID);
     await this.changeWorkspace(json.workspaces.find(workspace => workspace.uuid !== windowID));
     this._deleteAllTabsInWorkspace(windowID);
     json.workspaces = json.workspaces.filter(workspace => workspace.uuid !== windowID);
@@ -338,7 +338,7 @@ var ZenWorkspaces = {
       workspace.used = workspace.uuid === window.uuid;
     }
     this.unsafeSaveWorkspaces(workspaces);
-    console.log("ZenWorkspaces: Changing workspace to", window.uuid);
+    console.info("ZenWorkspaces: Changing workspace to", window.uuid);
     for (let tab of gBrowser.tabs) {
       if (tab.getAttribute("zen-workspace-id") === window.uuid && !tab.pinned) {
         if (!firstTab) {

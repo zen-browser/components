@@ -422,7 +422,7 @@ var gZenViewSplitter = new class {
       // see browser-custom-elements.js's patch
       tab.linkedBrowser.zenModeActive = active;
       try {
-        console.log(tab.linkedBrowser);
+        console.info(tab.linkedBrowser);
         tab.linkedBrowser.docShellIsActive = active;
       } catch (e) {
         console.error(e);

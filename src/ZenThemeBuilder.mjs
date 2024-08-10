@@ -24,7 +24,7 @@ var gZenThemeBuilder = {
       return;
     }
 
-    console.log("gZenThemeBuilder: init builder UI");
+    console.info("gZenThemeBuilder: init builder UI");
 
     const kTemplate = `
       <html:div id="zen-theme-builder">

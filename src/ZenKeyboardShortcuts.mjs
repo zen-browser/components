@@ -15,6 +15,11 @@ const kZKSActions = {
   showPreviousTab: ["gBrowser.tabContainer.advanceSelectedTab(-1, true)", "show-previous-tab", "tab-action"],
   showAllTabsPanel: ["gTabsPanel.showAllTabsPanel()", "show-all-tabs-panel", "tab-action"],
 
+  // Compact mode actions
+  zenToggleCompactMode: ["gZenCompactModeManager.toggle()", "zen-toggle-compact-mode", "compact-mode-action"],
+  zenToggleCompactModeSidebar: ["gZenCompactModeManager.toggleSidebar()", "zen-toggle-compact-mode-sidebar", "compact-mode-action"],
+  zenToggleCompactModeToolbar: ["gZenCompactModeManager.toggleToolbar()", "zen-toggle-compact-mode-toolbar", "compact-mode-action"],
+
   // Page actions
   sendWithMail: ["command:Browser:SendLink", "send-with-mail", "page-action"],
   savePage: ["command:Browser:SavePage", "save-page", "page-action"],
@@ -132,7 +137,8 @@ var gZenKeyboardShortcuts = {
     
   _initShortcuts() {
     if (window.location.href == "chrome://browser/content/browser.xhtml") {
-      Services.prefs.addObserver(kZKSStorageKey, this._initSavedShortcuts.bind(this));
+      console.info("Zen CKS: Initializing shortcuts");
+      Services.prefs.addObserver(kZKSStorageKey, this._onShortcutChange.bind(this));
       Services.prefs.addObserver("zen.keyboard.shortcuts.disable-firefox", this._disableFirefoxShortcuts.bind(this));
       this._initSavedShortcuts();
       this._disableFirefoxShortcuts();
@@ -141,18 +147,27 @@ var gZenKeyboardShortcuts = {
 
   _disableFirefoxShortcuts() {
     let disable = Services.prefs.getBoolPref("zen.keyboard.shortcuts.disable-firefox");
-    let keySet = document.getElementById("mainKeyset");
-    if (!keySet) {
-      throw new Error("Zen CKS: No main keyset found");
+    if (!disable) {
+      return;
     }
-    if (disable) {
-      console.log("Zen CKS: Disabling Firefox shortcuts");
+    window.SessionStore.promiseInitialized.then(() => {
+      let keySet = document.getElementById("mainKeyset");
+      if (!keySet) {
+        throw new Error("Zen CKS: No main keyset found");
+      }
       for (let child of keySet.children) {
         if (!child.id.startsWith("zen-key_")) {
           child.setAttribute("disabled", true);
         }
       }
-    }
+      console.info("Remove already exist shortcut keys");
+    });
+  },
+
+  _onShortcutChange() {
+    console.info("Zen CKS: Shortcut changed");
+    this.__savedShortcuts = null;
+    this._initSavedShortcuts();
   },
 
   _getCommandAttribute(action) {
