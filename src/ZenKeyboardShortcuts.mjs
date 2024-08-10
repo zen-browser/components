@@ -167,7 +167,7 @@ var gZenKeyboardShortcuts = {
   _onShortcutChange() {
     console.info("Zen CKS: Shortcut changed");
     this.__savedShortcuts = null;
-    this._initSavedShortcuts();
+    this._initSavedShortcuts(true);
   },
 
   _getCommandAttribute(action) {
@@ -217,7 +217,7 @@ var gZenKeyboardShortcuts = {
     `);
   },
 
-  _initSavedShortcuts() {
+  _initSavedShortcuts(fromUpdate = false) {
     let keySet = document.getElementById("mainKeyset");
     if (!keySet) {
       throw new Error("Zen CKS: No main keyset found");
@@ -231,9 +231,22 @@ var gZenKeyboardShortcuts = {
       }
       let shortcut = this._createShortcutElement(action);
       if (shortcut) {
-        keySet.appendChild(shortcut);
+        keySet.prepend(shortcut);
       }
     }
+
+    this._fixMeinKeyset();
+  },
+
+  _fixMeinKeyset() {
+    let keySet = document.getElementById("mainKeyset");
+    if (!keySet) {
+      throw new Error("Zen CKS: No main keyset found");
+    }
+    const parent = keySet.parentElement;
+    // We need to re-append the main keyset to the document to make the shortcuts work
+    keySet.remove();
+    parent.prepend(keySet);
   },
 
   getShortcut(action) {
