@@ -1,6 +1,4 @@
 
-
-
 var gZenBrowserManagerSidebar = {
   _sidebarElement: null,
   _currentPanel: null,
@@ -12,7 +10,7 @@ var gZenBrowserManagerSidebar = {
   _isDragging: false,
   contextTab: null,
 
-  DEFAULT_MOBILE_USER_AGENT: "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36 Edg/114.0.1823.79",
+  DEFAULT_MOBILE_USER_AGENT: "Mozilla/5.0 (Android 12; Mobile; rv:129.0) Gecko/20100101 Firefox/129.0",
   MAX_SIDEBAR_PANELS: 8, // +1 for the add panel button
   MAX_RUNS: 3,
 
