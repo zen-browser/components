@@ -422,7 +422,6 @@ var gZenViewSplitter = new class {
       // see browser-custom-elements.js's patch
       tab.linkedBrowser.zenModeActive = active;
       try {
-        console.info(tab.linkedBrowser);
         tab.linkedBrowser.docShellIsActive = active;
       } catch (e) {
         console.error(e);
@@ -573,5 +572,27 @@ var gZenViewSplitter = new class {
     const tab = targetWindow.gBrowser.addTrustedTab(url, options);
     targetWindow.gBrowser.selectedTab = tab;
     return tab;
+  }
+
+  toggleShortcut(gridType) {
+    if (gridType === "unsplit" && this.currentView >= 0) {
+      this.unsplitCurrentView();
+      return;
+    }
+    if (this.currentView >= 0) {
+      this._data[this.currentView].gridType = gridType;
+      this.updateSplitView(window.gBrowser.selectedTab);
+    }
+    const tabs = gBrowser.tabs;
+    if (tabs.length < 2) {
+      return;
+    }
+    let nextTabIndex = tabs.indexOf(gBrowser.selectedTab) + 1;
+    if (nextTabIndex >= tabs.length) {
+      nextTabIndex = 0;
+    } else if (nextTabIndex < 0) {
+      nextTabIndex = tabs.length - 1;
+    }
+    this.splitTabs([gBrowser.selectedTab, tabs[nextTabIndex]]);
   }
 }

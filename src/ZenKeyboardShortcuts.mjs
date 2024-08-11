@@ -3,6 +3,15 @@ const kZKSActions = {
   // Note: If they start with "command:", it means that "command=" will be added to the key element,
   // otherwise "oncommand=" will be added.
 
+  // Split view actions
+  zenSplitViewGrid: ["gZenViewSplitter.toggleShortcut('grid')", "zen-split-view-grid", "split-view-action"],
+  zenSplitViewVertical: ["gZenViewSplitter.toggleShortcut('hsplit')", "zen-split-view-vertical", "split-view-action"],
+  zenSplitViewHorizontal: ["gZenViewSplitter.toggleShortcut('vsplit')", "zen-split-view-horizontal", "split-view-action"],
+  zenSplitViewClose: ["gZenViewSplitter.toggleShortcut('unsplit')", "zen-split-view-close", "split-view-action"],
+
+  // Workspace actions
+  zenChangeWorkspace: ["ZenWorkspaces.changeWorkspaceShortcut()", "zen-change-workspace", "workspace-action"],
+
   // manage actions
   openNewTab: ["command:cmd_newNavigatorTabNoEvent","open-new-tab", "tab-action"],
   closeTab: ["command:cmd_close", "close-tab", "tab-action"],
@@ -91,6 +100,25 @@ const kZKSActions = {
   zenToggleWebPanels: ["gZenBrowserManagerSidebar.toggle()", "zen-toggle-web-panels", "sidebar-action"],
 };
 
+const kZenDefaultShortcuts = {
+  // Split view actions
+  zenSplitViewGrid: "Ctrl+Alt+G",
+  zenSplitViewVertical: "Ctrl+Alt+V",
+  zenSplitViewHorizontal: "Ctrl+Alt+H",
+  zenSplitViewClose: "Ctrl+Alt+U",
+
+  // Workspace actions
+  zenChangeWorkspace: "Ctrl+Shift+E",
+
+  // Compact mode actions
+  zenToggleCompactMode: "Ctrl+Alt+C",
+  zenToggleCompactModeSidebar: "Ctrl+Alt+S",
+  zenToggleCompactModeToolbar: "Ctrl+Alt+T",
+
+  // manage actions
+  zenToggleWebPanels: "Ctrl+Shift+P", 
+};
+
 // Section: ZenKeyboardShortcuts
 
 const kZKSStorageKey = "zen.keyboard.shortcuts";
@@ -107,17 +135,35 @@ const kZKSKeyCodeMap = {
   F10: "VK_F10",
   F11: "VK_F11",
   F12: "VK_F12",
+  TAB: "VK_TAB",
+  ENTER: "VK_RETURN",
+  ESCAPE: "VK_ESCAPE",
+  SPACE: "VK_SPACE",
+  ARROWLEFT: "VK_LEFT",
+  ARROWRIGHT: "VK_RIGHT",
+  ARROWUP: "VK_UP",
+  ARROWDOWN: "VK_DOWN",
+  DELETE: "VK_DELETE",
+  BACKSPACE: "VK_BACK",
 };
 
 var gZenKeyboardShortcuts = {
   init() {
+    if (!Services.prefs.getBoolPref("zen.keyboard.shortcuts.enabled")) {
+      return;
+    }
     this._initShortcuts();
   },
 
   get _savedShortcuts() {
     if (!this.__savedShortcuts) {
       try {
-        this.__savedShortcuts = JSON.parse(Services.prefs.getStringPref(kZKSStorageKey));
+        const data = Services.prefs.getStringPref(kZKSStorageKey);
+        if (data.length == 0) {
+          this._startUpShortcuts();
+          return this._savedShortcuts;
+        }
+        this.__savedShortcuts = JSON.parse(data);
       } catch (e) {
         console.error("Zen CKS: Error parsing saved shortcuts", e);
         this.__savedShortcuts = {};
@@ -126,13 +172,46 @@ var gZenKeyboardShortcuts = {
     return this.__savedShortcuts;
   },
 
+  _startUpShortcuts() {
+    this.__savedShortcuts = {};
+    this._addDefaultShortcuts();
+    this._saveShortcuts();
+  },
+
+  _saveShortcuts() {
+    Services.prefs.setStringPref(kZKSStorageKey, JSON.stringify(this._savedShortcuts));
+  },
+
+  _parseDefaultShortcut(shortcut) {
+    let ctrl = shortcut.includes("Ctrl+");
+    let alt = shortcut.includes("Alt+");
+    let shift = shortcut.includes("Shift+");
+    let meta = shortcut.includes("Meta+");
+    let key = shortcut.replace(/Ctrl\+|Alt\+|Shift\+|Meta\+/g, "");
+    if (["Tab", "Enter", "Escape", "Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key)) {
+      return { ctrl, alt, shift, meta, key: undefined, keycode: key };
+    }
+    let isKeyCode = key.length > 1;
+    return { ctrl, alt, shift, meta, 
+        key: isKeyCode ? undefined : key, 
+        keycode: isKeyCode ? key : undefined };
+  },
+
+  _addDefaultShortcuts() {
+    for (let action in kZenDefaultShortcuts) {
+      if (!this._savedShortcuts[action]) {
+        this._savedShortcuts[action] = this._parseDefaultShortcut(kZenDefaultShortcuts[action]);
+      }
+    }
+  },
+
   setShortcut(id, shortcut) {
     if (!shortcut) {
       delete this._savedShortcuts[id];
     } else if (this.isValidShortcut(shortcut)) {
       this._savedShortcuts[id] = shortcut;
     }
-    Services.prefs.setStringPref(kZKSStorageKey, JSON.stringify(this._savedShortcuts));
+    this._saveShortcuts();
   },
     
   _initShortcuts() {
@@ -279,7 +358,3 @@ var gZenKeyboardShortcuts = {
     return str;
   },
 };
-
-gZenKeyboardShortcuts.init();
-
-// Section: gZenKeyboardShortcutsFunctions

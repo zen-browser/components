@@ -1,1 +1,4 @@
 *.mjs linguist-language=TypeScript
+
+*-c.patch linguist-language=C++
+*-cpp.patch linguist-language=C++

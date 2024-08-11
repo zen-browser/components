@@ -421,7 +421,16 @@ var ZenWorkspaces = {
 
   async contextDelete() {
     await this.removeWorkspace(this._contextMenuId);
-  }
+  },
+
+  async changeWorkspaceShortcut() {
+    // Cycle through workspaces
+    let workspaces = await this._workspaces();
+    let activeWorkspace = workspaces.workspaces.find(workspace => workspace.used);
+    let workspaceIndex = workspaces.workspaces.indexOf(activeWorkspace);
+    let nextWorkspace = workspaces.workspaces[workspaceIndex + 1] || workspaces.workspaces[0];
+    this.changeWorkspace(nextWorkspace);
+  },
 };
 
 ZenWorkspaces.init();
