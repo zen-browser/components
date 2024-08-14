@@ -71,9 +71,12 @@ var ZenWorkspaces = {
           activeWorkspace.used = true;
           await this.saveWorkspaces();
         }
-        await this.changeWorkspace(activeWorkspace, true);
+        window.SessionStore.promiseInitialized.then(() => {
+          this.changeWorkspace(activeWorkspace, true);
+        });
       }
       this._initializeWorkspaceIcons();
+      this._initializeWorkspaceTabContextMenus();
     }
   },
 
@@ -430,6 +433,44 @@ var ZenWorkspaces = {
     let workspaceIndex = workspaces.workspaces.indexOf(activeWorkspace);
     let nextWorkspace = workspaces.workspaces[workspaceIndex + 1] || workspaces.workspaces[0];
     this.changeWorkspace(nextWorkspace);
+  },
+
+  _initializeWorkspaceTabContextMenus() {
+    const contextMenu = document.getElementById("tabContextMenu");
+    const element = window.MozXULElement.parseXULToFragment(`
+      <menuseparator/>
+      <menu id="context-zen-change-workspace-tab" data-l10n-id="context-zen-change-workspace-tab">
+        <menupopup oncommand="ZenWorkspaces.changeTabWorkspace(event.target.getAttribute('zen-workspace-id'))">
+        </menupopup>
+      </menu>
+    `);
+    document.getElementById("context_closeDuplicateTabs").after(element);
+
+    contextMenu.addEventListener("popupshowing", async (event) => {
+      const menu = document.getElementById("context-zen-change-workspace-tab").querySelector("menupopup");
+      menu.innerHTML = "";
+      const workspaces = await this._workspaces();
+      const activeWorkspace = workspaces.workspaces.find(workspace => workspace.used);
+      for (let workspace of workspaces.workspaces) {
+        const menuItem = window.MozXULElement.parseXULToFragment(`
+          <menuitem label="${workspace.name}" zen-workspace-id="${workspace.uuid}" />
+        `);
+        if (workspace.uuid === activeWorkspace.uuid) {
+          menuItem.querySelector("menuitem").setAttribute("disabled", "true");
+        }
+        menu.appendChild(menuItem);
+      }
+    });
+  },
+
+  async changeTabWorkspace(workspaceID) {
+    const tabs = TabContextMenu.contextTab.multiselected 
+      ? gBrowser.selectedTabs : [TabContextMenu.contextTab];
+    for (let tab of tabs) {
+      tab.setAttribute("zen-workspace-id", workspaceID);
+    }
+    const workspaces = await this._workspaces();
+    await this.changeWorkspace(workspaces.workspaces.find(workspace => workspace.uuid === workspaceID));
   },
 };
 

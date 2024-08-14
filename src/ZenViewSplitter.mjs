@@ -110,18 +110,6 @@ var gZenViewSplitter = new class {
   }
 
   /**
-   * Inserts the split link into the context menu.
-   */
-  insertSplitLinkIntoContextMenu() {
-    const element = window.MozXULElement.parseXULToFragment(`
-      <menuitem id="context-split-with-newtab" data-l10n-id="floorp-split-view-open-menu"
-                oncommand="gSplitView.splitLinkInNewTab();" hidden="true"/>
-      <menuseparator id="context-stripOnShareLink"/>
-    `);
-    document.getElementById("context-stripOnShareLink").after(element);
-  }
-
-  /**
    * Inserts the split view tab context menu item.
    */
   insertSplitViewTabContextMenu() {
@@ -139,7 +127,6 @@ var gZenViewSplitter = new class {
    * Initializes the context menu.
    */
   initializeContextMenu() {
-    this.insertSplitLinkIntoContextMenu();
     this.insertSplitViewTabContextMenu();
     this.insetUpdateContextMenuItems();
   }
