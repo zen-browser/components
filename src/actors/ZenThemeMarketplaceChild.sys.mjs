@@ -14,14 +14,31 @@ export class ZenThemeMarketplaceChild extends JSWindowActorChild {
   }
 
   initiateThemeMarketplace() {
+    this.contentWindow.setTimeout(() => {
+      this.addIntallButtons();
+    }, 1000);
   }
 
-  addIntallButton() {
-    const actionsContainer = this.contentWindow.document.getElementById("theme-actions");
-    if (!actionsContainer) {
-      console.error("ZenThemeMarketplaceChild: Could not find theme-actions container");
-      return;
+  addIntallButtons() {
+    const actionButtons = this.contentWindow.document.querySelectorAll(".install-theme");
+    const errorMessages = this.contentWindow.document.querySelectorAll(".install-theme-error");
+    if (actionButtons.length !== 0) {
+      console.info("ZenThemeMarketplaceChild: Initiating theme marketplace");
     }
-    // Set Service pref here if clicked!
+
+    for (let error of errorMessages) {
+      error.remove();
+    }
+
+    for (let button of actionButtons) {
+      button.classList.remove("hidden");
+      button.addEventListener("click", this.installTheme.bind(this));
+    }
+  }
+
+  installTheme(event) {
+    const button = event.target;
+    const themeId = button.getAttribute("zen-theme-id");
+    console.info("Installing theme with id: ", themeId);
   }
 };
