@@ -22,5 +22,6 @@ export class ZenThemeMarketplaceChild extends JSWindowActorChild {
       console.error("ZenThemeMarketplaceChild: Could not find theme-actions container");
       return;
     }
+    // Set Service pref here if clicked!
   }
 };
