@@ -1,4 +1,5 @@
 
+const kZenThemesPreference = "zen.themes.data"; 
 export class ZenThemeMarketplaceChild extends JSWindowActorChild {
   constructor() {
     super();
@@ -19,7 +20,7 @@ export class ZenThemeMarketplaceChild extends JSWindowActorChild {
     }, 1000);
   }
 
-  addIntallButtons() {
+  async addIntallButtons() {
     const actionButtons = this.contentWindow.document.querySelectorAll(".install-theme");
     const errorMessages = this.contentWindow.document.querySelectorAll(".install-theme-error");
     if (actionButtons.length !== 0) {
@@ -36,9 +37,51 @@ export class ZenThemeMarketplaceChild extends JSWindowActorChild {
     }
   }
 
-  installTheme(event) {
+  get themes() {
+    if (!this._themes) {
+      this._themes = JSON.parse(Services.prefs.getStringPref(kZenThemesPreference, "{}"));
+    }
+    return this._themes;
+  }
+
+  set themes(themes) {
+    this._themes = themes;
+    this.sendAsyncMessage("ZenThemeMarketplace:UpdateThemes", { themes });
+  }
+
+  addTheme(theme) {
+    this.themes[theme.id] = theme;
+    this.themes = this.themes;
+  }
+
+  async getThemeInfo(themeId) {
+    const url = `https://zen-browser.app/api/get-theme?id=${themeId}`;
+    console.info("ZTM: Fetching theme info from: ", url);
+    const data = await fetch(url, {
+      mode: "no-cors",
+    });
+
+    if (data.ok) {
+      try {
+        const obj = await data.json();
+        return obj;
+      } catch (e) {
+        console.error("ZTM: Error parsing theme info: ", e);
+      }
+    }
+    return null; 
+  }
+
+  async installTheme(event) {
     const button = event.target;
     const themeId = button.getAttribute("zen-theme-id");
-    console.info("Installing theme with id: ", themeId);
+    console.info("ZTM: Installing theme with id: ", themeId);
+
+    const theme = await this.getThemeInfo(themeId);
+    if (!theme) {
+      console.error("ZTM: Error fetching theme info");
+      return;
+    }
+    this.addTheme(theme);
   }
 };
