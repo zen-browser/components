@@ -1,5 +1,4 @@
 
-const kZenThemesPreference = "zen.themes.data"; 
 export class ZenThemeMarketplaceChild extends JSWindowActorChild {
   constructor() {
     super();
@@ -17,41 +16,23 @@ export class ZenThemeMarketplaceChild extends JSWindowActorChild {
   initiateThemeMarketplace() {
     this.contentWindow.setTimeout(() => {
       this.addIntallButtons();
-    }, 1000);
+    }, 0);
   }
 
   async addIntallButtons() {
-    const actionButtons = this.contentWindow.document.querySelectorAll(".install-theme");
-    const errorMessages = this.contentWindow.document.querySelectorAll(".install-theme-error");
-    if (actionButtons.length !== 0) {
+    const actionButton = this.contentWindow.document.getElementById("install-theme");
+    const errorMessage = this.contentWindow.document.getElementById("install-theme-error");
+    if (actionButton) {
       console.info("ZenThemeMarketplaceChild: Initiating theme marketplace");
     }
 
-    for (let error of errorMessages) {
-      error.remove();
-    }
-
-    for (let button of actionButtons) {
-      button.classList.remove("hidden");
-      button.addEventListener("click", this.installTheme.bind(this));
-    }
-  }
-
-  get themes() {
-    if (!this._themes) {
-      this._themes = JSON.parse(Services.prefs.getStringPref(kZenThemesPreference, "{}"));
-    }
-    return this._themes;
-  }
-
-  set themes(themes) {
-    this._themes = themes;
-    this.sendAsyncMessage("ZenThemeMarketplace:UpdateThemes", { themes });
+    errorMessage.classList.add("hidden");
+    actionButton.classList.remove("hidden");
+    actionButton.addEventListener("click", this.installTheme.bind(this));
   }
 
   addTheme(theme) {
-    this.themes[theme.id] = theme;
-    this.themes = this.themes;
+    this.sendAsyncMessage("ZenThemeMarketplace:InstallTheme", { theme });
   }
 
   async getThemeInfo(themeId) {
