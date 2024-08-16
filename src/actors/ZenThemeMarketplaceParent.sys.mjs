@@ -1,53 +1,56 @@
 
-const kZenThemesPreference = "zen.themes.data"; 
 export class ZenThemeMarketplaceParent extends JSWindowActorParent {
   constructor() {
     super();
-
-    Services.prefs.addObserver(kZenThemesPreference, this.onThemePreferenceChange.bind(this));
   }
 
-  receiveMessage(message) {
+  async receiveMessage(message) {
     switch (message.name) {
-      case "ZenThemeMarketplace:UpdateThemes": {
+      case "ZenThemeMarketplace:InstallTheme": {
         console.info("ZenThemeMarketplaceParent: Updating themes");
-        this.updateThemes(message.data.themes);
+        const theme = message.data.theme;
+        const themes = await this.getThemes();
+        themes[theme.id] = theme;
+        this.updateThemes(themes);
         break;
       }
     }
   }
 
-  get themes() {
+  async getThemes() {
     if (!this._themes) {
-      this._themes = JSON.parse(Services.prefs.getStringPref(kZenThemesPreference, "{}"));
+      if (!(await IOUtils.exists(this.themesDataFile))) {
+        await IOUtils.writeJSON(this.themesDataFile, {});
+      }
+      this._themes = await IOUtils.readJSON(this.themesDataFile);
     }
     return this._themes;
   }
 
   updateThemes(themes) {
-    Services.prefs.setStringPref(kZenThemesPreference, JSON.stringify(themes));
-  }
-
-  onThemePreferenceChange() {
-    this._themes = null;
+    this._themes = themes;
+    IOUtils.writeJSON(this.themesDataFile, themes);
     this.checkForThemeChanges();
   }
 
-  async getDownloadFileContents(themeId) {
+  async downloadUrlToFile(url, path) {
     try {
-      const theme = this.themes[themeId];
-      if (!theme) {
-        throw new Error("Theme not found");
-      }
-      const downloadUrl = theme.downloadUrl;
-      console.info("ZenThemeMarketplaceParent: Downloading file from ", downloadUrl);
-      const response = await fetch(downloadUrl);
+      console.info("ZenThemeMarketplaceParent: Downloading file from ", url);
+      const response = await fetch(url);
       const data = await response.text();
-      return data;
+      // convert the data into a Uint8Array
+      let buffer = new TextEncoder().encode(data);
+      await IOUtils.write(path, buffer);
     } catch (e) {
-      console.error("ZenThemeMarketplaceParent: Error getting downloadable file", e);
-      return "";
+      console.error("ZenThemeMarketplaceParent: Error downloading file", e);
     }
+  }
+
+  async downloadThemeFileContents(theme) {
+    const themePath = PathUtils.join(this.themesRootPath, theme.id);
+    await IOUtils.makeDirectory(themePath, { ignoreExisting: true });
+    await this.downloadUrlToFile(theme.style, PathUtils.join(themePath, "chrome.css"));
+    await this.downloadUrlToFile(theme.readme, PathUtils.join(themePath, "readme.md"));
   }
 
   get themesRootPath() {
@@ -58,10 +61,31 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
     );
   }
 
-  // Compare the downloaded themes to the "installed" themes
-  // and update the installed themes with the new ones. We may also
-  // delete any themes that are no longer available.
+  get themesDataFile() {
+    return PathUtils.join(
+      PathUtils.profileDir,
+      "zen-themes.json"
+    );
+  }
+
+  async installTheme(theme) {
+    await this.downloadThemeFileContents(theme);
+    this.sendAsyncMessage("ZenThemeMarketplace:ThemeInstalled", { theme });
+  }
+
   async checkForThemeChanges() {
-    
+    const themes = await this.getThemes();
+    const themeIds = Object.keys(themes);
+    for (const themeId of themeIds) {
+      const theme = themes[themeId];
+      if (!theme) {
+        continue;
+      }
+      const themePath = PathUtils.join(this.themesRootPath, themeId);
+      if (!(await IOUtils.exists(themePath))) {
+        console.info("ZenThemeMarketplaceParent: Installing theme ", themeId);
+        this.installTheme(theme);
+      }
+    }
   }
 };
