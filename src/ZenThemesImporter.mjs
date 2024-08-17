@@ -41,7 +41,7 @@ var gZenThemeImporter = new class {
     } catch (e) {
       console.error("ZenThemeImporter: Error importing Zen theme: ", e);
     }
-    Services.prefs.addObserver("zen.themes.updated-value-observer", this.updateStylesheet.bind(this), false);
+    Services.prefs.addObserver("zen.themes.updated-value-observer", this.rebuildThemeStylesheet.bind(this), false);
   }
 
   get sss() {
@@ -106,12 +106,12 @@ var gZenThemeImporter = new class {
 
   insertStylesheet() {
     if (IOUtils.exists(this.styleSheetPath)) {
-      this.sss.loadAndRegisterSheet(this.styleSheetURI, this.sss.USER_SHEET);
+      this.sss.loadAndRegisterSheet(this.styleSheetURI, this.sss.AGENT_SHEET);
     }
   }
 
   removeStylesheet() {
-    this.sss.unregisterSheet(this.styleSheetURI, this.sss.USER_SHEET);
+    this.sss.unregisterSheet(this.styleSheetURI, this.sss.AGENT_SHEET);
   }
 
   async updateStylesheet() {
@@ -125,9 +125,8 @@ var gZenThemeImporter = new class {
     this._themes = null;
     for (let theme of Object.values(await this.getThemes())) {
       theme._chromeURL = this.getStylesheetURIForTheme(theme).spec;
-      console.info("ZenThemeImporter: Writing theme: ", theme._chromeURL);
       themes.push(theme);
     }
-    gZenStylesheetManager.writeStylesheet(this.styleSheetPath, themes);
+    await gZenStylesheetManager.writeStylesheet(this.styleSheetPath, themes);
   }
 };

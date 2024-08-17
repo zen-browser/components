@@ -55,14 +55,13 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
 
   async downloadUrlToFile(url, path) {
     try {
-      console.info("ZenThemeMarketplaceParent: Downloading file from ", url);
       const response = await fetch(url);
       const data = await response.text();
       // convert the data into a Uint8Array
       let buffer = new TextEncoder().encode(data);
       await IOUtils.write(path, buffer);
     } catch (e) {
-      console.error("ZenThemeMarketplaceParent: Error downloading file", e);
+      console.error("ZenThemeMarketplaceParent: Error downloading file", url, e);
     }
   }
 
