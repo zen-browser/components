@@ -12,9 +12,29 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
         const themes = await this.getThemes();
         themes[theme.id] = theme;
         this.updateThemes(themes);
+        this.updateChildProcesses(theme.id);
         break;
       }
+      case "ZenThemeMarketplace:UninstallTheme": {
+        console.info("ZenThemeMarketplaceParent: Uninstalling theme");
+        const themeId = message.data.themeId;
+        const themes = await this.getThemes();
+        delete themes[themeId];
+        this.removeTheme(themeId);
+        this.updateThemes(themes);
+        this.updateChildProcesses(themeId);
+        break;
+      }
+      case "ZenThemeMarketplace:IsThemeInstalled": {
+        const themeId = message.data.themeId;
+        const themes = await this.getThemes();
+        return themes[themeId] ? true : false;
+      }
     }
+  }
+
+  async updateChildProcesses(themeId) {
+    this.sendAsyncMessage("ZenThemeMarketplace:ThemeChanged", { themeId });
   }
 
   async getThemes() {
@@ -68,14 +88,19 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
     );
   }
 
+  triggerThemeUpdate() {
+    const pref = "zen.themes.updated-value-observer";
+    Services.prefs.setBoolPref(pref, !Services.prefs.getBoolPref(pref));
+  }
+
   async installTheme(theme) {
     await this.downloadThemeFileContents(theme);
-    this.sendAsyncMessage("ZenThemeMarketplace:ThemeInstalled", { theme });
   }
 
   async checkForThemeChanges() {
     const themes = await this.getThemes();
     const themeIds = Object.keys(themes);
+    let changed = false;
     for (const themeId of themeIds) {
       const theme = themes[themeId];
       if (!theme) {
@@ -83,9 +108,19 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
       }
       const themePath = PathUtils.join(this.themesRootPath, themeId);
       if (!(await IOUtils.exists(themePath))) {
-        console.info("ZenThemeMarketplaceParent: Installing theme ", themeId);
-        this.installTheme(theme);
+        await this.installTheme(theme);
+        changed = true;
       }
     }
+    if (changed) {
+      this.triggerThemeUpdate();
+    }
+  }
+
+  async removeTheme(themeId) {
+    const themePath = PathUtils.join(this.themesRootPath, themeId);
+    console.info("ZenThemeMarketplaceParent: Removing theme ", themePath);
+    await IOUtils.remove(themePath, { recursive: true, ignoreAbsent: true });
+    this.triggerThemeUpdate();
   }
 };
