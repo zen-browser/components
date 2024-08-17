@@ -20,6 +20,7 @@ export class ZenThemeMarketplaceChild extends JSWindowActorChild {
   }
 
   async addIntallButtons() {
+    
     const actionButton = this.contentWindow.document.getElementById("install-theme");
     const errorMessage = this.contentWindow.document.getElementById("install-theme-error");
     if (actionButton) {
