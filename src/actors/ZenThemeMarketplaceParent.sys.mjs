@@ -70,6 +70,9 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
     await IOUtils.makeDirectory(themePath, { ignoreExisting: true });
     await this.downloadUrlToFile(theme.style, PathUtils.join(themePath, "chrome.css"));
     await this.downloadUrlToFile(theme.readme, PathUtils.join(themePath, "readme.md"));
+    if (theme.preferences) {
+      await this.downloadUrlToFile(theme.preferences, PathUtils.join(themePath, "preferences.json"));
+    }
   }
 
   get themesRootPath() {
