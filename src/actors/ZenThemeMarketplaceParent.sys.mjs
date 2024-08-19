@@ -53,12 +53,21 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
     this.checkForThemeChanges();
   }
 
-  async downloadUrlToFile(url, path) {
+  getStyleSheetFullContent(style) {
+    return `
+      @-moz-document url-prefix("chrome:") {
+        ${style}
+      }
+    `;
+  }
+
+  async downloadUrlToFile(url, path, isStyleSheet = false) {
     try {
       const response = await fetch(url);
       const data = await response.text();
+      const content = isStyleSheet ? this.getStyleSheetFullContent(data) : data;
       // convert the data into a Uint8Array
-      let buffer = new TextEncoder().encode(data);
+      let buffer = new TextEncoder().encode(content);
       await IOUtils.write(path, buffer);
     } catch (e) {
       console.error("ZenThemeMarketplaceParent: Error downloading file", url, e);
@@ -68,7 +77,7 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
   async downloadThemeFileContents(theme) {
     const themePath = PathUtils.join(this.themesRootPath, theme.id);
     await IOUtils.makeDirectory(themePath, { ignoreExisting: true });
-    await this.downloadUrlToFile(theme.style, PathUtils.join(themePath, "chrome.css"));
+    await this.downloadUrlToFile(theme.style, PathUtils.join(themePath, "chrome.css"), true);
     await this.downloadUrlToFile(theme.readme, PathUtils.join(themePath, "readme.md"));
     if (theme.preferences) {
       await this.downloadUrlToFile(theme.preferences, PathUtils.join(themePath, "preferences.json"));
