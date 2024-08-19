@@ -5,12 +5,8 @@ const kZenStylesheetThemeHeader = `
   * Your changes will be overwritten.
   * Instead, go to the preferences and edit the themes there.
   */
- 
-@-moz-document url-prefix("chrome:") {
 `;
 const kenStylesheetFooter = `
-
-}
 /* End of Zen Themes */
 `;
 var gZenStylesheetManager = {
@@ -47,13 +43,6 @@ var gZenThemeImporter = new class {
       console.error("ZenThemeImporter: Error importing Zen theme: ", e);
     }
     Services.prefs.addObserver("zen.themes.updated-value-observer", this.rebuildThemeStylesheet.bind(this), false);
-  }
-
-  get sss() {
-    if (!this._sss) {
-      this._sss = Cc["@mozilla.org/content/style-sheet-service;1"].getService(Ci.nsIStyleSheetService);
-    }
-    return this._sss;
   }
 
   get styleSheetPath() {
@@ -111,12 +100,25 @@ var gZenThemeImporter = new class {
 
   insertStylesheet() {
     if (IOUtils.exists(this.styleSheetPath)) {
-      this.sss.loadAndRegisterSheet(this.styleSheetURI, this.sss.AGENT_SHEET);
+      const styleSheet = document.getElementById("zen-themes-stylesheet");
+      if (!styleSheet) {
+        const styleSheet = document.createElementNS("http://www.w3.org/1999/xhtml", "html:link");
+        styleSheet.id = "zen-themes-stylesheet";
+        styleSheet.setAttribute("rel", "stylesheet");
+        styleSheet.setAttribute("type", "text/css");
+        styleSheet.setAttribute("href", this.styleSheetURI.spec);
+        document.documentElement.appendChild(styleSheet);
+      }
+      // add a ?=timestamp to the URL to force a reload
+      styleSheet.href = this.styleSheetURI.spec + "?" + Date.now();
     }
   }
 
   removeStylesheet() {
-    this.sss.unregisterSheet(this.styleSheetURI, this.sss.AGENT_SHEET);
+    const styleSheet = document.getElementById("zen-themes-stylesheet");
+    if (styleSheet) {
+      styleSheet.remove();
+    }
   }
 
   async updateStylesheet() {
