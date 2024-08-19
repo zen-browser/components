@@ -37,7 +37,9 @@ var gZenThemeImporter = new class {
   constructor() {
     console.info("ZenThemeImporter: Initiating Zen theme importer");
     try {
-      this.insertStylesheet();
+      window.SessionStore.promiseInitialized.then(() => {
+        this.insertStylesheet();
+      });
       console.info("ZenThemeImporter: Zen theme imported");
     } catch (e) {
       console.error("ZenThemeImporter: Error importing Zen theme: ", e);
