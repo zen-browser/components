@@ -100,17 +100,18 @@ var gZenThemeImporter = new class {
 
   insertStylesheet() {
     if (IOUtils.exists(this.styleSheetPath)) {
-      const styleSheet = document.getElementById("zen-themes-stylesheet");
+      let styleSheet = document.getElementById("zen-themes-stylesheet");
       if (!styleSheet) {
-        const styleSheet = document.createElementNS("http://www.w3.org/1999/xhtml", "html:link");
+        styleSheet = document.createElementNS("http://www.w3.org/1999/xhtml", "html:link");
         styleSheet.id = "zen-themes-stylesheet";
         styleSheet.setAttribute("rel", "stylesheet");
         styleSheet.setAttribute("type", "text/css");
         styleSheet.setAttribute("href", this.styleSheetURI.spec);
         document.documentElement.appendChild(styleSheet);
+      } else {
+        // add a ?=timestamp to the URL to force a reload
+        styleSheet.href = this.styleSheetURI.spec + "?" + Date.now();
       }
-      // add a ?=timestamp to the URL to force a reload
-      styleSheet.href = this.styleSheetURI.spec + "?" + Date.now();
     }
   }
 
