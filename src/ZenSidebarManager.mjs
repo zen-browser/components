@@ -73,7 +73,8 @@ var gZenBrowserManagerSidebar = {
       const parent = sidebar.parentElement;
       // relative to avoid the top margin
       // 20px is the padding
-      let parentRelativeHeight = parent.getBoundingClientRect().height - parent.getBoundingClientRect().top + 30;
+      let parentRelativeHeight = parent.getBoundingClientRect().height - parent.getBoundingClientRect().top
+        + sidebar.getBoundingClientRect().top - 20;
       let minHeight = parseInt(computedStyle.getPropertyValue("min-height").replace("px", ""));
       if (!this._isDragging) { // Prevent multiple resizes
         this._isDragging = true;
