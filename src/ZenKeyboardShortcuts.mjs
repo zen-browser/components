@@ -5,8 +5,8 @@ const kZKSActions = {
 
   // Split view actions
   zenSplitViewGrid: ["gZenViewSplitter.toggleShortcut('grid')", "zen-split-view-grid", "split-view-action"],
-  zenSplitViewVertical: ["gZenViewSplitter.toggleShortcut('hsplit')", "zen-split-view-vertical", "split-view-action"],
-  zenSplitViewHorizontal: ["gZenViewSplitter.toggleShortcut('vsplit')", "zen-split-view-horizontal", "split-view-action"],
+  zenSplitViewVertical: ["gZenViewSplitter.toggleShortcut('vsplit')", "zen-split-view-vertical", "split-view-action"],
+  zenSplitViewHorizontal: ["gZenViewSplitter.toggleShortcut('hsplit')", "zen-split-view-horizontal", "split-view-action"],
   zenSplitViewClose: ["gZenViewSplitter.toggleShortcut('unsplit')", "zen-split-view-close", "split-view-action"],
 
   // Workspace actions
