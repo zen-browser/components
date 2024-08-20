@@ -412,6 +412,18 @@ var ZenWorkspaces = {
     } else {
       deleteMenuItem.removeAttribute("disabled");
     }
+    let defaultMenuItem = document.getElementById("context_zenSetAsDefaultWorkspace");
+    if (workspaces.workspaces.find(workspace => workspace.uuid === this._contextMenuId).default) {
+      defaultMenuItem.setAttribute("disabled", "true");
+    } else {
+      defaultMenuItem.removeAttribute("disabled");
+    }
+    let openMenuItem = document.getElementById("context_zenOpenWorkspace");
+    if (workspaces.workspaces.find(workspace => workspace.uuid === this._contextMenuId).used) {
+      openMenuItem.setAttribute("disabled", "true");
+    } else {
+      openMenuItem.removeAttribute("disabled");
+    }
   },
 
   onContextMenuClose() {
@@ -420,6 +432,21 @@ var ZenWorkspaces = {
       target.removeAttribute("active");
     }
     this._contextMenuId = null;
+  },
+
+  async setDefaultWorkspace() {
+    let workspaces = await this._workspaces();
+    for (let workspace of workspaces.workspaces) {
+      workspace.default = workspace.uuid === this._contextMenuId;
+    }
+    await this.unsafeSaveWorkspaces(workspaces);
+    await this._propagateWorkspaceData();
+  },
+
+  async openWorkspace() {
+    let workspaces = await this._workspaces();
+    let workspace = workspaces.workspaces.find(workspace => workspace.uuid === this._contextMenuId);
+    await this.changeWorkspace(workspace);
   },
 
   async contextDelete() {
