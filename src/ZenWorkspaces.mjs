@@ -56,6 +56,7 @@ var ZenWorkspaces = {
       await IOUtils.writeJSON(this._storeFile, {});
     }
     if (this.workspaceEnabled) {
+      window.addEventListener("TabClose", this.handleTabClose.bind(this));
       let workspaces = await this._workspaces();
       if (workspaces.workspaces.length === 0) {
         await this.createAndSaveWorkspace("Default Workspace", true);
@@ -77,6 +78,20 @@ var ZenWorkspaces = {
       }
       this._initializeWorkspaceIcons();
       this._initializeWorkspaceTabContextMenus();
+    }
+  },
+
+  handleTabClose(event) {
+    let tab = event.target;
+    let workspaceID = tab.getAttribute("zen-workspace-id");
+    // If the tab is the last one in the workspace, create a new tab
+    if (workspaceID) {
+      let tabs = gBrowser.tabs.filter(tab => tab.getAttribute("zen-workspace-id") === workspaceID);
+      if (tabs.length === 1) {
+        this._createNewTabForWorkspace({ uuid: workspaceID });
+        // We still need to close other tabs in the workspace
+        this.changeWorkspace({ uuid: workspaceID });
+      }
     }
   },
 
