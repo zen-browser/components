@@ -3,4 +3,4 @@ Some components used by @zen-browser as an attempt to make firefox forks a bette
 
 # License
 
-Zen Browser © 2024 is licensed under Creative Commons Attribution-NoDerivatives 4.0 International 
+[Zen Core Components © 2024 by Zen's Team is licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International](./LICESE)
