@@ -10,6 +10,19 @@ var gZenViewSplitter = new class {
     window.addEventListener("TabClose", this.handleTabClose.bind(this));
     this.initializeContextMenu();
     this.insertPageActionButton();
+    this.insertIntoContextMenu();
+  }
+
+  insertIntoContextMenu() {
+    const sibling = document.getElementById("context-stripOnShareLink");
+    const menuitem = document.createXULElement("menuitem");
+    menuitem.setAttribute("id", "context-zenSplitLink");
+    menuitem.setAttribute("hidden", "true");
+    menuitem.setAttribute("oncommand", "gZenViewSplitter.splitLinkInNewTab();");
+    menuitem.setAttribute("data-l10n-id", "zen-split-link");
+    sibling.insertAdjacentElement("afterend", document.createXULElement("menuseparator"));
+    sibling.insertAdjacentElement("afterend", menuitem);
+    sibling.insertAdjacentElement("afterend", document.createXULElement("menuseparator"));
   }
 
   /**
@@ -567,8 +580,7 @@ var gZenViewSplitter = new class {
       return;
     }
     if (this.currentView >= 0) {
-      this._data[this.currentView].gridType = gridType;
-      this.updateSplitView(window.gBrowser.selectedTab);
+      return;
     }
     const tabs = gBrowser.tabs;
     if (tabs.length < 2) {
