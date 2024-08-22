@@ -143,7 +143,7 @@ var ZenWorkspaces = {
 
   async unsafeSaveWorkspaces(workspaces) {
     await IOUtils.writeJSON(this._storeFile, workspaces);
-    this._workspaceCache = null;
+    this._workspaceCache = workspaces;
   },
 
   // Workspaces dialog UI management
@@ -467,10 +467,10 @@ var ZenWorkspaces = {
     await this.changeWorkspace(workspace);
   },
 
-  contextDelete(event) {
-    event.stopPropagation();
+  async contextDelete(event) {
     this.__contextIsDelete = true;
-    this.removeWorkspace(this._contextMenuId);
+    event.stopPropagation();
+    await this.removeWorkspace(this._contextMenuId);
     this.__contextIsDelete = false;
   },
 
