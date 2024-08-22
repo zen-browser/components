@@ -82,6 +82,9 @@ var ZenWorkspaces = {
   },
 
   handleTabClose(event) {
+    if (this.__contextIsDelete) {
+      return; // Bug when closing tabs from the context menu
+    }
     let tab = event.target;
     let workspaceID = tab.getAttribute("zen-workspace-id");
     // If the tab is the last one in the workspace, create a new tab
@@ -186,14 +189,14 @@ var ZenWorkspaces = {
           <image class="toolbarbutton-icon" id="zen-workspace-actions-menu-icon"></image>
         </toolbarbutton>
       `);
-      childs.querySelector(".zen-workspace-actions").addEventListener("command", ((event) => {
+      childs.querySelector(".zen-workspace-actions").addEventListener("command", (event) => {
         let button = event.target;
         this._contextMenuId = button.closest("toolbarbutton[zen-workspace-id]").getAttribute("zen-workspace-id");
         const popup = button.ownerDocument.getElementById(
           "zenWorkspaceActionsMenu"
         );
         popup.openPopup(button, "after_end");
-      }).bind(this));
+      });
       element.appendChild(childs);
       element.onclick = (async () => {
         if (event.target.closest(".zen-workspace-actions")) {
@@ -464,8 +467,11 @@ var ZenWorkspaces = {
     await this.changeWorkspace(workspace);
   },
 
-  async contextDelete() {
-    await this.removeWorkspace(this._contextMenuId);
+  contextDelete(event) {
+    event.stopPropagation();
+    this.__contextIsDelete = true;
+    this.removeWorkspace(this._contextMenuId);
+    this.__contextIsDelete = false;
   },
 
   async changeWorkspaceShortcut() {
