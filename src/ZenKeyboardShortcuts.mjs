@@ -65,7 +65,7 @@ const kZKSActions = {
   // Bookmark actions
   bookmarkThisPage: ["BrowserPageActions.doCommandForAction(PageActions.actionForID('bookmark'), event, this);", "bookmark-this-page", "bookmark-action"],
   openBookmarkAddTool: ["PlacesUIUtils.showBookmarkPagesDialog(PlacesCommandHook.uniqueCurrentPages)", "open-bookmark-add-tool", "bookmark-action"],
-  openBookmarksManager: ["SidebarUI.toggle('viewBookmarksSidebar');", "open-bookmarks-manager", "bookmark-action"],
+  openBookmarksManager: ["SidebarController.toggle('viewBookmarksSidebar');", "open-bookmarks-manager", "bookmark-action"],
   toggleBookmarkToolbar: ["BookmarkingUI.toggleBookmarksToolbar('bookmark-tools')", "toggle-bookmark-toolbar", "bookmark-action"],
 
   // Open Page actions
@@ -91,12 +91,12 @@ const kZKSActions = {
   openDownloads: ["DownloadsPanel.showDownloadsHistory()", "open-downloads", "downloads-action"],
 
   // Sidebar actions
-  showBookmarkSidebar: ["SidebarUI.show('viewBookmarksSidebar')", "show-bookmark-sidebar", "sidebar-action"],
-  showHistorySidebar: ["SidebarUI.show('viewHistorySidebar')", "show-history-sidebar", "sidebar-action"],
-  showSyncedTabsSidebar: ["SidebarUI.show('viewTabsSidebar')", "show-synced-tabs-sidebar", "sidebar-action"],
-  reverseSidebarPosition: ["SidebarUI.reversePosition()", "reverse-sidebar", "sidebar-action"],
-  hideSidebar: ["SidebarUI.hide()", "hide-sidebar", "sidebar-action"],
-  toggleSidebar: ["SidebarUI.toggle()", "toggle-sidebar", "sidebar-action"],
+  showBookmarkSidebar: ["SidebarController.show('viewBookmarksSidebar')", "show-bookmark-sidebar", "sidebar-action"],
+  showHistorySidebar: ["SidebarController.show('viewHistorySidebar')", "show-history-sidebar", "sidebar-action"],
+  showSyncedTabsSidebar: ["SidebarController.show('viewTabsSidebar')", "show-synced-tabs-sidebar", "sidebar-action"],
+  reverseSidebarPosition: ["SidebarController.reversePosition()", "reverse-sidebar", "sidebar-action"],
+  hideSidebar: ["SidebarController.hide()", "hide-sidebar", "sidebar-action"],
+  toggleSidebar: ["SidebarController.toggle()", "toggle-sidebar", "sidebar-action"],
   zenToggleWebPanels: ["gZenBrowserManagerSidebar.toggle()", "zen-toggle-web-panels", "sidebar-action"],
 };
 
