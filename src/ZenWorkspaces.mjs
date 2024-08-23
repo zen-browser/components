@@ -180,15 +180,18 @@ var ZenWorkspaces = {
       //element.setAttribute("context", "zenWorkspaceActionsMenu");
       let childs = window.MozXULElement.parseXULToFragment(`
         <div class="zen-workspace-icon">
-          ${gZenUIManager.createValidXULText(this.getWorkspaceIcon(workspace))}
         </div>
         <div class="zen-workspace-name">
-          ${gZenUIManager.createValidXULText(workspace.name)}
         </div>
         <toolbarbutton closemenu="none" class="toolbarbutton-1 zen-workspace-actions">
           <image class="toolbarbutton-icon" id="zen-workspace-actions-menu-icon"></image>
         </toolbarbutton>
       `);
+      
+      // use text content instead of innerHTML to avoid XSS
+      childs.querySelector(".zen-workspace-icon").textContent = this.getWorkspaceIcon(workspace);
+      childs.querySelector(".zen-workspace-name").textContent = workspace.name;
+
       childs.querySelector(".zen-workspace-actions").addEventListener("command", (event) => {
         let button = event.target;
         this._contextMenuId = button.closest("toolbarbutton[zen-workspace-id]").getAttribute("zen-workspace-id");
@@ -273,12 +276,15 @@ var ZenWorkspaces = {
     if (activeWorkspace) {
       button.innerHTML = `
         <div class="zen-workspace-sidebar-icon">
-          ${gZenUIManager.createValidXULText(this.getWorkspaceIcon(activeWorkspace))}
         </div>
         <div class="zen-workspace-sidebar-name">
-          ${gZenUIManager.createValidXULText(activeWorkspace.name)}
         </div>
       `;
+
+      // use text content instead of innerHTML to avoid XSS
+      button.querySelector(".zen-workspace-sidebar-name").textContent = activeWorkspace.name;
+      button.querySelector(".zen-workspace-sidebar-icon").textContent = this.getWorkspaceIcon(activeWorkspace);
+
       if (!this.workspaceHasIcon(activeWorkspace)) {
         button.querySelector(".zen-workspace-sidebar-icon").setAttribute("no-icon", "true");
       }
