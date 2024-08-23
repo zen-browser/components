@@ -228,8 +228,9 @@ var gZenViewSplitter = new class {
    * Splits the given tabs.
    *
    * @param {Tab[]} tabs - The tabs to split.
+   * @param {string} gridType - The type of grid layout.
    */
-  splitTabs(tabs) {
+  splitTabs(tabs, gridType = "grid") {
     if (tabs.length < 2) {
       return;
     }
@@ -246,6 +247,7 @@ var gZenViewSplitter = new class {
             this._data[groupIndex].tabs.push(tab);
           }
         }
+        this._data[groupIndex].gridType = gridType;
         this.updateSplitView(existingSplitTab);
         return;
       }
@@ -253,7 +255,7 @@ var gZenViewSplitter = new class {
 
     this._data.push({
       tabs,
-      gridType: "grid",
+      gridType: gridType,
     });
     window.gBrowser.selectedTab = tabs[0];
     this.updateSplitView(tabs[0]);
@@ -598,6 +600,8 @@ var gZenViewSplitter = new class {
     } else if (nextTabIndex < 0) {
       nextTabIndex = tabs.length - 1;
     }
-    this.splitTabs([gBrowser.selectedTab, tabs[nextTabIndex]]);
+    const selected_tabs = gBrowser.selectedTab.multiselected 
+      ? gBrowser.selectedTabs : [gBrowser.selectedTab, tabs[nextTabIndex]];
+    this.splitTabs(selected_tabs, gridType);
   }
 }
