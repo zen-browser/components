@@ -116,7 +116,7 @@ const kZenDefaultShortcuts = {
   zenToggleCompactModeToolbar: "Ctrl+Alt+T",
 
   // manage actions
-  zenToggleWebPanels: "Ctrl+Shift+P", 
+  zenToggleWebPanels: "Alt+P", 
 };
 
 // Section: ZenKeyboardShortcuts
