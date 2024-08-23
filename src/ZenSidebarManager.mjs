@@ -343,11 +343,9 @@ var gZenBrowserManagerSidebar = {
     browser.setAttribute("disablefullscreen", "true");
     browser.setAttribute("src", data.url);
     browser.setAttribute("zen-sidebar-id", data.id);
-    browser.setAttribute("disableglobalhistory", "true");
     browser.setAttribute("autoscroll", "false");
     browser.setAttribute("autocompletepopup", "PopupAutoComplete");
     browser.setAttribute("contextmenu", "contentAreaContextMenu");
-    browser.setAttribute("disablesecurity", "true");
     browser.addEventListener("pagetitlechanged", (function(event) {
       let browser = event.target;
       let title = browser.contentTitle;
