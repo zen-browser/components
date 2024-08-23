@@ -180,10 +180,10 @@ var ZenWorkspaces = {
       //element.setAttribute("context", "zenWorkspaceActionsMenu");
       let childs = window.MozXULElement.parseXULToFragment(`
         <div class="zen-workspace-icon">
-          ${this.getWorkspaceIcon(workspace)}
+          ${gZenUIManager.createValidXULText(this.getWorkspaceIcon(workspace))}
         </div>
         <div class="zen-workspace-name">
-          ${workspace.name}
+          ${gZenUIManager.createValidXULText(workspace.name)}
         </div>
         <toolbarbutton closemenu="none" class="toolbarbutton-1 zen-workspace-actions">
           <image class="toolbarbutton-icon" id="zen-workspace-actions-menu-icon"></image>
@@ -273,10 +273,10 @@ var ZenWorkspaces = {
     if (activeWorkspace) {
       button.innerHTML = `
         <div class="zen-workspace-sidebar-icon">
-          ${this.getWorkspaceIcon(activeWorkspace)}
+          ${gZenUIManager.createValidXULText(this.getWorkspaceIcon(activeWorkspace))}
         </div>
         <div class="zen-workspace-sidebar-name">
-          ${activeWorkspace.name}
+          ${gZenUIManager.createValidXULText(activeWorkspace.name)}
         </div>
       `;
       if (!this.workspaceHasIcon(activeWorkspace)) {
@@ -501,7 +501,7 @@ var ZenWorkspaces = {
       const activeWorkspace = workspaces.workspaces.find(workspace => workspace.used);
       for (let workspace of workspaces.workspaces) {
         const menuItem = window.MozXULElement.parseXULToFragment(`
-          <menuitem label="${workspace.name}" zen-workspace-id="${workspace.uuid}" />
+          <menuitem label="${gZenUIManager.createValidXULText(workspace.name)}" zen-workspace-id="${workspace.uuid}" />
         `);
         if (workspace.uuid === activeWorkspace.uuid) {
           menuItem.querySelector("menuitem").setAttribute("disabled", "true");
