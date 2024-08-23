@@ -240,6 +240,12 @@ var gZenViewSplitter = new class {
         group.tabs.includes(existingSplitTab)
       );
       if (groupIndex >= 0) {
+        // Add any tabs that are not already in the group
+        for (const tab of tabs) {
+          if (!this._data[groupIndex].tabs.includes(tab)) {
+            this._data[groupIndex].tabs.push(tab);
+          }
+        }
         this.updateSplitView(existingSplitTab);
         return;
       }
