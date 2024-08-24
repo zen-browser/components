@@ -14,6 +14,7 @@ const kZKSActions = {
 
   // manage actions
   openNewTab: ["command:cmd_newNavigatorTabNoEvent","open-new-tab", "tab-action"],
+  duplicateTab: ["duplicateTabIn(gBrowser.selectedTab, 'tab')", "duplicate-tab", "tab-action"],
   closeTab: ["command:cmd_close", "close-tab", "tab-action"],
   openNewWindow: ["command:cmd_newNavigator", "open-new-window", "tab-action"],
   openNewPrivateWindow: ["command:Tools:PrivateBrowsing", "open-new-private-window", "tab-action"],
