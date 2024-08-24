@@ -290,7 +290,7 @@ var gZenKeyboardShortcuts = {
       <key 
         id="zen-key_${_action}"
         class="zen-keyboard-shortcut"
-        key="${key}" 
+        key="${gZenUIManager.createValidXULText(key)}" 
         ${this._getCommandAttribute(action)}
         modifiers="${modifiers}"/>
     `);
