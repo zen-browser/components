@@ -30,7 +30,15 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
         const themes = await this.getThemes();
         return themes[themeId] ? true : false;
       }
+      case "ZenThemeMarketplace:CheckForUpdates": {
+        this.checkForThemeUpdates();
+        break;
+      }
     }
+  }
+
+  checkForThemeUpdates() {
+    console.info("ZenThemeMarketplaceParent: Checking for theme updates");
   }
 
   async updateChildProcesses(themeId) {

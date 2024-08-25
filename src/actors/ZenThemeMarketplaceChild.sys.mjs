@@ -8,9 +8,16 @@ export class ZenThemeMarketplaceChild extends JSWindowActorChild {
     switch (event.type) {
       case "DOMContentLoaded":
         this.initiateThemeMarketplace();
+        this.contentWindow.document.addEventListener("ZenCheckForThemeUpdates", this.checkForThemeUpdates.bind(this));
         break;
       default:
     }
+  }
+
+  // This function will be caleld from about:preferences
+  checkForThemeUpdates() {
+    console.info("ZTM: Checking for theme updates");
+    this.sendAsyncMessage("ZenThemeMarketplace:CheckForUpdates");
   }
 
   initiateThemeMarketplace() {
