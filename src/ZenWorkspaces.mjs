@@ -392,13 +392,7 @@ var ZenWorkspaces = {
     tab.setAttribute("zen-workspace-id", window.uuid);
   },
 
-  async saveWorkspaceFromInput() {
-    // Go to the next view
-    let parentPanel = document.getElementById("PanelUI-zen-workspaces-multiview");
-    PanelUI.showSubView("PanelUI-zen-workspaces-create-icons", parentPanel);
-  },
-
-  async saveWorkspaceFromIcon() {
+  async saveWorkspaceFromCreate() {
     let workspaceName = this._workspaceCreateInput.value;
     if (!workspaceName) {
       return;
