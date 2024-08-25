@@ -37,8 +37,43 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
     }
   }
 
-  checkForThemeUpdates() {
+  compareversion(version1,version2){
+    var result=false;
+    if(typeof version1!=='object'){ version1=version1.toString().split('.'); }
+    if(typeof version2!=='object'){ version2=version2.toString().split('.'); }
+    for(var i=0;i<(Math.max(version1.length,version2.length));i++){
+      if(version1[i]==undefined){ version1[i]=0; }
+      if(version2[i]==undefined){ version2[i]=0; }
+      if(Number(version1[i])<Number(version2[i])){
+        result=true;
+        break;
+      }
+      if(version1[i]!=version2[i]){
+        break;
+      }
+    }
+    return(result);
+  }
+
+  async checkForThemeUpdates() {
     console.info("ZenThemeMarketplaceParent: Checking for theme updates");
+    let updates = [];
+    this._themes = null;
+    for (const theme of Object.values(await this.getThemes())) {
+      const themeInfo = await this.sendQuery("ZenThemeMarketplace:GetThemeInfo", { themeId: theme.id });
+      if (!themeInfo) {
+        continue;
+      }
+      if (!this.compareversion(themeInfo.version, theme.version || "0.0.0") && themeInfo.version != theme.version) {
+        console.info("ZenThemeMarketplaceParent: Theme update found", theme.id, theme.version, themeInfo.version);
+        updates.push(themeInfo);
+        await this.removeTheme(theme.id, false);
+        this._themes[themeInfo.id] = themeInfo;
+      }
+    }
+    console.info(this._themes);
+    await this.updateThemes(this._themes);
+    this.sendAsyncMessage("ZenThemeMarketplace:CheckForUpdatesFinished", { updates });
   }
 
   async updateChildProcesses(themeId) {
@@ -55,10 +90,10 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
     return this._themes;
   }
 
-  updateThemes(themes) {
+  async updateThemes(themes) {
     this._themes = themes;
-    IOUtils.writeJSON(this.themesDataFile, themes);
-    this.checkForThemeChanges();
+    await IOUtils.writeJSON(this.themesDataFile, themes);
+    await this.checkForThemeChanges();
   }
 
   getStyleSheetFullContent(style) {
@@ -136,10 +171,12 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
     }
   }
 
-  async removeTheme(themeId) {
+  async removeTheme(themeId, triggerUpdate = true) {
     const themePath = PathUtils.join(this.themesRootPath, themeId);
     console.info("ZenThemeMarketplaceParent: Removing theme ", themePath);
     await IOUtils.remove(themePath, { recursive: true, ignoreAbsent: true });
-    this.triggerThemeUpdate();
+    if (triggerUpdate) {
+      this.triggerThemeUpdate();
+    }
   }
 };

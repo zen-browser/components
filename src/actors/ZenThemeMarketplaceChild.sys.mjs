@@ -15,8 +15,8 @@ export class ZenThemeMarketplaceChild extends JSWindowActorChild {
   }
 
   // This function will be caleld from about:preferences
-  checkForThemeUpdates() {
-    console.info("ZTM: Checking for theme updates");
+  checkForThemeUpdates(event) {
+    event.preventDefault();
     this.sendAsyncMessage("ZenThemeMarketplace:CheckForUpdates");
   }
 
@@ -52,6 +52,16 @@ export class ZenThemeMarketplaceChild extends JSWindowActorChild {
           }
         }
         break;
+      }
+      case "ZenThemeMarketplace:CheckForUpdatesFinished": {
+        const updates = message.data.updates;
+        this.contentWindow.document.dispatchEvent(new CustomEvent("ZenThemeMarketplace:CheckForUpdatesFinished", { detail: { updates } }));
+        break;
+      }
+      case "ZenThemeMarketplace:GetThemeInfo": {
+        const themeId = message.data.themeId;
+        const theme = await this.getThemeInfo(themeId);
+        return theme;
       }
     }
   }
