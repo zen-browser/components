@@ -398,9 +398,7 @@ var gZenViewSplitter = new class {
     container.setAttribute("zen-split-anim", "true");
     container.addEventListener("click", this.handleTabClick);
 
-    if (gridType === "grid") {
-      container.style.gridArea = `tab${index + 1}`;
-    }
+    container.style.gridArea = `tab${index + 1}`;
   }
 
   /**
