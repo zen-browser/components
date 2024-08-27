@@ -96,7 +96,7 @@ export class ZenThemeMarketplaceChild extends JSWindowActorChild {
   }
 
   async getThemeInfo(themeId) {
-    const url = `https://zen-browser.app/api/get-theme?id=${themeId}`;
+    const url = `https://zen-browser.app/api/get-theme/${themeId}`;
     console.info("ZTM: Fetching theme info from: ", url);
     const data = await fetch(url, {
       mode: "no-cors",
