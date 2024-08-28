@@ -9,7 +9,9 @@ var ZenWorkspaces = {
       return; // We are in a hidden window, don't initialize ZenWorkspaces
     } 
     console.info("ZenWorkspaces: Initializing ZenWorkspaces...");
-    await this.initializeWorkspaces();
+    window.SessionStore.promiseInitialized.then(async () => {
+      await this.initializeWorkspaces();
+    })
     console.info("ZenWorkspaces: ZenWorkspaces initialized");
   },
 
@@ -72,9 +74,7 @@ var ZenWorkspaces = {
           activeWorkspace.used = true;
           await this.saveWorkspaces();
         }
-        window.SessionStore.promiseInitialized.then(() => {
-          this.changeWorkspace(activeWorkspace, true);
-        });
+        this.changeWorkspace(activeWorkspace, true);
       }
       this._initializeWorkspaceCreationIcons();
       this._initializeWorkspaceEditIcons();
