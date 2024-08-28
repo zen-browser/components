@@ -95,8 +95,12 @@ export class ZenThemeMarketplaceChild extends JSWindowActorChild {
     this.sendAsyncMessage("ZenThemeMarketplace:InstallTheme", { theme });
   }
 
+  getThemeAPIUrl(themeId) {
+    return `https://cdn.jsdelivr.net/gh/zen-browser/theme-store/themes/${themeId}/theme.json`;
+  }
+
   async getThemeInfo(themeId) {
-    const url = `https://zen-browser.app/api/get-theme/${themeId}`;
+    const url = this.getThemeAPIUrl(themeId);
     console.info("ZTM: Fetching theme info from: ", url);
     const data = await fetch(url, {
       mode: "no-cors",
@@ -109,7 +113,7 @@ export class ZenThemeMarketplaceChild extends JSWindowActorChild {
       } catch (e) {
         console.error("ZTM: Error parsing theme info: ", e);
       }
-    }
+    } else console.log(data.status);
     return null; 
   }
 
