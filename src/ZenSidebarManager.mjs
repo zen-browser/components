@@ -1,4 +1,3 @@
-
 var gZenBrowserManagerSidebar = {
   _sidebarElement: null,
   _currentPanel: null,
@@ -10,7 +9,8 @@ var gZenBrowserManagerSidebar = {
   _isDragging: false,
   contextTab: null,
 
-  DEFAULT_MOBILE_USER_AGENT: "Mozilla/5.0 (Android 12; Mobile; rv:129.0) Gecko/20100101 Firefox/129.0",
+  DEFAULT_MOBILE_USER_AGENT:
+    "Mozilla/5.0 (Android 12; Mobile; rv:129.0) Gecko/20100101 Firefox/129.0",
   MAX_SIDEBAR_PANELS: 8, // +1 for the add panel button
   MAX_RUNS: 3,
 
@@ -35,77 +35,100 @@ var gZenBrowserManagerSidebar = {
 
   listenForPrefChanges() {
     Services.prefs.addObserver("zen.sidebar.data", this.handleEvent.bind(this));
-    Services.prefs.addObserver("zen.sidebar.enabled", this.handleEvent.bind(this));
+    Services.prefs.addObserver(
+      "zen.sidebar.enabled",
+      this.handleEvent.bind(this)
+    );
 
     let sidebar = document.getElementById("zen-sidebar-web-panel");
-    this.splitterElement.addEventListener("mousedown", (function(event) {
-      let computedStyle = window.getComputedStyle(sidebar);
-      let maxWidth = parseInt(computedStyle.getPropertyValue("max-width").replace("px", ""));
-      let minWidth = parseInt(computedStyle.getPropertyValue("min-width").replace("px", ""));
+    this.splitterElement.addEventListener(
+      "mousedown",
+      function (event) {
+        let computedStyle = window.getComputedStyle(sidebar);
+        let maxWidth = parseInt(
+          computedStyle.getPropertyValue("max-width").replace("px", "")
+        );
+        let minWidth = parseInt(
+          computedStyle.getPropertyValue("min-width").replace("px", "")
+        );
 
-      if (!this._isDragging) { // Prevent multiple resizes
-        this._isDragging = true;
-        let sidebarWidth = sidebar.getBoundingClientRect().width;
-        let startX = event.clientX;
-        let startWidth = sidebarWidth;
-        let mouseMove = (function(e) {
-          let newWidth = startWidth + e.clientX - startX;
-          if (newWidth <= minWidth+10) {
-            newWidth = minWidth+1;
-          } else if (newWidth >= maxWidth-10) {
-            newWidth = maxWidth-1;
-          }
-          sidebar.style.width = `${newWidth}px`;
-        });
-        let mouseUp = (function() {
-          this.handleEvent();
-          this._isDragging = false;
-          document.removeEventListener("mousemove", mouseMove);
-          document.removeEventListener("mouseup", mouseUp);
-        }).bind(this);
-        document.addEventListener("mousemove", mouseMove);
-        document.addEventListener("mouseup", mouseUp);
-      }
-    }).bind(this));
+        if (!this._isDragging) {
+          // Prevent multiple resizes
+          this._isDragging = true;
+          let sidebarWidth = sidebar.getBoundingClientRect().width;
+          let startX = event.clientX;
+          let startWidth = sidebarWidth;
+          let mouseMove = function (e) {
+            let newWidth = startWidth + e.clientX - startX;
+            if (newWidth <= minWidth + 10) {
+              newWidth = minWidth + 1;
+            } else if (newWidth >= maxWidth - 10) {
+              newWidth = maxWidth - 1;
+            }
+            sidebar.style.width = `${newWidth}px`;
+          };
+          let mouseUp = function () {
+            this.handleEvent();
+            this._isDragging = false;
+            document.removeEventListener("mousemove", mouseMove);
+            document.removeEventListener("mouseup", mouseUp);
+          }.bind(this);
+          document.addEventListener("mousemove", mouseMove);
+          document.addEventListener("mouseup", mouseUp);
+        }
+      }.bind(this)
+    );
 
-    this.hSplitterElement.addEventListener("mousedown", (function(event) {
-      let computedStyle = window.getComputedStyle(sidebar);
-      const parent = sidebar.parentElement;
-      // relative to avoid the top margin
-      // 20px is the padding
-      let parentRelativeHeight = parent.getBoundingClientRect().height - parent.getBoundingClientRect().top
-        + sidebar.getBoundingClientRect().top - 20;
-      let minHeight = parseInt(computedStyle.getPropertyValue("min-height").replace("px", ""));
-      if (!this._isDragging) { // Prevent multiple resizes
-        this._isDragging = true;
-        let sidebarHeight = sidebar.getBoundingClientRect().height;
-        let startY = event.clientY;
-        let startHeight = sidebarHeight;
-        let mouseMove = (function(e) {
-          let newHeight = startHeight + e.clientY - startY;
-          if (newHeight <= minHeight+10) {
-            newHeight = minHeight+1;
-          } else if (newHeight >= parentRelativeHeight) { // 10px is the padding
-            newHeight = parentRelativeHeight;
-          }
-          sidebar.style.height = `${newHeight}px`;
-        });
-        let mouseUp = (function() {
-          this.handleEvent();
-          this._isDragging = false;
-          document.removeEventListener("mousemove", mouseMove);
-          document.removeEventListener("mouseup", mouseUp);
-        }).bind(this);
-        document.addEventListener("mousemove", mouseMove);
-        document.addEventListener("mouseup", mouseUp);
-      }
-    }).bind(this));
+    this.hSplitterElement.addEventListener(
+      "mousedown",
+      function (event) {
+        let computedStyle = window.getComputedStyle(sidebar);
+        const parent = sidebar.parentElement;
+        // relative to avoid the top margin
+        // 20px is the padding
+        let parentRelativeHeight =
+          parent.getBoundingClientRect().height -
+          parent.getBoundingClientRect().top +
+          sidebar.getBoundingClientRect().top -
+          20;
+        let minHeight = parseInt(
+          computedStyle.getPropertyValue("min-height").replace("px", "")
+        );
+        if (!this._isDragging) {
+          // Prevent multiple resizes
+          this._isDragging = true;
+          let sidebarHeight = sidebar.getBoundingClientRect().height;
+          let startY = event.clientY;
+          let startHeight = sidebarHeight;
+          let mouseMove = function (e) {
+            let newHeight = startHeight + e.clientY - startY;
+            if (newHeight <= minHeight + 10) {
+              newHeight = minHeight + 1;
+            } else if (newHeight >= parentRelativeHeight) {
+              // 10px is the padding
+              newHeight = parentRelativeHeight;
+            }
+            sidebar.style.height = `${newHeight}px`;
+          };
+          let mouseUp = function () {
+            this.handleEvent();
+            this._isDragging = false;
+            document.removeEventListener("mousemove", mouseMove);
+            document.removeEventListener("mouseup", mouseUp);
+          }.bind(this);
+          document.addEventListener("mousemove", mouseMove);
+          document.addEventListener("mouseup", mouseUp);
+        }
+      }.bind(this)
+    );
 
     this.handleEvent();
   },
 
   get isFloating() {
-    return document.getElementById("zen-sidebar-web-panel").hasAttribute("pinned");
+    return document
+      .getElementById("zen-sidebar-web-panel")
+      .hasAttribute("pinned");
   },
 
   handleEvent() {
@@ -136,7 +159,11 @@ var gZenBrowserManagerSidebar = {
 
   _handleClickOutside(event) {
     let sidebar = document.getElementById("zen-sidebar-web-panel");
-    if (!sidebar.hasAttribute("pinned") || this._isDragging || !this.shouldCloseOnBlur) {
+    if (
+      !sidebar.hasAttribute("pinned") ||
+      this._isDragging ||
+      !this.shouldCloseOnBlur
+    ) {
       return;
     }
     let target = event.target;
@@ -145,7 +172,7 @@ var gZenBrowserManagerSidebar = {
       "#zen-sidebar-panels-wrapper",
       "#zenWebPanelContextMenu",
       "#zen-sidebar-web-panel-splitter",
-      "#contentAreaContextMenu"
+      "#contentAreaContextMenu",
     ].join(", ");
     if (target.closest(closestSelector)) {
       return;
@@ -156,8 +183,10 @@ var gZenBrowserManagerSidebar = {
   toggle() {
     if (!this._currentPanel) {
       this._currentPanel = this._lastOpenedPanel;
-    } 
-    if (document.getElementById("zen-sidebar-web-panel").hasAttribute("hidden")) {
+    }
+    if (
+      document.getElementById("zen-sidebar-web-panel").hasAttribute("hidden")
+    ) {
       this.open();
       return;
     }
@@ -179,7 +208,9 @@ var gZenBrowserManagerSidebar = {
 
   _updateSidebarButton() {
     let button = document.getElementById("zen-sidepanel-button");
-    if (!document.getElementById("zen-sidebar-web-panel").hasAttribute("hidden")) {
+    if (
+      !document.getElementById("zen-sidebar-web-panel").hasAttribute("hidden")
+    ) {
       button.setAttribute("open", "true");
     } else {
       button.removeAttribute("open");
@@ -206,7 +237,11 @@ var gZenBrowserManagerSidebar = {
         continue;
       }
       let button = document.createXULElement("toolbarbutton");
-      button.classList.add("zen-sidebar-panel-button", "toolbarbutton-1", "chromeclass-toolbar-additional");
+      button.classList.add(
+        "zen-sidebar-panel-button",
+        "toolbarbutton-1",
+        "chromeclass-toolbar-additional"
+      );
       button.setAttribute("flex", "1");
       button.setAttribute("zen-sidebar-id", site);
       button.setAttribute("context", "zenWebPanelContextMenu");
@@ -237,13 +272,17 @@ var gZenBrowserManagerSidebar = {
   _setPinnedToElements() {
     let sidebar = document.getElementById("zen-sidebar-web-panel");
     sidebar.setAttribute("pinned", "true");
-    document.getElementById("zen-sidebar-web-panel-pinned").setAttribute("pinned", "true");
+    document
+      .getElementById("zen-sidebar-web-panel-pinned")
+      .setAttribute("pinned", "true");
   },
 
   _removePinnedFromElements() {
     let sidebar = document.getElementById("zen-sidebar-web-panel");
     sidebar.removeAttribute("pinned");
-    document.getElementById("zen-sidebar-web-panel-pinned").removeAttribute("pinned");
+    document
+      .getElementById("zen-sidebar-web-panel-pinned")
+      .removeAttribute("pinned");
   },
 
   _closeSidebarPanel() {
@@ -277,7 +316,9 @@ var gZenBrowserManagerSidebar = {
   },
 
   _updateButtons() {
-    for (let button of this.sidebarElement.querySelectorAll(".zen-sidebar-panel-button")) {
+    for (let button of this.sidebarElement.querySelectorAll(
+      ".zen-sidebar-panel-button"
+    )) {
       if (button.getAttribute("zen-sidebar-id") === this._currentPanel) {
         button.setAttribute("selected", "true");
       } else {
@@ -300,7 +341,7 @@ var gZenBrowserManagerSidebar = {
 
   _updateWebPanel() {
     this._updateButtons();
-    let sidebar = document.getElementById("zen-sidebar-web-panel");
+    // let sidebar = document.getElementById("zen-sidebar-web-panel");
     this._hideAllWebPanels();
     if (!this._currentPanel) {
       this.introductionPanel.removeAttribute("hidden");
@@ -311,12 +352,15 @@ var gZenBrowserManagerSidebar = {
     if (existantWebview) {
       existantWebview.docShellIsActive = true;
       existantWebview.removeAttribute("hidden");
-      document.getElementById("zen-sidebar-web-panel-title").textContent = existantWebview.contentTitle;
+      document.getElementById("zen-sidebar-web-panel-title").textContent =
+        existantWebview.contentTitle;
       return;
     }
     let data = this._getWebPanelData(this._currentPanel);
     let browser = this._createWebPanelBrowser(data);
-    let browserContainers = document.getElementById("zen-sidebar-web-panel-browser-containers");
+    let browserContainers = document.getElementById(
+      "zen-sidebar-web-panel-browser-containers"
+    );
     browserContainers.appendChild(browser);
     if (data.ua) {
       browser.browsingContext.customUserAgent = this.DEFAULT_MOBILE_USER_AGENT;
@@ -337,7 +381,9 @@ var gZenBrowserManagerSidebar = {
   },
 
   _createWebPanelBrowser(data) {
-    const titleContainer = document.getElementById("zen-sidebar-web-panel-title");
+    const titleContainer = document.getElementById(
+      "zen-sidebar-web-panel-title"
+    );
     titleContainer.textContent = "Loading...";
     let browser = gBrowser.createBrowser({});
     browser.setAttribute("disablefullscreen", "true");
@@ -346,28 +392,33 @@ var gZenBrowserManagerSidebar = {
     browser.setAttribute("autoscroll", "false");
     browser.setAttribute("autocompletepopup", "PopupAutoComplete");
     browser.setAttribute("contextmenu", "contentAreaContextMenu");
-    browser.addEventListener("pagetitlechanged", (function(event) {
-      let browser = event.target;
-      let title = browser.contentTitle;
-      if (!title) {
-        return;
-      }
-      let id = browser.getAttribute("zen-sidebar-id");
-      if (id === this._currentPanel) {
-        titleContainer.textContent = title;
-      }
-    }).bind(this));
+    browser.addEventListener(
+      "pagetitlechanged",
+      function (event) {
+        let browser = event.target;
+        let title = browser.contentTitle;
+        if (!title) {
+          return;
+        }
+        let id = browser.getAttribute("zen-sidebar-id");
+        if (id === this._currentPanel) {
+          titleContainer.textContent = title;
+        }
+      }.bind(this)
+    );
     return browser;
   },
 
   _getWebPanelIcon(url, element) {
     let { preferredURI } = Services.uriFixup.getFixupURIInfo(url);
     element.setAttribute("image", `page-icon:${preferredURI.spec}`);
-    fetch(`https://s2.googleusercontent.com/s2/favicons?domain_url=${preferredURI.spec}`).then(async response => {
+    fetch(
+      `https://s2.googleusercontent.com/s2/favicons?domain_url=${preferredURI.spec}`
+    ).then(async (response) => {
       if (response.ok) {
         let blob = await response.blob();
         let reader = new FileReader();
-        reader.onload = function() {
+        reader.onload = function () {
           element.setAttribute("image", reader.result);
         };
         reader.readAsDataURL(blob);
@@ -430,21 +481,27 @@ var gZenBrowserManagerSidebar = {
 
   get sidebarElement() {
     if (!this._sidebarElement) {
-      this._sidebarElement = document.getElementById("zen-sidebar-panels-sites");
+      this._sidebarElement = document.getElementById(
+        "zen-sidebar-panels-sites"
+      );
     }
     return this._sidebarElement;
   },
 
   get splitterElement() {
     if (!this._splitterElement) {
-      this._splitterElement = document.getElementById("zen-sidebar-web-panel-splitter");
+      this._splitterElement = document.getElementById(
+        "zen-sidebar-web-panel-splitter"
+      );
     }
     return this._splitterElement;
   },
 
   get hSplitterElement() {
     if (!this._hSplitterElement) {
-      this._hSplitterElement = document.getElementById("zen-sidebar-web-panel-hsplitter");
+      this._hSplitterElement = document.getElementById(
+        "zen-sidebar-web-panel-hsplitter"
+      );
     }
     return this._hSplitterElement;
   },
@@ -454,7 +511,8 @@ var gZenBrowserManagerSidebar = {
   updateContextMenu(aPopupMenu) {
     let panel =
       aPopupMenu.triggerNode &&
-      (aPopupMenu.triggerNode || aPopupMenu.triggerNode.closest("toolbarbutton[zen-sidebar-id]"));
+      (aPopupMenu.triggerNode ||
+        aPopupMenu.triggerNode.closest("toolbarbutton[zen-sidebar-id]"));
     if (!panel) {
       return;
     }
@@ -463,20 +521,34 @@ var gZenBrowserManagerSidebar = {
     let data = this._getWebPanelData(id);
     let browser = this._getBrowserById(id);
     let isMuted = browser && browser.audioMuted;
-    let mutedContextItem = document.getElementById("context_zenToggleMuteWebPanel");
-    document.l10n.setAttributes(mutedContextItem, 
-      !isMuted ? "zen-web-side-panel-context-mute-panel" : "zen-web-side-panel-context-unmute-panel");
+    let mutedContextItem = document.getElementById(
+      "context_zenToggleMuteWebPanel"
+    );
+    document.l10n.setAttributes(
+      mutedContextItem,
+      !isMuted
+        ? "zen-web-side-panel-context-mute-panel"
+        : "zen-web-side-panel-context-unmute-panel"
+    );
     if (!isMuted) {
       mutedContextItem.setAttribute("muted", "true");
     } else {
       mutedContextItem.removeAttribute("muted");
     }
-    document.l10n.setAttributes(document.getElementById("context_zenToogleUAWebPanel"), 
-      data.ua ? "zen-web-side-panel-context-disable-ua" : "zen-web-side-panel-context-enable-ua");
+    document.l10n.setAttributes(
+      document.getElementById("context_zenToogleUAWebPanel"),
+      data.ua
+        ? "zen-web-side-panel-context-disable-ua"
+        : "zen-web-side-panel-context-enable-ua"
+    );
     if (!browser) {
-      document.getElementById("context_zenUnloadWebPanel").setAttribute("disabled", "true");
+      document
+        .getElementById("context_zenUnloadWebPanel")
+        .setAttribute("disabled", "true");
     } else {
-      document.getElementById("context_zenUnloadWebPanel").removeAttribute("disabled");
+      document
+        .getElementById("context_zenUnloadWebPanel")
+        .removeAttribute("disabled");
     }
   },
 
@@ -484,7 +556,7 @@ var gZenBrowserManagerSidebar = {
     let browser = this._getBrowserById(this.contextTab);
     let data = this.sidebarData;
     let panel = data.data[this.contextTab];
-    let url = (browser == null) ? panel.url : browser.currentURI.spec;
+    let url = browser == null ? panel.url : browser.currentURI.spec;
     gZenUIManager.openAndChangeToTab(url);
     this.close();
   },
@@ -500,7 +572,10 @@ var gZenBrowserManagerSidebar = {
 
   contextToggleUserAgent() {
     let browser = this._getBrowserById(this.contextTab);
-    browser.browsingContext.customUserAgent = browser.browsingContext.customUserAgent ? null : this.DEFAULT_MOBILE_USER_AGENT;
+    browser.browsingContext.customUserAgent = browser.browsingContext
+      .customUserAgent
+      ? null
+      : this.DEFAULT_MOBILE_USER_AGENT;
     let data = this.sidebarData;
     data.data[this.contextTab].ua = !data.data[this.contextTab].ua;
     Services.prefs.setStringPref("zen.sidebar.data", JSON.stringify(data));
@@ -510,10 +585,11 @@ var gZenBrowserManagerSidebar = {
   contextDelete() {
     let data = this.sidebarData;
     delete data.data[this.contextTab];
-    data.index = data.index.filter(id => id !== this.contextTab);
+    data.index = data.index.filter((id) => id !== this.contextTab);
     let browser = this._getBrowserById(this.contextTab);
     if (browser) {
       browser.remove();
+      document.getElementById("zen-sidebar-web-panel-title").textContent = "";
     }
     this._currentPanel = null;
     this._lastOpenedPanel = null;
@@ -524,6 +600,7 @@ var gZenBrowserManagerSidebar = {
   contextUnload() {
     let browser = this._getBrowserById(this.contextTab);
     browser.remove();
+    document.getElementById("zen-sidebar-web-panel-title").textContent = "";
     this._closeSidebarPanel();
     this.close();
     this._lastOpenedPanel = null;
@@ -534,13 +611,20 @@ var gZenBrowserManagerSidebar = {
     const menuitem = document.createXULElement("menuitem");
     menuitem.setAttribute("id", "context-zenAddToWebPanel");
     menuitem.setAttribute("hidden", "true");
-    menuitem.setAttribute("oncommand", "gZenBrowserManagerSidebar.addPanelFromContextMenu();");
-    menuitem.setAttribute("data-l10n-id", "zen-web-side-panel-context-add-to-panel");
+    menuitem.setAttribute(
+      "oncommand",
+      "gZenBrowserManagerSidebar.addPanelFromContextMenu();"
+    );
+    menuitem.setAttribute(
+      "data-l10n-id",
+      "zen-web-side-panel-context-add-to-panel"
+    );
     sibling.insertAdjacentElement("afterend", menuitem);
   },
 
   addPanelFromContextMenu() {
-    const url = gContextMenu.linkURL || gContextMenu.target.ownerDocument.location.href;
+    const url =
+      gContextMenu.linkURL || gContextMenu.target.ownerDocument.location.href;
     this._createNewPanel(url);
   },
 };
