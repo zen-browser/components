@@ -340,7 +340,7 @@ var gZenKeyboardShortcuts = {
   shortCutToString(shortcut) {
     let str = "";
     if (shortcut.ctrl) {
-      str += "Ctrl+";
+      str += AppConstants.platform == "macosx" ? "Cmd+" : "Ctrl+";
     }
     if (shortcut.alt) {
       str += "Alt+";
