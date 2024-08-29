@@ -557,6 +557,7 @@ var gZenViewSplitter = new class {
    * @description unsplit the current view.]
    */
   unsplitCurrentView() {
+    if (this.currentView < 0) return;
     const currentTab = window.gBrowser.selectedTab;
     const tabs = this._data[this.currentView].tabs;
     for (const tab of tabs) {
@@ -581,7 +582,7 @@ var gZenViewSplitter = new class {
   }
 
   toggleShortcut(gridType) {
-    if (gridType === "unsplit" && this.currentView >= 0) {
+    if (gridType === "unsplit") {
       this.unsplitCurrentView();
       return;
     }
