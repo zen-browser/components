@@ -585,9 +585,6 @@ var gZenViewSplitter = new class {
       this.unsplitCurrentView();
       return;
     }
-    if (this.currentView >= 0) {
-      return;
-    }
     const tabs = gBrowser.tabs;
     if (tabs.length < 2) {
       return;
