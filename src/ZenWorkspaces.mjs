@@ -11,8 +11,8 @@ var ZenWorkspaces = {
     console.info("ZenWorkspaces: Initializing ZenWorkspaces...");
     window.SessionStore.promiseInitialized.then(async () => {
       await this.initializeWorkspaces();
+      console.info("ZenWorkspaces: ZenWorkspaces initialized");
     })
-    console.info("ZenWorkspaces: ZenWorkspaces initialized");
   },
 
   get workspaceEnabled() {
@@ -457,12 +457,17 @@ var ZenWorkspaces = {
     this.unsafeSaveWorkspaces(workspaces);
     console.info("ZenWorkspaces: Changing workspace to", window.uuid);
     for (let tab of gBrowser.tabs) {
-      if (tab.getAttribute("zen-workspace-id") === window.uuid && !tab.pinned) {
+      if ((tab.getAttribute("zen-workspace-id") === window.uuid && !tab.pinned) || !tab.hasAttribute("zen-workspace-id")) {
         if (!firstTab) {
           firstTab = tab;
           gBrowser.selectedTab = firstTab;
         }
         gBrowser.showTab(tab);
+        if (!tab.hasAttribute("zen-workspace-id")) {
+          // We add the id to those tabs that got inserted before we initialize the workspaces
+          // example use case: opening a link from an external app
+          tab.setAttribute("zen-workspace-id", window.uuid);
+        }
       }
     }
     if (typeof firstTab === "undefined" && !onInit) {
