@@ -247,6 +247,10 @@ var gZenBrowserManagerSidebar = {
       button.setAttribute("context", "zenWebPanelContextMenu");
       this._getWebPanelIcon(panel.url, button);
       button.addEventListener("click", this._handleClick.bind(this));
+      button.addEventListener('dragstart', this._handleDragStart.bind(this));
+      button.addEventListener('dragover', this._handleDragOver.bind(this));
+      button.addEventListener('dragenter', this._handleDragEnter.bind(this));
+      button.addEventListener('dragend', this._handleDragEnd.bind(this));
       this.sidebarElement.appendChild(button);
     }
     const addButton = document.getElementById("zen-sidebar-add-panel-button");
@@ -302,6 +306,47 @@ var gZenBrowserManagerSidebar = {
     this._updateWebPanel();
   },
 
+  _handleDragStart(event) {
+    this.__dragingElement = event.target;
+    this.__dragingIndex = Array.prototype.indexOf.call(event.target.parentNode.children, event.target);
+    event.target.style.opacity = '0.7';
+
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/html', event.target.innerHTML);
+    event.dataTransfer.setData('text/plain', event.target.id);
+  },
+
+  _handleDragOver(event) {
+  },
+
+  _handleDragEnter(event) {
+    const target = event.target;
+    const elIndex = Array.prototype.indexOf.call(target.parentNode.children, target);
+    if (elIndex < this.__dragingIndex) {
+      target.before(this.__dragingElement);
+      this.__dragingIndex = elIndex - 1;
+    }
+    target.after(this.__dragingElement);
+    this.__dragingIndex = elIndex + 1;
+  },
+
+  _handleDragEnd(event) {
+    event.target.style.opacity = '1';
+
+    let data = this.sidebarData;
+    let newPos = [];
+    for (let element of this.__dragingElement.parentNode.children) {
+      console.log(element)
+      let panelId = element.getAttribute("zen-sidebar-id");
+      newPos.push(panelId);
+    }
+    data.index = newPos;
+    Services.prefs.setStringPref("zen.sidebar.data", JSON.stringify(data));
+    this._currentPanel = this.__dragingElement.getAttribute("zen-sidebar-id");
+    this.open();
+    this.__dragingElement = undefined;
+  },
+  
   _createNewPanel(url) {
     let data = this.sidebarData;
     let newName = "p" + new Date().getTime();
