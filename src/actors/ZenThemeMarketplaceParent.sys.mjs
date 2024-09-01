@@ -71,7 +71,6 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
         this._themes[themeInfo.id] = themeInfo;
       }
     }
-    console.info(this._themes);
     await this.updateThemes(this._themes);
     this.sendAsyncMessage("ZenThemeMarketplace:CheckForUpdatesFinished", { updates });
   }
