@@ -63,9 +63,9 @@ var ZenWorkspaces = {
       if (workspaces.workspaces.length === 0) {
         await this.createAndSaveWorkspace("Default Workspace", true);
       } else {
-        let activeWorkspace = workspaces.workspaces.find(workspace => workspace.default);
+        let activeWorkspace = workspaces.workspaces.find(workspace => workspace.used);
         if (!activeWorkspace) {
-          activeWorkspace = workspaces.workspaces.find(workspace => workspace.used);
+          activeWorkspace = workspaces.workspaces.find(workspace => workspace.default);
           activeWorkspace.used = true;
           await this.saveWorkspaces();
         }
