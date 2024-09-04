@@ -9,10 +9,10 @@ var ZenWorkspaces = {
       return; // We are in a hidden window, don't initialize ZenWorkspaces
     } 
     console.info("ZenWorkspaces: Initializing ZenWorkspaces...");
-    setTimeout(async () => {
+    window.SessionStore.promiseInitialized.then(async () => {
       await this.initializeWorkspaces();
       console.info("ZenWorkspaces: ZenWorkspaces initialized");
-    }, 0);
+    })
   },
 
   get workspaceEnabled() {
@@ -50,8 +50,10 @@ var ZenWorkspaces = {
     }
   },
 
-  async initializeWorkspaces() {
-    Services.prefs.addObserver("zen.workspaces.enabled", this.onWorkspacesEnabledChanged.bind(this));
+  async initializeWorkspaces(init = false) {
+    if (init) {
+      Services.prefs.addObserver("zen.workspaces.enabled", this.onWorkspacesEnabledChanged.bind(this));
+    }
     this.initializeWorkspacesButton();
     let file = new FileUtils.File(this._storeFile);
     if (!file.exists()) {
@@ -76,9 +78,11 @@ var ZenWorkspaces = {
         }
         this.changeWorkspace(activeWorkspace, true);
       }
-      this._initializeWorkspaceCreationIcons();
-      this._initializeWorkspaceEditIcons();
-      this._initializeWorkspaceTabContextMenus();
+      if (init) {
+        this._initializeWorkspaceCreationIcons();
+        this._initializeWorkspaceEditIcons();
+        this._initializeWorkspaceTabContextMenus();
+      }
     }
   },
 
