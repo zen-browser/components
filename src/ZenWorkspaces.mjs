@@ -38,9 +38,9 @@ var ZenWorkspaces = {
     return this._workspaceCache;
   },
 
-  onWorkspacesEnabledChanged() {
+  async onWorkspacesEnabledChanged() {
     if (this.workspaceEnabled) {
-      this.initializeWorkspaces();
+      throw Error("Shoud've had reloaded the window");
     } else {
       this._workspaceCache = null;
       document.getElementById("zen-workspaces-button")?.remove();
@@ -50,10 +50,8 @@ var ZenWorkspaces = {
     }
   },
 
-  async initializeWorkspaces(init = false) {
-    if (init) {
-      Services.prefs.addObserver("zen.workspaces.enabled", this.onWorkspacesEnabledChanged.bind(this));
-    }
+  async initializeWorkspaces() {
+    Services.prefs.addObserver("zen.workspaces.enabled", this.onWorkspacesEnabledChanged.bind(this));
     this.initializeWorkspacesButton();
     let file = new FileUtils.File(this._storeFile);
     if (!file.exists()) {
@@ -78,11 +76,9 @@ var ZenWorkspaces = {
         }
         this.changeWorkspace(activeWorkspace, true);
       }
-      if (init) {
-        this._initializeWorkspaceCreationIcons();
-        this._initializeWorkspaceEditIcons();
-        this._initializeWorkspaceTabContextMenus();
-      }
+      this._initializeWorkspaceCreationIcons();
+      this._initializeWorkspaceEditIcons();
+      this._initializeWorkspaceTabContextMenus();
     }
   },
 
