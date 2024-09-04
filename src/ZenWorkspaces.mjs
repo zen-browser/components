@@ -9,10 +9,10 @@ var ZenWorkspaces = {
       return; // We are in a hidden window, don't initialize ZenWorkspaces
     } 
     console.info("ZenWorkspaces: Initializing ZenWorkspaces...");
-    window.SessionStore.promiseInitialized.then(async () => {
+    setTimeout(async () => {
       await this.initializeWorkspaces();
       console.info("ZenWorkspaces: ZenWorkspaces initialized");
-    })
+    }, 0);
   },
 
   get workspaceEnabled() {
