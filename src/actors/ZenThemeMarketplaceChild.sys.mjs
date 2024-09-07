@@ -96,7 +96,7 @@ export class ZenThemeMarketplaceChild extends JSWindowActorChild {
   }
 
   getThemeAPIUrl(themeId) {
-    return `https://cdn.jsdelivr.net/gh/zen-browser/theme-store/themes/${themeId}/theme.json`;
+    return `https://zen-browser.github.io/theme-store/themes/${themeId}/theme.json`;
   }
 
   async getThemeInfo(themeId) {
