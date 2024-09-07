@@ -102,7 +102,6 @@ var gZenViewSplitter = new class {
     this.currentView = -1;
     this.tabBrowserPanel.removeAttribute("zen-split-view");
     this.tabBrowserPanel.style.gridTemplateAreas = "";
-    this.tabBrowserPanel.style.gridGap = "0px";
   }
 
   /**
