@@ -591,9 +591,11 @@ var gZenViewSplitter = new class {
     }
     let nextTabIndex = tabs.indexOf(gBrowser.selectedTab) + 1;
     if (nextTabIndex >= tabs.length) {
-      nextTabIndex = 0;
+      // Find the first non-hidden tab
+      nextTabIndex = tabs.findIndex(tab => !tab.hidden);
     } else if (nextTabIndex < 0) {
-      nextTabIndex = tabs.length - 1;
+      // reverse find the first non-hidden tab
+      nextTabIndex = tabs.slice().reverse().findIndex(tab => !tab.hidden);
     }
     const selected_tabs = gBrowser.selectedTab.multiselected 
       ? gBrowser.selectedTabs : [gBrowser.selectedTab, tabs[nextTabIndex]];
