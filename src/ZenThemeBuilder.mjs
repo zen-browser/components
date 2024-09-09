@@ -1,5 +1,4 @@
-
-const kZenAccentColorConfigKey = "zen.theme.accent-color";
+const kZenAccentColorConfigKey = 'zen.theme.accent-color';
 
 var gZenThemeBuilder = {
   init() {
@@ -14,7 +13,7 @@ var gZenThemeBuilder = {
     if (this.__builderWrapper) {
       return this.__builderWrapper;
     }
-    this.__builderWrapper = document.getElementById("zen-theme-builder-wrapper");
+    this.__builderWrapper = document.getElementById('zen-theme-builder-wrapper');
     return this.__builderWrapper;
   },
 
@@ -24,7 +23,7 @@ var gZenThemeBuilder = {
       return;
     }
 
-    console.info("gZenThemeBuilder: init builder UI");
+    console.info('gZenThemeBuilder: init builder UI');
 
     const kTemplate = `
       <html:div id="zen-theme-builder">
@@ -44,20 +43,22 @@ var gZenThemeBuilder = {
     var w = ctx.canvas.width,
       h = ctx.canvas.height,
       data = ctx.getImageData(0, 0, w, h), /// get image data
-      buffer = data.data,                  /// and its pixel buffer
-      len = buffer.length,                 /// cache length
-      x, y = 0, p, px;                     /// for iterating
+      buffer = data.data, /// and its pixel buffer
+      len = buffer.length, /// cache length
+      x,
+      y = 0,
+      p,
+      px; /// for iterating
     /// iterating x/y instead of forward to get position the easy way
-    for(;y < h; y++) {
+    for (; y < h; y++) {
       /// common value for all x
       p = y * 4 * w;
-      for(x = 0; x < w; x++) {
+      for (x = 0; x < w; x++) {
         /// next pixel (skipping 4 bytes as each pixel is RGBA bytes)
         px = p + x * 4;
         /// if red component match check the others
         if (buffer[px] === color[0]) {
-          if (buffer[px + 1] === color[1] &&
-              buffer[px + 2] === color[2]) {
+          if (buffer[px + 1] === color[1] && buffer[px + 2] === color[2]) {
             return [x, y];
           }
         }
@@ -68,30 +69,26 @@ var gZenThemeBuilder = {
 
   _hexToRgb(hex) {
     var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return [
-      parseInt(result[1], 16),
-      parseInt(result[2], 16),
-      parseInt(result[3], 16)
-    ]
+    return [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)];
   },
 
   _componentToHex(c) {
     var hex = c.toString(16);
-    return hex.length == 1 ? "0" + hex : hex;
-  },  
+    return hex.length == 1 ? '0' + hex : hex;
+  },
 
   _rgbToHex(r, g, b) {
-    return "#" + this._componentToHex(r) + this._componentToHex(g) + this._componentToHex(b);
+    return '#' + this._componentToHex(r) + this._componentToHex(g) + this._componentToHex(b);
   },
 
   _initColorPicker() {
-    const canvas = document.getElementById("zen-theme-builder-color-picker-canvas");
-    const thumb = document.getElementById("zen-theme-builder-color-picker-thumb");
+    const canvas = document.getElementById('zen-theme-builder-color-picker-canvas');
+    const thumb = document.getElementById('zen-theme-builder-color-picker-thumb');
 
     // A all the main colors are all blended together towards the center.
     // But we also add some random gradients to make it look more interesting.
     // Instead of using a simple gradient, we use a radial gradient.
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     const size = 180;
     canvas.width = size;
     canvas.height = size;
@@ -115,15 +112,15 @@ var gZenThemeBuilder = {
     const radialGradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
     radialGradient.addColorStop(0, 'rgba(255,255,255,1)');
     radialGradient.addColorStop(1, 'rgba(255,255,255,0)');
-    
+
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, size, size);
-    
+
     //ctx.fillStyle = radialGradient;
     //ctx.fillRect(0, 0, size, size);
 
     // Add the thumb.
-    const accentColor = Services.prefs.getStringPref(kZenAccentColorConfigKey, "#aac7ff");
+    const accentColor = Services.prefs.getStringPref(kZenAccentColorConfigKey, '#aac7ff');
     const pos = this._getPositionFromColor(ctx, this._hexToRgb(accentColor));
 
     let x = pos ? pos[0] : center;
@@ -132,23 +129,23 @@ var gZenThemeBuilder = {
     thumb.style.left = `${x}px`;
     thumb.style.top = `${y}px`;
 
-    thumb.addEventListener("mousedown", this._handleThumbMouseDown.bind(this));
-    document.addEventListener("mouseup", this._handleThumbMouseUp.bind(this));
+    thumb.addEventListener('mousedown', this._handleThumbMouseDown.bind(this));
+    document.addEventListener('mouseup', this._handleThumbMouseUp.bind(this));
   },
 
   _handleThumbMouseDown(e) {
-    document.addEventListener("mousemove", this._mouseMoveListener);
+    document.addEventListener('mousemove', this._mouseMoveListener);
   },
 
   _handleThumbMouseUp(e) {
-    document.removeEventListener("mousemove", this._mouseMoveListener);
+    document.removeEventListener('mousemove', this._mouseMoveListener);
   },
 
   _handleThumbMouseMove(e) {
     const kThumbOffset = 15;
-    const deck = document.getElementById("zen-theme-builder-color-picker-deck");
+    const deck = document.getElementById('zen-theme-builder-color-picker-deck');
 
-    const thumb = document.getElementById("zen-theme-builder-color-picker-thumb");
+    const thumb = document.getElementById('zen-theme-builder-color-picker-thumb');
     const rect = deck.getBoundingClientRect();
     let x = e.clientX - rect.left;
     let y = e.clientY - rect.top;
@@ -169,8 +166,8 @@ var gZenThemeBuilder = {
     thumb.style.left = `${x}px`;
     thumb.style.top = `${y}px`;
 
-    const canvas = document.getElementById("zen-theme-builder-color-picker-canvas");
-    const ctx = canvas.getContext("2d");
+    const canvas = document.getElementById('zen-theme-builder-color-picker-canvas');
+    const ctx = canvas.getContext('2d');
     const imageData = ctx.getImageData(x, y, 1, 1);
 
     // Update the accent color.
