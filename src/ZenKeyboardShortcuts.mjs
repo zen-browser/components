@@ -99,6 +99,7 @@ const kZKSActions = {
   hideSidebar: ["SidebarController.hide()", "hide-sidebar", "sidebar-action"],
   toggleSidebar: ["SidebarController.toggle()", "toggle-sidebar", "sidebar-action"],
   zenToggleWebPanels: ["gZenBrowserManagerSidebar.toggle()", "zen-toggle-web-panels", "sidebar-action"],
+  zenExpandSidebar: ["gZenVerticalTabsManager.toggleExpand()", "zen-expand-sidebar", "sidebar-action"],
 };
 
 const kZenDefaultShortcuts = {
