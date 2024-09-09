@@ -457,7 +457,9 @@ var ZenWorkspaces = {
       if ((tab.getAttribute('zen-workspace-id') === window.uuid && !tab.pinned) || !tab.hasAttribute('zen-workspace-id')) {
         if (!firstTab) {
           firstTab = tab;
-          gBrowser.selectedTab = firstTab;
+        } else if (gBrowser.selectedTab === tab) {
+          // If the selected tab is already in the workspace, we don't want to change it
+          firstTab = undefined;
         }
         gBrowser.showTab(tab);
         if (!tab.hasAttribute('zen-workspace-id')) {
@@ -466,6 +468,9 @@ var ZenWorkspaces = {
           tab.setAttribute('zen-workspace-id', window.uuid);
         }
       }
+    }
+    if (firstTab) {
+      gBrowser.selectedTab = firstTab;
     }
     if (typeof firstTab === 'undefined' && !onInit) {
       this._createNewTabForWorkspace(window);
