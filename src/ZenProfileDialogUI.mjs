@@ -44,7 +44,7 @@ var ZenProfileDialogUI = {
   _updateCurentProfileId() {
     let currentProfile = ProfileService.currentProfile;
     if (!currentProfile) return;
-    let nameContainer = document.getElementById("PanelUI-zen-profiles-current-name");
+    let nameContainer = document.getElementById('PanelUI-zen-profiles-current-name');
     nameContainer.textContent = currentProfile.name;
   },
 
@@ -64,25 +64,27 @@ var ZenProfileDialogUI = {
     // This should be rewritten in HTML eventually.
     // TODO: it could be `window.browsingContext.topChromeWindow.gDialogBox.open` but it does not work with the callback?
     window.browsingContext.topChromeWindow.openDialog(
-      "chrome://mozapps/content/profile/createProfileWizard.xhtml",
-      "",
-      "centerscreen,chrome,modal,titlebar",
+      'chrome://mozapps/content/profile/createProfileWizard.xhtml',
+      '',
+      'centerscreen,chrome,modal,titlebar',
       ProfileService,
-      { CreateProfile: async (profile) => {
-        try {
-          ProfileService.defaultProfile = profile;
-          this._flush();
-          this._openProfile(profile);
-        } catch (e) {
-          // This can happen on dev-edition.
-          let [title, msg] = await document.l10n.formatValues([
-            { id: "profiles-cannot-set-as-default-title" },
-            { id: "profiles-cannot-set-as-default-message" },
-          ]);
-      
-          Services.prompt.alert(window, title, msg);
-        }
-      } }
+      {
+        CreateProfile: async (profile) => {
+          try {
+            ProfileService.defaultProfile = profile;
+            this._flush();
+            this._openProfile(profile);
+          } catch (e) {
+            // This can happen on dev-edition.
+            let [title, msg] = await document.l10n.formatValues([
+              { id: 'profiles-cannot-set-as-default-title' },
+              { id: 'profiles-cannot-set-as-default-message' },
+            ]);
+
+            Services.prompt.alert(window, title, msg);
+          }
+        },
+      }
     );
   },
 
@@ -92,23 +94,19 @@ var ZenProfileDialogUI = {
       this._updateProfilesList();
     } catch (e) {
       let [title, msg, button] = await document.l10n.formatValues([
-        { id: "profiles-flush-fail-title" },
+        { id: 'profiles-flush-fail-title' },
         {
-          id:
-            e.result == Cr.NS_ERROR_DATABASE_CHANGED
-              ? "profiles-flush-conflict"
-              : "profiles-flush-failed",
+          id: e.result == Cr.NS_ERROR_DATABASE_CHANGED ? 'profiles-flush-conflict' : 'profiles-flush-failed',
         },
-        { id: "profiles-flush-restart-button" },
+        { id: 'profiles-flush-restart-button' },
       ]);
-  
+
       const PS = Ci.nsIPromptService;
       let result = Services.prompt.confirmEx(
         window,
         title,
         msg,
-        PS.BUTTON_POS_0 * PS.BUTTON_TITLE_CANCEL +
-          PS.BUTTON_POS_1 * PS.BUTTON_TITLE_IS_STRING,
+        PS.BUTTON_POS_0 * PS.BUTTON_TITLE_CANCEL + PS.BUTTON_POS_1 * PS.BUTTON_TITLE_IS_STRING,
         null,
         button,
         null,
@@ -122,25 +120,19 @@ var ZenProfileDialogUI = {
   },
 
   _restart(safeMode) {
-    let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].createInstance(
-      Ci.nsISupportsPRBool
-    );
-    Services.obs.notifyObservers(
-      cancelQuit,
-      "quit-application-requested",
-      "restart"
-    );
-  
+    let cancelQuit = Cc['@mozilla.org/supports-PRBool;1'].createInstance(Ci.nsISupportsPRBool);
+    Services.obs.notifyObservers(cancelQuit, 'quit-application-requested', 'restart');
+
     if (cancelQuit.data) {
       return;
     }
-  
+
     let flags = Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart;
-  
+
     if (safeMode) {
       Services.startup.restartInSafeMode(flags);
     } else {
       Services.startup.quit(flags);
     }
-  }
+  },
 };

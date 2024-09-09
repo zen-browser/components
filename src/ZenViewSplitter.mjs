@@ -1,5 +1,4 @@
-
-var gZenViewSplitter = new class {
+var gZenViewSplitter = new (class {
   constructor() {
     this._data = [];
     this.currentView = -1;
@@ -7,22 +6,22 @@ var gZenViewSplitter = new class {
     this.__modifierElement = null;
     this.__hasSetMenuListener = false;
 
-    window.addEventListener("TabClose", this.handleTabClose.bind(this));
+    window.addEventListener('TabClose', this.handleTabClose.bind(this));
     this.initializeContextMenu();
     this.insertPageActionButton();
     this.insertIntoContextMenu();
   }
 
   insertIntoContextMenu() {
-    const sibling = document.getElementById("context-stripOnShareLink");
-    const menuitem = document.createXULElement("menuitem");
-    menuitem.setAttribute("id", "context-zenSplitLink");
-    menuitem.setAttribute("hidden", "true");
-    menuitem.setAttribute("oncommand", "gZenViewSplitter.splitLinkInNewTab();");
-    menuitem.setAttribute("data-l10n-id", "zen-split-link");
-    sibling.insertAdjacentElement("afterend", document.createXULElement("menuseparator"));
-    sibling.insertAdjacentElement("afterend", menuitem);
-    sibling.insertAdjacentElement("afterend", document.createXULElement("menuseparator"));
+    const sibling = document.getElementById('context-stripOnShareLink');
+    const menuitem = document.createXULElement('menuitem');
+    menuitem.setAttribute('id', 'context-zenSplitLink');
+    menuitem.setAttribute('hidden', 'true');
+    menuitem.setAttribute('oncommand', 'gZenViewSplitter.splitLinkInNewTab();');
+    menuitem.setAttribute('data-l10n-id', 'zen-split-link');
+    sibling.insertAdjacentElement('afterend', document.createXULElement('menuseparator'));
+    sibling.insertAdjacentElement('afterend', menuitem);
+    sibling.insertAdjacentElement('afterend', document.createXULElement('menuseparator'));
   }
 
   /**
@@ -31,7 +30,7 @@ var gZenViewSplitter = new class {
    */
   handleTabClose(event) {
     const tab = event.target;
-    const groupIndex = this._data.findIndex(group => group.tabs.includes(tab));
+    const groupIndex = this._data.findIndex((group) => group.tabs.includes(tab));
     if (groupIndex < 0) {
       return;
     }
@@ -68,14 +67,14 @@ var gZenViewSplitter = new class {
   resetTabState(tab, forUnsplit) {
     tab.splitView = false;
     tab.linkedBrowser.zenModeActive = false;
-    const container = tab.linkedBrowser.closest(".browserSidebarContainer");
-    container.removeAttribute("zen-split");
-    container.removeAttribute("style");
+    const container = tab.linkedBrowser.closest('.browserSidebarContainer');
+    container.removeAttribute('zen-split');
+    container.removeAttribute('style');
 
     if (!forUnsplit) {
       tab.linkedBrowser.docShellIsActive = false;
     } else {
-      container.style.gridArea = "1 / 1";
+      container.style.gridArea = '1 / 1';
     }
   }
 
@@ -100,24 +99,21 @@ var gZenViewSplitter = new class {
     }
 
     this.currentView = -1;
-    this.tabBrowserPanel.removeAttribute("zen-split-view");
-    this.tabBrowserPanel.style.gridTemplateAreas = "";
+    this.tabBrowserPanel.removeAttribute('zen-split-view');
+    this.tabBrowserPanel.style.gridTemplateAreas = '';
   }
 
   /**
    * context menu item display update
    */
   insetUpdateContextMenuItems() {
-    const contentAreaContextMenu = document.getElementById("tabContextMenu");
-    contentAreaContextMenu.addEventListener("popupshowing", () => {
+    const contentAreaContextMenu = document.getElementById('tabContextMenu');
+    contentAreaContextMenu.addEventListener('popupshowing', () => {
       const tabCountInfo = JSON.stringify({
         tabCount: window.gBrowser.selectedTabs.length,
       });
-      document
-        .getElementById("context_zenSplitTabs")
-        .setAttribute("data-l10n-args", tabCountInfo);
-      document.getElementById("context_zenSplitTabs").disabled =
-        !this.contextCanSplitTabs();
+      document.getElementById('context_zenSplitTabs').setAttribute('data-l10n-args', tabCountInfo);
+      document.getElementById('context_zenSplitTabs').disabled = !this.contextCanSplitTabs();
     });
   }
 
@@ -132,7 +128,7 @@ var gZenViewSplitter = new class {
                 oncommand="gZenViewSplitter.contextSplitTabs();"/>
       <menuseparator/>
     `);
-    document.getElementById("context_closeDuplicateTabs").after(element);
+    document.getElementById('context_closeDuplicateTabs').after(element);
   }
 
   /**
@@ -157,7 +153,7 @@ var gZenViewSplitter = new class {
               class="urlbar-icon"/>
       </hbox>
     `);
-    document.getElementById("star-button-box").after(element);
+    document.getElementById('star-button-box').after(element);
   }
 
   /**
@@ -167,7 +163,7 @@ var gZenViewSplitter = new class {
    */
   get tabBrowserPanel() {
     if (!this._tabBrowserPanel) {
-      this._tabBrowserPanel = document.getElementById("tabbrowser-tabpanels");
+      this._tabBrowserPanel = document.getElementById('tabbrowser-tabpanels');
     }
     return this._tabBrowserPanel;
   }
@@ -176,9 +172,7 @@ var gZenViewSplitter = new class {
    * Splits a link in a new tab.
    */
   splitLinkInNewTab() {
-    const url =
-      window.gContextMenu.linkURL ||
-      window.gContextMenu.target.ownerDocument.location.href;
+    const url = window.gContextMenu.linkURL || window.gContextMenu.target.ownerDocument.location.href;
     const currentTab = window.gBrowser.selectedTab;
     const newTab = this.openAndSwitchToTab(url);
     this.splitTabs([currentTab, newTab]);
@@ -229,16 +223,14 @@ var gZenViewSplitter = new class {
    * @param {Tab[]} tabs - The tabs to split.
    * @param {string} gridType - The type of grid layout.
    */
-  splitTabs(tabs, gridType = "grid") {
+  splitTabs(tabs, gridType = 'grid') {
     if (tabs.length < 2) {
       return;
     }
 
-    const existingSplitTab = tabs.find(tab => tab.splitView);
+    const existingSplitTab = tabs.find((tab) => tab.splitView);
     if (existingSplitTab) {
-      const groupIndex = this._data.findIndex(group =>
-        group.tabs.includes(existingSplitTab)
-      );
+      const groupIndex = this._data.findIndex((group) => group.tabs.includes(existingSplitTab));
       if (groupIndex >= 0) {
         // Add any tabs that are not already in the group
         for (const tab of tabs) {
@@ -266,12 +258,8 @@ var gZenViewSplitter = new class {
    * @param {Tab} tab - The tab to update the split view for.
    */
   updateSplitView(tab) {
-    const splitData = this._data.find(group => group.tabs.includes(tab));
-    if (
-      !splitData ||
-      (this.currentView >= 0 &&
-        !this._data[this.currentView].tabs.includes(tab))
-    ) {
+    const splitData = this._data.find((group) => group.tabs.includes(tab));
+    if (!splitData || (this.currentView >= 0 && !this._data[this.currentView].tabs.includes(tab))) {
       this.updateSplitViewButton(true);
       if (this.currentView >= 0) {
         this.deactivateSplitView();
@@ -289,12 +277,12 @@ var gZenViewSplitter = new class {
    */
   deactivateSplitView() {
     for (const tab of this._data[this.currentView].tabs) {
-      const container = tab.linkedBrowser.closest(".browserSidebarContainer");
+      const container = tab.linkedBrowser.closest('.browserSidebarContainer');
       this.resetContainerStyle(container);
-      container.removeEventListener("click", this.handleTabClick);
+      container.removeEventListener('click', this.handleTabClick);
     }
-    this.tabBrowserPanel.removeAttribute("zen-split-view");
-    this.tabBrowserPanel.style.gridTemplateAreas = "";
+    this.tabBrowserPanel.removeAttribute('zen-split-view');
+    this.tabBrowserPanel.style.gridTemplateAreas = '';
     this.setTabsDocShellState(this._data[this.currentView].tabs, false);
     this.currentView = -1;
   }
@@ -306,10 +294,10 @@ var gZenViewSplitter = new class {
    * @param {Tab} activeTab - The active tab.
    */
   activateSplitView(splitData, activeTab) {
-    this.tabBrowserPanel.setAttribute("zen-split-view", "true");
+    this.tabBrowserPanel.setAttribute('zen-split-view', 'true');
     this.currentView = this._data.indexOf(splitData);
 
-    const gridType = splitData.gridType || "grid";
+    const gridType = splitData.gridType || 'grid';
     this.applyGridLayout(splitData.tabs, gridType, activeTab);
 
     this.setTabsDocShellState(splitData.tabs, true);
@@ -329,7 +317,7 @@ var gZenViewSplitter = new class {
 
     tabs.forEach((tab, index) => {
       tab.splitView = true;
-      const container = tab.linkedBrowser.closest(".browserSidebarContainer");
+      const container = tab.linkedBrowser.closest('.browserSidebarContainer');
       this.styleContainer(container, tab === activeTab, index, gridType);
     });
   }
@@ -342,16 +330,16 @@ var gZenViewSplitter = new class {
    * @returns {string} The calculated grid areas.
    */
   calculateGridAreas(tabs, gridType) {
-    if (gridType === "grid") {
+    if (gridType === 'grid') {
       return this.calculateGridAreasForGrid(tabs);
     }
-    if (gridType === "vsep") {
-      return `'${tabs.map((_, j) => `tab${j + 1}`).join(" ")}'`;
+    if (gridType === 'vsep') {
+      return `'${tabs.map((_, j) => `tab${j + 1}`).join(' ')}'`;
     }
-    if (gridType === "hsep") {
-      return tabs.map((_, j) => `'tab${j + 1}'`).join(" ");
+    if (gridType === 'hsep') {
+      return tabs.map((_, j) => `'tab${j + 1}'`).join(' ');
     }
-    return "";
+    return '';
   }
 
   /**
@@ -361,7 +349,7 @@ var gZenViewSplitter = new class {
    * @returns {string} The calculated grid areas.
    */
   calculateGridAreasForGrid(tabs) {
-    const rows = ["", ""];
+    const rows = ['', ''];
     tabs.forEach((_, i) => {
       if (i % 2 === 0) {
         rows[0] += ` tab${i + 1}`;
@@ -390,12 +378,12 @@ var gZenViewSplitter = new class {
    * @param {string} gridType - The type of grid layout.
    */
   styleContainer(container, isActive, index, gridType) {
-    container.removeAttribute("zen-split-active");
+    container.removeAttribute('zen-split-active');
     if (isActive) {
-      container.setAttribute("zen-split-active", "true");
+      container.setAttribute('zen-split-active', 'true');
     }
-    container.setAttribute("zen-split-anim", "true");
-    container.addEventListener("click", this.handleTabClick);
+    container.setAttribute('zen-split-anim', 'true');
+    container.addEventListener('click', this.handleTabClick);
 
     container.style.gridArea = `tab${index + 1}`;
   }
@@ -405,11 +393,9 @@ var gZenViewSplitter = new class {
    *
    * @param {Event} event - The click event.
    */
-  handleTabClick = event => {
+  handleTabClick = (event) => {
     const container = event.currentTarget;
-    const tab = window.gBrowser.tabs.find(
-      t => t.linkedBrowser.closest(".browserSidebarContainer") === container
-    );
+    const tab = window.gBrowser.tabs.find((t) => t.linkedBrowser.closest('.browserSidebarContainer') === container);
     if (tab) {
       window.gBrowser.selectedTab = tab;
     }
@@ -431,12 +417,12 @@ var gZenViewSplitter = new class {
       } catch (e) {
         console.error(e);
       }
-      const browser = tab.linkedBrowser.closest(".browserSidebarContainer");
+      const browser = tab.linkedBrowser.closest('.browserSidebarContainer');
       if (active) {
-        browser.setAttribute("zen-split", "true");
+        browser.setAttribute('zen-split', 'true');
       } else {
-        browser.removeAttribute("zen-split");
-        browser.removeAttribute("style");
+        browser.removeAttribute('zen-split');
+        browser.removeAttribute('style');
       }
     }
   }
@@ -447,9 +433,9 @@ var gZenViewSplitter = new class {
    * @param {Element} container - The container element.
    */
   resetContainerStyle(container) {
-    container.removeAttribute("zen-split-active");
-    container.classList.remove("deck-selected");
-    container.style.gridArea = "";
+    container.removeAttribute('zen-split-active');
+    container.classList.remove('deck-selected');
+    container.style.gridArea = '';
   }
 
   /**
@@ -458,11 +444,11 @@ var gZenViewSplitter = new class {
    * @param {boolean} hidden - Indicates if the button should be hidden.
    */
   updateSplitViewButton(hidden) {
-    const button = document.getElementById("zen-split-views-box");
+    const button = document.getElementById('zen-split-views-box');
     if (hidden) {
-      button?.setAttribute("hidden", "true");
+      button?.setAttribute('hidden', 'true');
     } else {
-      button?.removeAttribute("hidden");
+      button?.removeAttribute('hidden');
     }
   }
 
@@ -473,7 +459,7 @@ var gZenViewSplitter = new class {
    */
   get modifierElement() {
     if (!this.__modifierElement) {
-      const wrapper = document.getElementById("template-zen-split-view-modifier");
+      const wrapper = document.getElementById('template-zen-split-view-modifier');
       const panel = wrapper.content.firstElementChild;
       wrapper.replaceWith(wrapper.content);
       this.__modifierElement = panel;
@@ -497,7 +483,7 @@ var gZenViewSplitter = new class {
     }
 
     window.PanelMultiView.openPopup(panel, target, {
-      position: "bottomright topright",
+      position: 'bottomright topright',
       triggerEvent: event,
     }).catch(console.error);
   }
@@ -508,16 +494,11 @@ var gZenViewSplitter = new class {
    * @param {Element} panel - The panel element.
    */
   updatePanelUI(panel) {
-    for (const gridType of ["hsep", "vsep", "grid", "unsplit"]) {
-      const selector = panel.querySelector(
-        `.zen-split-view-modifier-preview.${gridType}`
-      );
-      selector.classList.remove("active");
-      if (
-        this.currentView >= 0 &&
-        this._data[this.currentView].gridType === gridType
-      ) {
-        selector.classList.add("active");
+    for (const gridType of ['hsep', 'vsep', 'grid', 'unsplit']) {
+      const selector = panel.querySelector(`.zen-split-view-modifier-preview.${gridType}`);
+      selector.classList.remove('active');
+      if (this.currentView >= 0 && this._data[this.currentView].gridType === gridType) {
+        selector.classList.add('active');
       }
     }
   }
@@ -527,13 +508,9 @@ var gZenViewSplitter = new class {
    * @param {Element} panel - The panel element
    */
   setupPanelListeners(panel) {
-    for (const gridType of ["hsep", "vsep", "grid", "unsplit"]) {
-      const selector = panel.querySelector(
-        `.zen-split-view-modifier-preview.${gridType}`
-      );
-      selector.addEventListener("click", () =>
-        this.handlePanelSelection(gridType, panel)
-      );
+    for (const gridType of ['hsep', 'vsep', 'grid', 'unsplit']) {
+      const selector = panel.querySelector(`.zen-split-view-modifier-preview.${gridType}`);
+      selector.addEventListener('click', () => this.handlePanelSelection(gridType, panel));
     }
   }
 
@@ -543,7 +520,7 @@ var gZenViewSplitter = new class {
    * @param {Element} panel - The panel element
    */
   handlePanelSelection(gridType, panel) {
-    if (gridType === "unsplit") {
+    if (gridType === 'unsplit') {
       this.unsplitCurrentView();
     } else {
       this._data[this.currentView].gridType = gridType;
@@ -581,7 +558,7 @@ var gZenViewSplitter = new class {
   }
 
   toggleShortcut(gridType) {
-    if (gridType === "unsplit") {
+    if (gridType === 'unsplit') {
       this.unsplitCurrentView();
       return;
     }
@@ -592,13 +569,17 @@ var gZenViewSplitter = new class {
     let nextTabIndex = tabs.indexOf(gBrowser.selectedTab) + 1;
     if (nextTabIndex >= tabs.length) {
       // Find the first non-hidden tab
-      nextTabIndex = tabs.findIndex(tab => !tab.hidden);
+      nextTabIndex = tabs.findIndex((tab) => !tab.hidden);
     } else if (nextTabIndex < 0) {
       // reverse find the first non-hidden tab
-      nextTabIndex = tabs.slice().reverse().findIndex(tab => !tab.hidden);
+      nextTabIndex = tabs
+        .slice()
+        .reverse()
+        .findIndex((tab) => !tab.hidden);
     }
-    const selected_tabs = gBrowser.selectedTab.multiselected 
-      ? gBrowser.selectedTabs : [gBrowser.selectedTab, tabs[nextTabIndex]];
+    const selected_tabs = gBrowser.selectedTab.multiselected
+      ? gBrowser.selectedTabs
+      : [gBrowser.selectedTab, tabs[nextTabIndex]];
     this.splitTabs(selected_tabs, gridType);
   }
-}
+})();

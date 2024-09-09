@@ -9,8 +9,7 @@ var gZenBrowserManagerSidebar = {
   _isDragging: false,
   contextTab: null,
 
-  DEFAULT_MOBILE_USER_AGENT:
-    "Mozilla/5.0 (Android 12; Mobile; rv:129.0) Gecko/20100101 Firefox/129.0",
+  DEFAULT_MOBILE_USER_AGENT: 'Mozilla/5.0 (Android 12; Mobile; rv:129.0) Gecko/20100101 Firefox/130.0',
   MAX_SIDEBAR_PANELS: 8, // +1 for the add panel button
   MAX_RUNS: 3,
 
@@ -22,35 +21,28 @@ var gZenBrowserManagerSidebar = {
   },
 
   get sidebarData() {
-    let services = Services.prefs.getStringPref("zen.sidebar.data");
-    if (services === "") {
+    let services = Services.prefs.getStringPref('zen.sidebar.data');
+    if (services === '') {
       return {};
     }
     return JSON.parse(services);
   },
 
   get shouldCloseOnBlur() {
-    return Services.prefs.getBoolPref("zen.sidebar.close-on-blur");
+    return Services.prefs.getBoolPref('zen.sidebar.close-on-blur');
   },
 
   listenForPrefChanges() {
-    Services.prefs.addObserver("zen.sidebar.data", this.handleEvent.bind(this));
-    Services.prefs.addObserver(
-      "zen.sidebar.enabled",
-      this.handleEvent.bind(this)
-    );
+    Services.prefs.addObserver('zen.sidebar.data', this.handleEvent.bind(this));
+    Services.prefs.addObserver('zen.sidebar.enabled', this.handleEvent.bind(this));
 
-    let sidebar = document.getElementById("zen-sidebar-web-panel");
+    let sidebar = document.getElementById('zen-sidebar-web-panel');
     this.splitterElement.addEventListener(
-      "mousedown",
+      'mousedown',
       function (event) {
         let computedStyle = window.getComputedStyle(sidebar);
-        let maxWidth = parseInt(
-          computedStyle.getPropertyValue("max-width").replace("px", "")
-        );
-        let minWidth = parseInt(
-          computedStyle.getPropertyValue("min-width").replace("px", "")
-        );
+        let maxWidth = parseInt(computedStyle.getPropertyValue('max-width').replace('px', ''));
+        let minWidth = parseInt(computedStyle.getPropertyValue('min-width').replace('px', ''));
 
         if (!this._isDragging) {
           // Prevent multiple resizes
@@ -70,30 +62,25 @@ var gZenBrowserManagerSidebar = {
           let mouseUp = function () {
             this.handleEvent();
             this._isDragging = false;
-            document.removeEventListener("mousemove", mouseMove);
-            document.removeEventListener("mouseup", mouseUp);
+            document.removeEventListener('mousemove', mouseMove);
+            document.removeEventListener('mouseup', mouseUp);
           }.bind(this);
-          document.addEventListener("mousemove", mouseMove);
-          document.addEventListener("mouseup", mouseUp);
+          document.addEventListener('mousemove', mouseMove);
+          document.addEventListener('mouseup', mouseUp);
         }
       }.bind(this)
     );
 
     this.hSplitterElement.addEventListener(
-      "mousedown",
+      'mousedown',
       function (event) {
         let computedStyle = window.getComputedStyle(sidebar);
         const parent = sidebar.parentElement;
         // relative to avoid the top margin
         // 20px is the padding
         let parentRelativeHeight =
-          parent.getBoundingClientRect().height -
-          parent.getBoundingClientRect().top +
-          sidebar.getBoundingClientRect().top -
-          20;
-        let minHeight = parseInt(
-          computedStyle.getPropertyValue("min-height").replace("px", "")
-        );
+          parent.getBoundingClientRect().height - parent.getBoundingClientRect().top + sidebar.getBoundingClientRect().top - 20;
+        let minHeight = parseInt(computedStyle.getPropertyValue('min-height').replace('px', ''));
         if (!this._isDragging) {
           // Prevent multiple resizes
           this._isDragging = true;
@@ -113,11 +100,11 @@ var gZenBrowserManagerSidebar = {
           let mouseUp = function () {
             this.handleEvent();
             this._isDragging = false;
-            document.removeEventListener("mousemove", mouseMove);
-            document.removeEventListener("mouseup", mouseUp);
+            document.removeEventListener('mousemove', mouseMove);
+            document.removeEventListener('mouseup', mouseUp);
           }.bind(this);
-          document.addEventListener("mousemove", mouseMove);
-          document.addEventListener("mouseup", mouseUp);
+          document.addEventListener('mousemove', mouseMove);
+          document.addEventListener('mouseup', mouseUp);
         }
       }.bind(this)
     );
@@ -126,9 +113,7 @@ var gZenBrowserManagerSidebar = {
   },
 
   get isFloating() {
-    return document
-      .getElementById("zen-sidebar-web-panel")
-      .hasAttribute("pinned");
+    return document.getElementById('zen-sidebar-web-panel').hasAttribute('pinned');
   },
 
   handleEvent() {
@@ -140,40 +125,36 @@ var gZenBrowserManagerSidebar = {
     var clickOutsideHandler = this._handleClickOutside.bind(this);
     let isFloating = this.isFloating;
     if (isFloating && !this._hasRegisteredPinnedClickOutside) {
-      document.addEventListener("mouseup", clickOutsideHandler);
+      document.addEventListener('mouseup', clickOutsideHandler);
       this._hasRegisteredPinnedClickOutside = true;
     } else if (!isFloating && this._hasRegisteredPinnedClickOutside) {
-      document.removeEventListener("mouseup", clickOutsideHandler);
+      document.removeEventListener('mouseup', clickOutsideHandler);
       this._hasRegisteredPinnedClickOutside = false;
     }
 
-    const button = document.getElementById("zen-sidepanel-button");
-    if (Services.prefs.getBoolPref("zen.sidebar.enabled")) {
-      button.removeAttribute("hidden");
+    const button = document.getElementById('zen-sidepanel-button');
+    if (Services.prefs.getBoolPref('zen.sidebar.enabled')) {
+      button.removeAttribute('hidden');
     } else {
-      button.setAttribute("hidden", "true");
+      button.setAttribute('hidden', 'true');
       this._closeSidebarPanel();
       return;
     }
   },
 
   _handleClickOutside(event) {
-    let sidebar = document.getElementById("zen-sidebar-web-panel");
-    if (
-      !sidebar.hasAttribute("pinned") ||
-      this._isDragging ||
-      !this.shouldCloseOnBlur
-    ) {
+    let sidebar = document.getElementById('zen-sidebar-web-panel');
+    if (!sidebar.hasAttribute('pinned') || this._isDragging || !this.shouldCloseOnBlur) {
       return;
     }
     let target = event.target;
     const closestSelector = [
-      "#zen-sidebar-web-panel",
-      "#zen-sidebar-panels-wrapper",
-      "#zenWebPanelContextMenu",
-      "#zen-sidebar-web-panel-splitter",
-      "#contentAreaContextMenu",
-    ].join(", ");
+      '#zen-sidebar-web-panel',
+      '#zen-sidebar-panels-wrapper',
+      '#zenWebPanelContextMenu',
+      '#zen-sidebar-web-panel-splitter',
+      '#contentAreaContextMenu',
+    ].join(', ');
     if (target.closest(closestSelector)) {
       return;
     }
@@ -184,9 +165,7 @@ var gZenBrowserManagerSidebar = {
     if (!this._currentPanel) {
       this._currentPanel = this._lastOpenedPanel;
     }
-    if (
-      document.getElementById("zen-sidebar-web-panel").hasAttribute("hidden")
-    ) {
+    if (document.getElementById('zen-sidebar-web-panel').hasAttribute('hidden')) {
       this.open();
       return;
     }
@@ -194,8 +173,8 @@ var gZenBrowserManagerSidebar = {
   },
 
   open() {
-    let sidebar = document.getElementById("zen-sidebar-web-panel");
-    sidebar.removeAttribute("hidden");
+    let sidebar = document.getElementById('zen-sidebar-web-panel');
+    sidebar.removeAttribute('hidden');
     this.update();
   },
 
@@ -207,21 +186,19 @@ var gZenBrowserManagerSidebar = {
   },
 
   _updateSidebarButton() {
-    let button = document.getElementById("zen-sidepanel-button");
-    if (
-      !document.getElementById("zen-sidebar-web-panel").hasAttribute("hidden")
-    ) {
-      button.setAttribute("open", "true");
+    let button = document.getElementById('zen-sidepanel-button');
+    if (!document.getElementById('zen-sidebar-web-panel').hasAttribute('hidden')) {
+      button.setAttribute('open', 'true');
     } else {
-      button.removeAttribute("open");
+      button.removeAttribute('open');
     }
   },
 
   _updateWebPanels() {
-    if (Services.prefs.getBoolPref("zen.sidebar.enabled")) {
-      this.sidebarElement.removeAttribute("hidden");
+    if (Services.prefs.getBoolPref('zen.sidebar.enabled')) {
+      this.sidebarElement.removeAttribute('hidden');
     } else {
-      this.sidebarElement.setAttribute("hidden", "true");
+      this.sidebarElement.setAttribute('hidden', 'true');
       this._closeSidebarPanel();
       return;
     }
@@ -230,75 +207,67 @@ var gZenBrowserManagerSidebar = {
     if (!data.data || !data.index) {
       return;
     }
-    this.sidebarElement.innerHTML = "";
+    this.sidebarElement.innerHTML = '';
     for (let site of data.index) {
       let panel = data.data[site];
       if (!panel || !panel.url) {
         continue;
       }
-      let button = document.createXULElement("toolbarbutton");
-      button.classList.add(
-        "zen-sidebar-panel-button",
-        "toolbarbutton-1",
-        "chromeclass-toolbar-additional"
-      );
-      button.setAttribute("flex", "1");
-      button.setAttribute("zen-sidebar-id", site);
-      button.setAttribute("context", "zenWebPanelContextMenu");
+      let button = document.createXULElement('toolbarbutton');
+      button.classList.add('zen-sidebar-panel-button', 'toolbarbutton-1', 'chromeclass-toolbar-additional');
+      button.setAttribute('flex', '1');
+      button.setAttribute('zen-sidebar-id', site);
+      button.setAttribute('context', 'zenWebPanelContextMenu');
       this._getWebPanelIcon(panel.url, button);
-      button.addEventListener("click", this._handleClick.bind(this));
+      button.addEventListener('click', this._handleClick.bind(this));
       button.addEventListener('dragstart', this._handleDragStart.bind(this));
       button.addEventListener('dragover', this._handleDragOver.bind(this));
       button.addEventListener('dragenter', this._handleDragEnter.bind(this));
       button.addEventListener('dragend', this._handleDragEnd.bind(this));
       this.sidebarElement.appendChild(button);
     }
-    const addButton = document.getElementById("zen-sidebar-add-panel-button");
+    const addButton = document.getElementById('zen-sidebar-add-panel-button');
     if (data.index.length < this.MAX_SIDEBAR_PANELS) {
-      addButton.removeAttribute("hidden");
+      addButton.removeAttribute('hidden');
     } else {
-      addButton.setAttribute("hidden", "true");
+      addButton.setAttribute('hidden', 'true');
     }
   },
 
   async _openAddPanelDialog() {
-    let dialogURL = "chrome://browser/content/places/zenNewWebPanel.xhtml";
-    let features = "centerscreen,chrome,modal,resizable=no";
-    let aParentWindow = Services.wm.getMostRecentWindow("navigator:browser");
+    let dialogURL = 'chrome://browser/content/places/zenNewWebPanel.xhtml';
+    let features = 'centerscreen,chrome,modal,resizable=no';
+    let aParentWindow = Services.wm.getMostRecentWindow('navigator:browser');
 
     if (aParentWindow?.gDialogBox) {
       await aParentWindow.gDialogBox.open(dialogURL, {});
     } else {
-      aParentWindow.openDialog(dialogURL, "", features, {});
+      aParentWindow.openDialog(dialogURL, '', features, {});
     }
   },
 
   _setPinnedToElements() {
-    let sidebar = document.getElementById("zen-sidebar-web-panel");
-    sidebar.setAttribute("pinned", "true");
-    document
-      .getElementById("zen-sidebar-web-panel-pinned")
-      .setAttribute("pinned", "true");
+    let sidebar = document.getElementById('zen-sidebar-web-panel');
+    sidebar.setAttribute('pinned', 'true');
+    document.getElementById('zen-sidebar-web-panel-pinned').setAttribute('pinned', 'true');
   },
 
   _removePinnedFromElements() {
-    let sidebar = document.getElementById("zen-sidebar-web-panel");
-    sidebar.removeAttribute("pinned");
-    document
-      .getElementById("zen-sidebar-web-panel-pinned")
-      .removeAttribute("pinned");
+    let sidebar = document.getElementById('zen-sidebar-web-panel');
+    sidebar.removeAttribute('pinned');
+    document.getElementById('zen-sidebar-web-panel-pinned').removeAttribute('pinned');
   },
 
   _closeSidebarPanel() {
-    let sidebar = document.getElementById("zen-sidebar-web-panel");
-    sidebar.setAttribute("hidden", "true");
+    let sidebar = document.getElementById('zen-sidebar-web-panel');
+    sidebar.setAttribute('hidden', 'true');
     this._lastOpenedPanel = this._currentPanel;
     this._currentPanel = null;
   },
 
   _handleClick(event) {
     let target = event.target;
-    let panelId = target.getAttribute("zen-sidebar-id");
+    let panelId = target.getAttribute('zen-sidebar-id');
     if (this._currentPanel === panelId) {
       return;
     }
@@ -316,8 +285,7 @@ var gZenBrowserManagerSidebar = {
     event.dataTransfer.setData('text/plain', event.target.id);
   },
 
-  _handleDragOver(event) {
-  },
+  _handleDragOver(event) {},
 
   _handleDragEnter(event) {
     const target = event.target;
@@ -336,52 +304,50 @@ var gZenBrowserManagerSidebar = {
     let data = this.sidebarData;
     let newPos = [];
     for (let element of this.__dragingElement.parentNode.children) {
-      console.log(element)
-      let panelId = element.getAttribute("zen-sidebar-id");
+      console.log(element);
+      let panelId = element.getAttribute('zen-sidebar-id');
       newPos.push(panelId);
     }
     data.index = newPos;
-    Services.prefs.setStringPref("zen.sidebar.data", JSON.stringify(data));
-    this._currentPanel = this.__dragingElement.getAttribute("zen-sidebar-id");
+    Services.prefs.setStringPref('zen.sidebar.data', JSON.stringify(data));
+    this._currentPanel = this.__dragingElement.getAttribute('zen-sidebar-id');
     this.open();
     this.__dragingElement = undefined;
   },
-  
+
   _createNewPanel(url) {
     let data = this.sidebarData;
-    let newName = "p" + new Date().getTime();
+    let newName = 'p' + new Date().getTime();
     data.index.push(newName);
     data.data[newName] = {
       url: url,
       ua: false,
     };
-    Services.prefs.setStringPref("zen.sidebar.data", JSON.stringify(data));
+    Services.prefs.setStringPref('zen.sidebar.data', JSON.stringify(data));
     this._currentPanel = newName;
     this.open();
   },
 
   _updateButtons() {
-    for (let button of this.sidebarElement.querySelectorAll(
-      ".zen-sidebar-panel-button"
-    )) {
-      if (button.getAttribute("zen-sidebar-id") === this._currentPanel) {
-        button.setAttribute("selected", "true");
+    for (let button of this.sidebarElement.querySelectorAll('.zen-sidebar-panel-button')) {
+      if (button.getAttribute('zen-sidebar-id') === this._currentPanel) {
+        button.setAttribute('selected', 'true');
       } else {
-        button.removeAttribute("selected");
+        button.removeAttribute('selected');
       }
     }
   },
 
   _hideAllWebPanels() {
-    let sidebar = document.getElementById("zen-sidebar-web-panel");
-    for (let browser of sidebar.querySelectorAll("browser[zen-sidebar-id]")) {
-      browser.setAttribute("hidden", "true");
+    let sidebar = document.getElementById('zen-sidebar-web-panel');
+    for (let browser of sidebar.querySelectorAll('browser[zen-sidebar-id]')) {
+      browser.setAttribute('hidden', 'true');
       browser.docShellIsActive = false;
     }
   },
 
   get introductionPanel() {
-    return document.getElementById("zen-sidebar-introduction-panel");
+    return document.getElementById('zen-sidebar-introduction-panel');
   },
 
   _updateWebPanel() {
@@ -389,23 +355,20 @@ var gZenBrowserManagerSidebar = {
     // let sidebar = document.getElementById("zen-sidebar-web-panel");
     this._hideAllWebPanels();
     if (!this._currentPanel) {
-      this.introductionPanel.removeAttribute("hidden");
+      this.introductionPanel.removeAttribute('hidden');
       return;
     }
-    this.introductionPanel.setAttribute("hidden", "true");
+    this.introductionPanel.setAttribute('hidden', 'true');
     let existantWebview = this._getCurrentBrowser();
     if (existantWebview) {
       existantWebview.docShellIsActive = true;
-      existantWebview.removeAttribute("hidden");
-      document.getElementById("zen-sidebar-web-panel-title").textContent =
-        existantWebview.contentTitle;
+      existantWebview.removeAttribute('hidden');
+      document.getElementById('zen-sidebar-web-panel-title').textContent = existantWebview.contentTitle;
       return;
     }
     let data = this._getWebPanelData(this._currentPanel);
     let browser = this._createWebPanelBrowser(data);
-    let browserContainers = document.getElementById(
-      "zen-sidebar-web-panel-browser-containers"
-    );
+    let browserContainers = document.getElementById('zen-sidebar-web-panel-browser-containers');
     browserContainers.appendChild(browser);
     if (data.ua) {
       browser.browsingContext.customUserAgent = this.DEFAULT_MOBILE_USER_AGENT;
@@ -426,26 +389,24 @@ var gZenBrowserManagerSidebar = {
   },
 
   _createWebPanelBrowser(data) {
-    const titleContainer = document.getElementById(
-      "zen-sidebar-web-panel-title"
-    );
-    titleContainer.textContent = "Loading...";
+    const titleContainer = document.getElementById('zen-sidebar-web-panel-title');
+    titleContainer.textContent = 'Loading...';
     let browser = gBrowser.createBrowser({});
-    browser.setAttribute("disablefullscreen", "true");
-    browser.setAttribute("src", data.url);
-    browser.setAttribute("zen-sidebar-id", data.id);
-    browser.setAttribute("autoscroll", "false");
-    browser.setAttribute("autocompletepopup", "PopupAutoComplete");
-    browser.setAttribute("contextmenu", "contentAreaContextMenu");
+    browser.setAttribute('disablefullscreen', 'true');
+    browser.setAttribute('src', data.url);
+    browser.setAttribute('zen-sidebar-id', data.id);
+    browser.setAttribute('autoscroll', 'false');
+    browser.setAttribute('autocompletepopup', 'PopupAutoComplete');
+    browser.setAttribute('contextmenu', 'contentAreaContextMenu');
     browser.addEventListener(
-      "pagetitlechanged",
+      'pagetitlechanged',
       function (event) {
         let browser = event.target;
         let title = browser.contentTitle;
         if (!title) {
           return;
         }
-        let id = browser.getAttribute("zen-sidebar-id");
+        let id = browser.getAttribute('zen-sidebar-id');
         if (id === this._currentPanel) {
           titleContainer.textContent = title;
         }
@@ -456,15 +417,13 @@ var gZenBrowserManagerSidebar = {
 
   _getWebPanelIcon(url, element) {
     let { preferredURI } = Services.uriFixup.getFixupURIInfo(url);
-    element.setAttribute("image", `page-icon:${preferredURI.spec}`);
-    fetch(
-      `https://s2.googleusercontent.com/s2/favicons?domain_url=${preferredURI.spec}`
-    ).then(async (response) => {
+    element.setAttribute('image', `page-icon:${preferredURI.spec}`);
+    fetch(`https://s2.googleusercontent.com/s2/favicons?domain_url=${preferredURI.spec}`).then(async (response) => {
       if (response.ok) {
         let blob = await response.blob();
         let reader = new FileReader();
         reader.onload = function () {
-          element.setAttribute("image", reader.result);
+          element.setAttribute('image', reader.result);
         };
         reader.readAsDataURL(blob);
       }
@@ -472,7 +431,7 @@ var gZenBrowserManagerSidebar = {
   },
 
   _getBrowserById(id) {
-    let sidebar = document.getElementById("zen-sidebar-web-panel");
+    let sidebar = document.getElementById('zen-sidebar-web-panel');
     return sidebar.querySelector(`browser[zen-sidebar-id="${id}"]`);
   },
 
@@ -515,8 +474,8 @@ var gZenBrowserManagerSidebar = {
   },
 
   togglePinned(elem) {
-    let sidebar = document.getElementById("zen-sidebar-web-panel");
-    if (sidebar.hasAttribute("pinned")) {
+    let sidebar = document.getElementById('zen-sidebar-web-panel');
+    if (sidebar.hasAttribute('pinned')) {
       this._removePinnedFromElements();
     } else {
       this._setPinnedToElements();
@@ -526,27 +485,21 @@ var gZenBrowserManagerSidebar = {
 
   get sidebarElement() {
     if (!this._sidebarElement) {
-      this._sidebarElement = document.getElementById(
-        "zen-sidebar-panels-sites"
-      );
+      this._sidebarElement = document.getElementById('zen-sidebar-panels-sites');
     }
     return this._sidebarElement;
   },
 
   get splitterElement() {
     if (!this._splitterElement) {
-      this._splitterElement = document.getElementById(
-        "zen-sidebar-web-panel-splitter"
-      );
+      this._splitterElement = document.getElementById('zen-sidebar-web-panel-splitter');
     }
     return this._splitterElement;
   },
 
   get hSplitterElement() {
     if (!this._hSplitterElement) {
-      this._hSplitterElement = document.getElementById(
-        "zen-sidebar-web-panel-hsplitter"
-      );
+      this._hSplitterElement = document.getElementById('zen-sidebar-web-panel-hsplitter');
     }
     return this._hSplitterElement;
   },
@@ -555,45 +508,33 @@ var gZenBrowserManagerSidebar = {
 
   updateContextMenu(aPopupMenu) {
     let panel =
-      aPopupMenu.triggerNode &&
-      (aPopupMenu.triggerNode ||
-        aPopupMenu.triggerNode.closest("toolbarbutton[zen-sidebar-id]"));
+      aPopupMenu.triggerNode && (aPopupMenu.triggerNode || aPopupMenu.triggerNode.closest('toolbarbutton[zen-sidebar-id]'));
     if (!panel) {
       return;
     }
-    let id = panel.getAttribute("zen-sidebar-id");
+    let id = panel.getAttribute('zen-sidebar-id');
     this.contextTab = id;
     let data = this._getWebPanelData(id);
     let browser = this._getBrowserById(id);
     let isMuted = browser && browser.audioMuted;
-    let mutedContextItem = document.getElementById(
-      "context_zenToggleMuteWebPanel"
-    );
+    let mutedContextItem = document.getElementById('context_zenToggleMuteWebPanel');
     document.l10n.setAttributes(
       mutedContextItem,
-      !isMuted
-        ? "zen-web-side-panel-context-mute-panel"
-        : "zen-web-side-panel-context-unmute-panel"
+      !isMuted ? 'zen-web-side-panel-context-mute-panel' : 'zen-web-side-panel-context-unmute-panel'
     );
     if (!isMuted) {
-      mutedContextItem.setAttribute("muted", "true");
+      mutedContextItem.setAttribute('muted', 'true');
     } else {
-      mutedContextItem.removeAttribute("muted");
+      mutedContextItem.removeAttribute('muted');
     }
     document.l10n.setAttributes(
-      document.getElementById("context_zenToogleUAWebPanel"),
-      data.ua
-        ? "zen-web-side-panel-context-disable-ua"
-        : "zen-web-side-panel-context-enable-ua"
+      document.getElementById('context_zenToogleUAWebPanel'),
+      data.ua ? 'zen-web-side-panel-context-disable-ua' : 'zen-web-side-panel-context-enable-ua'
     );
     if (!browser) {
-      document
-        .getElementById("context_zenUnloadWebPanel")
-        .setAttribute("disabled", "true");
+      document.getElementById('context_zenUnloadWebPanel').setAttribute('disabled', 'true');
     } else {
-      document
-        .getElementById("context_zenUnloadWebPanel")
-        .removeAttribute("disabled");
+      document.getElementById('context_zenUnloadWebPanel').removeAttribute('disabled');
     }
   },
 
@@ -617,13 +558,10 @@ var gZenBrowserManagerSidebar = {
 
   contextToggleUserAgent() {
     let browser = this._getBrowserById(this.contextTab);
-    browser.browsingContext.customUserAgent = browser.browsingContext
-      .customUserAgent
-      ? null
-      : this.DEFAULT_MOBILE_USER_AGENT;
+    browser.browsingContext.customUserAgent = browser.browsingContext.customUserAgent ? null : this.DEFAULT_MOBILE_USER_AGENT;
     let data = this.sidebarData;
     data.data[this.contextTab].ua = !data.data[this.contextTab].ua;
-    Services.prefs.setStringPref("zen.sidebar.data", JSON.stringify(data));
+    Services.prefs.setStringPref('zen.sidebar.data', JSON.stringify(data));
     browser.reload();
   },
 
@@ -634,42 +572,35 @@ var gZenBrowserManagerSidebar = {
     let browser = this._getBrowserById(this.contextTab);
     if (browser) {
       browser.remove();
-      document.getElementById("zen-sidebar-web-panel-title").textContent = "";
+      document.getElementById('zen-sidebar-web-panel-title').textContent = '';
     }
     this._currentPanel = null;
     this._lastOpenedPanel = null;
     this.update();
-    Services.prefs.setStringPref("zen.sidebar.data", JSON.stringify(data));
+    Services.prefs.setStringPref('zen.sidebar.data', JSON.stringify(data));
   },
 
   contextUnload() {
     let browser = this._getBrowserById(this.contextTab);
     browser.remove();
-    document.getElementById("zen-sidebar-web-panel-title").textContent = "";
+    document.getElementById('zen-sidebar-web-panel-title').textContent = '';
     this._closeSidebarPanel();
     this.close();
     this._lastOpenedPanel = null;
   },
 
   insertIntoContextMenu() {
-    const sibling = document.getElementById("context-stripOnShareLink");
-    const menuitem = document.createXULElement("menuitem");
-    menuitem.setAttribute("id", "context-zenAddToWebPanel");
-    menuitem.setAttribute("hidden", "true");
-    menuitem.setAttribute(
-      "oncommand",
-      "gZenBrowserManagerSidebar.addPanelFromContextMenu();"
-    );
-    menuitem.setAttribute(
-      "data-l10n-id",
-      "zen-web-side-panel-context-add-to-panel"
-    );
-    sibling.insertAdjacentElement("afterend", menuitem);
+    const sibling = document.getElementById('context-stripOnShareLink');
+    const menuitem = document.createXULElement('menuitem');
+    menuitem.setAttribute('id', 'context-zenAddToWebPanel');
+    menuitem.setAttribute('hidden', 'true');
+    menuitem.setAttribute('oncommand', 'gZenBrowserManagerSidebar.addPanelFromContextMenu();');
+    menuitem.setAttribute('data-l10n-id', 'zen-web-side-panel-context-add-to-panel');
+    sibling.insertAdjacentElement('afterend', menuitem);
   },
 
   addPanelFromContextMenu() {
-    const url =
-      gContextMenu.linkURL || gContextMenu.target.ownerDocument.location.href;
+    const url = gContextMenu.linkURL || gContextMenu.target.ownerDocument.location.href;
     this._createNewPanel(url);
   },
 };
