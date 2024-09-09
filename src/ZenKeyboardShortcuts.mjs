@@ -200,7 +200,10 @@ var gZenKeyboardShortcuts = {
   },
 
   _saveShortcuts() {
-    Services.prefs.setStringPref(kZKSStorageKey, JSON.stringify(this._savedShortcuts));
+    Services.prefs.setStringPref(
+      kZKSStorageKey,
+      JSON.stringify(this._savedShortcuts),
+    );
   },
 
   _parseDefaultShortcut(shortcut) {
@@ -219,7 +222,9 @@ var gZenKeyboardShortcuts = {
   _addDefaultShortcuts() {
     for (let action in kZenDefaultShortcuts) {
       if (!this._savedShortcuts[action]) {
-        this._savedShortcuts[action] = this._parseDefaultShortcut(kZenDefaultShortcuts[action]);
+        this._savedShortcuts[action] = this._parseDefaultShortcut(
+          kZenDefaultShortcuts[action],
+        );
       }
     }
   },
@@ -360,7 +365,7 @@ var gZenKeyboardShortcuts = {
   shortCutToString(shortcut) {
     let str = '';
     if (shortcut.ctrl) {
-      str += AppConstants.platform == 'macosx' ? 'Cmd+' : 'Ctrl+';
+      str += "Ctrl+";
     }
     if (shortcut.alt) {
       str += 'Alt+';
@@ -369,7 +374,7 @@ var gZenKeyboardShortcuts = {
       str += 'Shift+';
     }
     if (shortcut.meta) {
-      str += 'Meta+';
+      str += AppConstants.platform == "macosx" ? "Cmd+" : "Meta+";
     }
     if (shortcut.keycode) {
       str += shortcut.keycode;
