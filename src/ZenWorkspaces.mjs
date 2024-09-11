@@ -688,10 +688,10 @@ var ZenWorkspaces = {
   // Tab browser utilities
   getContextIdIfNeeded(userContextId) {
     if (typeof userContextId !== "undefined" || !this.workspaceEnabled) {
-      return userContextId;
+      return [userContextId, false];
     }
     const activeWorkspace = this.getActiveWorkspaceFromCache();
-    return activeWorkspace?.containerTabId;
+    return [activeWorkspace?.containerTabId, true];
   },
 };
 
