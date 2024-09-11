@@ -100,7 +100,9 @@ var ZenWorkspaces = {
     }
   },
 
-  _kIcons: JSON.parse(Services.prefs.getStringPref("zen.workspaces.icons")),
+  // Convert all the icons to just the first character, just in case someone
+  // decides to use a string with more than one character
+  _kIcons: JSON.parse(Services.prefs.getStringPref("zen.workspaces.icons")).map((icon) => icon[0]),
 
   _initializeWorkspaceCreationIcons() {
     let container = document.getElementById('PanelUI-zen-workspaces-create-icons-container');
@@ -231,12 +233,31 @@ var ZenWorkspaces = {
       element.className = 'subviewbutton';
       element.setAttribute('tooltiptext', workspace.name);
       element.setAttribute('zen-workspace-id', workspace.uuid);
-      //element.setAttribute("context", "zenWorkspaceActionsMenu");
+      if (workspace.used) {
+        element.setAttribute('active', 'true');
+      }
+      if (workspace.default) {
+        element.setAttribute('default', 'true');
+      }
+      console.log(ContextualIdentityService.getPublicIdentities())
+      console.log(workspace)
+      const containerGroup = ContextualIdentityService.getPublicIdentities().find(
+        (container) => container.userContextId === workspace.containerTabId
+      );
+      console.log(containerGroup)
+      if (containerGroup) {
+        element.classList.add("identity-color-" + containerGroup.color);
+        element.setAttribute("data-usercontextid", containerGroup.userContextId);
+      }
       let childs = window.MozXULElement.parseXULToFragment(`
         <div class="zen-workspace-icon">
         </div>
-        <div class="zen-workspace-name">
-        </div>
+        <vbox>
+          <div class="zen-workspace-name">
+          </div>
+          <div class="zen-workspace-container" ${containerGroup ? '' : 'hidden="true"'}>
+          </div>
+        </vbox>
         <toolbarbutton closemenu="none" class="toolbarbutton-1 zen-workspace-actions">
           <image class="toolbarbutton-icon" id="zen-workspace-actions-menu-icon"></image>
         </toolbarbutton>
@@ -245,6 +266,11 @@ var ZenWorkspaces = {
       // use text content instead of innerHTML to avoid XSS
       childs.querySelector('.zen-workspace-icon').textContent = this.getWorkspaceIcon(workspace);
       childs.querySelector('.zen-workspace-name').textContent = workspace.name;
+      if (containerGroup) {
+        childs.querySelector('.zen-workspace-container').textContent = ContextualIdentityService.formatContextLabel(
+          containerGroup.l10nId
+        );
+      }
 
       childs.querySelector('.zen-workspace-actions').addEventListener('command', (event) => {
         let button = event.target;
@@ -587,6 +613,7 @@ var ZenWorkspaces = {
     );
     workspace.containerTabId = userContextId;
     await this.saveWorkspace(workspace);
+    await this._propagateWorkspaceData();
   },
 
   onContextMenuClose() {
