@@ -20,6 +20,10 @@ var ZenWorkspaces = {
     return Services.prefs.getBoolPref('zen.workspaces.enabled', false);
   },
 
+  getActiveWorkspaceFromCache() {
+    return this._workspaceCache.workspaces.find((workspace) => workspace.used);
+  },
+
   // Wrorkspaces saving/loading
   get _storeFile() {
     return PathUtils.join(PathUtils.profileDir, 'zen-workspaces', 'Workspaces.json');
@@ -96,7 +100,7 @@ var ZenWorkspaces = {
     }
   },
 
-  _kIcons: ['🏠', '📄', '💹', '💼', '📧', '✅', '👥'],
+  _kIcons: JSON.parse(Services-prefs.getStringPref("zen.workspaces.icons", '["🌐", "📁", "📎", "📝", "📅", "📊"]')),
 
   _initializeWorkspaceCreationIcons() {
     let container = document.getElementById('PanelUI-zen-workspaces-create-icons-container');
@@ -575,6 +579,16 @@ var ZenWorkspaces = {
     }
   },
 
+  async contextChangeContainerTab(event) {
+    let workspaces = await this._workspaces();
+    let workspace = workspaces.workspaces.find((workspace) => workspace.uuid === this._contextMenuId);
+    let userContextId = parseInt(
+      event.target.getAttribute("data-usercontextid")
+    );
+    workspace.containerTabId = userContextId;
+    await this.saveWorkspace(workspace);
+  },
+
   onContextMenuClose() {
     let target = document.querySelector(
       `#PanelUI-zen-workspaces [zen-workspace-id="${this._contextMenuId}"] .zen-workspace-actions`
@@ -642,6 +656,15 @@ var ZenWorkspaces = {
     }
     const workspaces = await this._workspaces();
     await this.changeWorkspace(workspaces.workspaces.find((workspace) => workspace.uuid === workspaceID));
+  },
+
+  // Tab browser utilities
+  getContextIdIfNeeded(userContextId) {
+    if (typeof userContextId !== "undefined" || !this.workspaceEnabled) {
+      return userContextId;
+    }
+    const activeWorkspace = this.getActiveWorkspaceFromCache();
+    return activeWorkspace?.containerTabId;
   },
 };
 
