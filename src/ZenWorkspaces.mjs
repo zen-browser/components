@@ -100,7 +100,7 @@ var ZenWorkspaces = {
     }
   },
 
-  _kIcons: JSON.parse(Services-prefs.getStringPref("zen.workspaces.icons", '["🌐", "📁", "📎", "📝", "📅", "📊"]')),
+  _kIcons: JSON.parse(Services.prefs.getStringPref("zen.workspaces.icons")),
 
   _initializeWorkspaceCreationIcons() {
     let container = document.getElementById('PanelUI-zen-workspaces-create-icons-container');
