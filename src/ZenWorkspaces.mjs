@@ -239,12 +239,9 @@ var ZenWorkspaces = {
       if (workspace.default) {
         element.setAttribute('default', 'true');
       }
-      console.log(ContextualIdentityService.getPublicIdentities())
-      console.log(workspace)
       const containerGroup = ContextualIdentityService.getPublicIdentities().find(
         (container) => container.userContextId === workspace.containerTabId
       );
-      console.log(containerGroup)
       if (containerGroup) {
         element.classList.add("identity-color-" + containerGroup.color);
         element.setAttribute("data-usercontextid", containerGroup.userContextId);

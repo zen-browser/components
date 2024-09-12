@@ -304,7 +304,6 @@ var gZenBrowserManagerSidebar = {
     let data = this.sidebarData;
     let newPos = [];
     for (let element of this.__dragingElement.parentNode.children) {
-      console.log(element);
       let panelId = element.getAttribute('zen-sidebar-id');
       newPos.push(panelId);
     }
