@@ -683,6 +683,20 @@ var ZenWorkspaces = {
   },
 
   // Tab browser utilities
+  createContainerTabMenu(event) {
+    let window = event.target.ownerGlobal;
+    const workspace = this.getActiveWorkspaceFromCache();
+    if (!workspace) {
+      return;
+    }
+    let containerTabId = workspace.containerTabId;
+    return window.createUserContextMenu(event, {
+      isContextMenu: true,
+      excludeUserContextId: containerTabId,
+      showDefaultTab: true,
+    });
+  },
+
   getContextIdIfNeeded(userContextId) {
     if (typeof userContextId !== "undefined" || !this.workspaceEnabled) {
       return [userContextId, false];
