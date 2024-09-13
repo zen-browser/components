@@ -102,7 +102,7 @@ var ZenWorkspaces = {
 
   // Convert all the icons to just the first character, just in case someone
   // decides to use a string with more than one character
-  _kIcons: JSON.parse(Services.prefs.getStringPref("zen.workspaces.icons")).map((icon) => icon[0]),
+  _kIcons: JSON.parse(Services.prefs.getStringPref('zen.workspaces.icons')).map((icon) => icon[0]),
 
   _initializeWorkspaceCreationIcons() {
     let container = document.getElementById('PanelUI-zen-workspaces-create-icons-container');
@@ -243,8 +243,8 @@ var ZenWorkspaces = {
         (container) => container.userContextId === workspace.containerTabId
       );
       if (containerGroup) {
-        element.classList.add("identity-color-" + containerGroup.color);
-        element.setAttribute("data-usercontextid", containerGroup.userContextId);
+        element.classList.add('identity-color-' + containerGroup.color);
+        element.setAttribute('data-usercontextid', containerGroup.userContextId);
       }
       let childs = window.MozXULElement.parseXULToFragment(`
         <div class="zen-workspace-icon">
@@ -605,9 +605,7 @@ var ZenWorkspaces = {
   async contextChangeContainerTab(event) {
     let workspaces = await this._workspaces();
     let workspace = workspaces.workspaces.find((workspace) => workspace.uuid === this._contextMenuId);
-    let userContextId = parseInt(
-      event.target.getAttribute("data-usercontextid")
-    );
+    let userContextId = parseInt(event.target.getAttribute('data-usercontextid'));
     workspace.containerTabId = userContextId;
     await this.saveWorkspace(workspace);
     await this._propagateWorkspaceData();
@@ -684,7 +682,7 @@ var ZenWorkspaces = {
 
   // Tab browser utilities
   getContextIdIfNeeded(userContextId) {
-    if (typeof userContextId !== "undefined" || !this.workspaceEnabled) {
+    if (typeof userContextId !== 'undefined' || !this.workspaceEnabled) {
       return [userContextId, false];
     }
     const activeWorkspace = this.getActiveWorkspaceFromCache();
