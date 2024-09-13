@@ -693,10 +693,7 @@ var ZenWorkspaces = {
   // Tab browser utilities
   createContainerTabMenu(event) {
     let window = event.target.ownerGlobal;
-    const workspace = this.getActiveWorkspaceFromCache();
-    if (!workspace) {
-      return;
-    }
+    const workspace = this._workspaceCache.workspaces.find((workspace) => this._contextMenuId === workspace.uuid);
     let containerTabId = workspace.containerTabId;
     return window.createUserContextMenu(event, {
       isContextMenu: true,
