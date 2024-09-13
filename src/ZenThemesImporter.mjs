@@ -36,8 +36,9 @@ var gZenThemeImporter = new (class {
   constructor() {
     console.info('ZenThemeImporter: Initiating Zen theme importer');
     try {
-      window.SessionStore.promiseInitialized.then(() => {
+      window.SessionStore.promiseInitialized.then(async () => {
         this.insertStylesheet();
+        await this.writeToDom();
       });
       console.info('ZenThemeImporter: Zen theme imported');
     } catch (e) {
@@ -108,7 +109,53 @@ var gZenThemeImporter = new (class {
   async updateStylesheet() {
     this.removeStylesheet();
     await this.writeStylesheet();
+    await this.writeToDom();
     this.insertStylesheet();
+  }
+
+  _getBrowser() {
+    if (!this.__browser) {
+      this.__browser = Services.wm.getMostRecentWindow("navigator:browser")
+    }
+
+    return this.__browser
+  }
+
+  async _getThemePreferences(theme) {
+    const themePath = PathUtils.join(this.getThemeFolder(theme), 'preferences.json');
+
+    if (!(await IOUtils.exists(themePath)) || !theme.preferences) {
+      return [];
+    }
+
+    return IOUtils.readJSON(themePath);
+  }
+
+  async writeToDom() {
+    const browser = this._getBrowser()
+
+    for (const theme of Object.values(await this.getThemes())) {
+      const themePreferences = (await this._getThemePreferences(theme)).filter(({ type }) => type === "dropdown")
+
+      for (const { property } of themePreferences) {
+        const value = Services.prefs.getStringPref(property, "")
+
+        if (value !== "") {
+          let element = browser.document.getElementById(theme.name)
+
+          if (!element) {
+            element = browser.document.createElement("div")
+
+            element.style.display = "none"
+            element.setAttribute("id", theme.name)
+
+            browser.document.body.appendChild(element)
+          }
+
+          element.setAttribute(property, value)
+        }
+      }
+    }
   }
 
   async writeStylesheet() {
