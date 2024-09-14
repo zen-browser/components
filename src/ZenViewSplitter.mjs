@@ -270,6 +270,7 @@ var gZenViewSplitter = new (class {
     }
 
     this.activateSplitView(splitData, tab);
+    if (!splitData.sizes) this.applySplitters(splitData);
   }
 
   /**
@@ -320,6 +321,27 @@ var gZenViewSplitter = new (class {
       const container = tab.linkedBrowser.closest('.browserSidebarContainer');
       this.styleContainer(container, tab === activeTab, index, gridType);
     });
+  }
+
+  applySplitters(splitData) {
+    const tabs = splitData.tabs;
+    for (let i = 0; i < tabs.length; i++) {
+      const tab = tabs[0];
+      const container = tab.linkedBrowser.closest('.browserSidebarContainer');
+
+      if (splitData.gridType === 'vsep' && i != tabs.length - 1) {
+        let splitter = document.createXULElement('div');
+        splitter.className = 'zen-split-view-splitter';
+        splitter.setAttribute('orient', 'vertical');
+        splitter.addEventListener('mousedown', this.handleSplitterMouseDown);
+        container.insertAdjacentElement("beforeend", splitter);
+      }
+    }
+
+    if (splitData.gridType === 'vsep') {
+      const w = 100 / tabs.length;
+      splitData.sizes = tabs.map(t => ({width: w}));
+    }
   }
 
   /**
@@ -400,6 +422,32 @@ var gZenViewSplitter = new (class {
       window.gBrowser.selectedTab = tab;
     }
   };
+
+  handleSplitterMouseDown = (event) => {
+    const container = event.target.parentElement;
+    const tab = window.gBrowser.tabs.find((t) => t.linkedBrowser.closest('.browserSidebarContainer') === container);
+    const currentView = this._data[this.currentView];
+
+    const tabIdx = currentView.tabs.findIndex(t => t === tab);
+    let dragFunc;
+    let prevX = event.clientX;
+    dragFunc = (dEvent) => {
+      requestAnimationFrame(() => {
+        const movementX = dEvent.clientX - prevX;
+        const percentageChange = (movementX / this._tabBrowserPanel.getBoundingClientRect().width) * 100;
+        currentView.sizes[tabIdx].width += percentageChange;
+        currentView.sizes[tabIdx + 1].width -= percentageChange;
+        this._tabBrowserPanel.style['grid-template-columns'] = currentView.tabs.map((t, i) => `${currentView.sizes[i].width}%`).join(' ');
+        prevX = dEvent.clientX;
+      });
+    }
+    const stopListeners = () => {
+      removeEventListener('mousemove', dragFunc);
+      removeEventListener('mouseup', stopListeners);
+    }
+    addEventListener('mousemove', dragFunc);
+    addEventListener('mouseup', stopListeners);
+  }
 
   /**
    * Sets the docshell state for the tabs.
