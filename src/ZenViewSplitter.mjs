@@ -269,8 +269,8 @@ var gZenViewSplitter = new (class {
       }
     }
 
+    this.applySplitters(splitData);
     this.activateSplitView(splitData, tab);
-    if (!splitData.sizes) this.applySplitters(splitData);
   }
 
   /**
@@ -284,6 +284,7 @@ var gZenViewSplitter = new (class {
     }
     this.tabBrowserPanel.removeAttribute('zen-split-view');
     this.tabBrowserPanel.style.gridTemplateAreas = '';
+    this.tabBrowserPanel.style.gridTemplateColumns = '';
     this.setTabsDocShellState(this._data[this.currentView].tabs, false);
     this.currentView = -1;
   }
@@ -303,6 +304,7 @@ var gZenViewSplitter = new (class {
 
     this.setTabsDocShellState(splitData.tabs, true);
     this.updateSplitViewButton(false);
+    this.updateGridSizes();
   }
 
   /**
@@ -325,22 +327,27 @@ var gZenViewSplitter = new (class {
 
   applySplitters(splitData) {
     const tabs = splitData.tabs;
-    for (let i = 0; i < tabs.length; i++) {
-      const tab = tabs[0];
-      const container = tab.linkedBrowser.closest('.browserSidebarContainer');
+    const gridType = splitData.gridType;
 
-      if (splitData.gridType === 'vsep' && i != tabs.length - 1) {
-        let splitter = document.createXULElement('div');
-        splitter.className = 'zen-split-view-splitter';
-        splitter.setAttribute('orient', 'vertical');
-        splitter.addEventListener('mousedown', this.handleSplitterMouseDown);
-        container.insertAdjacentElement("beforeend", splitter);
-      }
+    const vSplitters = gridType === 'vsep' ? (tabs.length - 1) : gridType === 'hsep' ? 0 : NaN;
+
+    const totalVsplitters = Math.max(...this._data.map(s => s.verticalSplitters || 0));
+    for (let i = totalVsplitters; i < vSplitters; i++) {
+      let splitter = document.createXULElement('div');
+      splitter.className = 'zen-split-view-splitter';
+      splitter.setAttribute('orient', 'vertical');
+      splitter.setAttribute('idx', i + 1);
+      splitter.style = `grid-area: splitter${i + 1}`;
+      splitter.addEventListener('mousedown', this.handleSplitterMouseDown);
+      this.tabBrowserPanel.insertAdjacentElement("afterbegin", splitter);
     }
+    splitData.verticalSplitters = vSplitters;
 
-    if (splitData.gridType === 'vsep') {
-      const w = 100 / tabs.length;
-      splitData.sizes = tabs.map(t => ({width: w}));
+    if (!splitData.sizes) {
+      if (splitData.gridType === 'vsep') {
+        const w = 100 / tabs.length;
+        splitData.sizes = tabs.map(t => ({width: w}));
+      }
     }
   }
 
@@ -356,7 +363,7 @@ var gZenViewSplitter = new (class {
       return this.calculateGridAreasForGrid(tabs);
     }
     if (gridType === 'vsep') {
-      return `'${tabs.map((_, j) => `tab${j + 1}`).join(' ')}'`;
+      return `'${tabs.slice(0, -1).map((_, j) => `tab${j + 1} splitter${j + 1}`).join(' ')} tab${tabs.length}'`;
     }
     if (gridType === 'hsep') {
       return tabs.map((_, j) => `'tab${j + 1}'`).join(' ');
@@ -428,16 +435,16 @@ var gZenViewSplitter = new (class {
     const tab = window.gBrowser.tabs.find((t) => t.linkedBrowser.closest('.browserSidebarContainer') === container);
     const currentView = this._data[this.currentView];
 
-    const tabIdx = currentView.tabs.findIndex(t => t === tab);
+    const tabIdx = event.target.getAttribute('idx');
     let dragFunc;
     let prevX = event.clientX;
     dragFunc = (dEvent) => {
       requestAnimationFrame(() => {
         const movementX = dEvent.clientX - prevX;
         const percentageChange = (movementX / this._tabBrowserPanel.getBoundingClientRect().width) * 100;
-        currentView.sizes[tabIdx].width += percentageChange;
-        currentView.sizes[tabIdx + 1].width -= percentageChange;
-        this._tabBrowserPanel.style['grid-template-columns'] = currentView.tabs.map((t, i) => `${currentView.sizes[i].width}%`).join(' ');
+        currentView.sizes[tabIdx - 1].width += percentageChange;
+        currentView.sizes[tabIdx].width -= percentageChange;
+        this.updateGridSizes();
         prevX = dEvent.clientX;
       });
     }
@@ -447,6 +454,13 @@ var gZenViewSplitter = new (class {
     }
     addEventListener('mousemove', dragFunc);
     addEventListener('mouseup', stopListeners);
+  }
+
+  updateGridSizes() {
+    const currentView = this._data[this.currentView];
+    this._tabBrowserPanel.style.gridTemplateColumns = currentView.tabs.slice(0, -1).map(
+      (t, i) => `calc(${currentView.sizes[i].width}% - 7px) 7px`
+    ).join(' ');
   }
 
   /**
