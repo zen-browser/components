@@ -118,10 +118,10 @@ var gZenThemeImporter = new (class {
 
   _getBrowser() {
     if (!this.__browser) {
-      this.__browser = Services.wm.getMostRecentWindow("navigator:browser")
+      this.__browser = Services.wm.getMostRecentWindow('navigator:browser');
     }
 
-    return this.__browser
+    return this.__browser;
   }
 
   async _getThemePreferences(theme) {
@@ -134,7 +134,7 @@ var gZenThemeImporter = new (class {
     let preferences = await IOUtils.readJSON(themePath);
 
     // skip transformation, we won't be writing old preferences to dom, all of them can only be checkboxes
-    if (typeof preferences === "object" && !Array.isArray(preferences)) {
+    if (typeof preferences === 'object' && !Array.isArray(preferences)) {
       return { preferences: [], areOldPreferences: true };
     }
 
@@ -142,16 +142,17 @@ var gZenThemeImporter = new (class {
   }
 
   async writeToDom() {
-    const browser = this._getBrowser()
+    const browser = this._getBrowser();
 
     for (const theme of Object.values(await this.getThemes())) {
       const { preferences, areOldPreferences } = await this._getThemePreferences(theme);
+      const sanitizedName = `theme-${theme.name?.replaceAll(/\s/g, '-')?.replaceAll(/[^A-z_-]+/g, '')}`;
 
       if (!theme.enabled) {
-        const element = browser.document.getElementById(theme.name);
+        const element = browser.document.getElementById(sanitizedName);
 
         if (element) {
-          element.remove()
+          element.remove();
         }
 
         continue;
@@ -161,24 +162,24 @@ var gZenThemeImporter = new (class {
         continue;
       }
 
-      const themePreferences = preferences.filter(({ type }) => type === "dropdown")
+      const themePreferences = preferences.filter(({ type }) => type === 'dropdown');
 
       for (const { property } of themePreferences) {
-        const value = Services.prefs.getStringPref(property, "")
+        const value = Services.prefs.getStringPref(property, '');
 
-        if (value !== "") {
-          let element = browser.document.getElementById(theme.name)
+        if (value !== '') {
+          let element = browser.document.getElementById(sanitizedName);
 
           if (!element) {
-            element = browser.document.createElement("div")
+            element = browser.document.createElement('div');
 
-            element.style.display = "none"
-            element.setAttribute("id", theme.name)
+            element.style.display = 'none';
+            element.setAttribute('id', sanitizedName);
 
-            browser.document.body.appendChild(element)
+            browser.document.body.appendChild(element);
           }
 
-          element.setAttribute(property, value)
+          element.setAttribute(property?.replaceAll(/\./g, '-'), value);
         }
       }
     }
