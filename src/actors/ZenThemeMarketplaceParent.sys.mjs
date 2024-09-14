@@ -8,6 +8,7 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
       case 'ZenThemeMarketplace:InstallTheme': {
         console.info('ZenThemeMarketplaceParent: Updating themes');
         const theme = message.data.theme;
+        theme.enabled = true;
         const themes = await this.getThemes();
         themes[theme.id] = theme;
         this.updateThemes(themes);
