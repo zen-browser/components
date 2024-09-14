@@ -146,7 +146,7 @@ var gZenThemeImporter = new (class {
 
     for (const theme of Object.values(await this.getThemes())) {
       const { preferences, areOldPreferences } = await this._getThemePreferences(theme);
-      const sanitizedName = theme.name?.replaceAll(/\s/g, '-')?.replaceAll(/[^A-z_-]+/g, '');
+      const sanitizedName = `theme-${theme.name?.replaceAll(/\s/g, '-')?.replaceAll(/[^A-z_-]+/g, '')}`;
 
       if (!theme.enabled) {
         const element = browser.document.getElementById(sanitizedName);
