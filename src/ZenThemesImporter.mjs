@@ -12,7 +12,7 @@ var gZenStylesheetManager = {
   async writeStylesheet(path, themes) {
     let content = kZenStylesheetThemeHeader;
     for (let theme of themes) {
-      if (theme.disabled) {
+      if (!theme.enabled) {
         continue;
       }
       content += this.getThemeCSS(theme);
@@ -146,6 +146,16 @@ var gZenThemeImporter = new (class {
 
     for (const theme of Object.values(await this.getThemes())) {
       const { preferences, areOldPreferences } = await this._getThemePreferences(theme);
+
+      if (!theme.enabled) {
+        const element = browser.document.getElementById(theme.name);
+
+        if (element) {
+          element.remove()
+        }
+
+        continue;
+      }
 
       if (areOldPreferences) {
         continue;
