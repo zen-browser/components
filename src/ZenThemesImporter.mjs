@@ -125,17 +125,30 @@ var gZenThemeImporter = new (class {
     const themePath = PathUtils.join(this.getThemeFolder(theme), 'preferences.json');
 
     if (!(await IOUtils.exists(themePath)) || !theme.preferences) {
-      return [];
+      return { preferences: [], isLegacyMode: false };
     }
 
-    return IOUtils.readJSON(themePath);
+    let preferences = await IOUtils.readJSON(themePath);
+
+    // skip transformation, we won't be writing old preferences to dom, all of them can only be checkboxes
+    if (typeof preferences === "object" && !Array.isArray(preferences)) {
+      return { preferences: [], areOldPreferences: true };
+    }
+
+    return { preferences, areOldPreferences: false };
   }
 
   async writeToDom() {
     const browser = this._getBrowser()
 
     for (const theme of Object.values(await this.getThemes())) {
-      const themePreferences = (await this._getThemePreferences(theme)).filter(({ type }) => type === "dropdown")
+      const { preferences, areOldPreferences } = await this._getThemePreferences(theme);
+
+      if (areOldPreferences) {
+        continue;
+      }
+
+      const themePreferences = preferences.filter(({ type }) => type === "dropdown")
 
       for (const { property } of themePreferences) {
         const value = Services.prefs.getStringPref(property, "")
