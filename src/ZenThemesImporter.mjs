@@ -83,9 +83,9 @@ var gZenThemeImporter = new (class {
     return this._themes;
   }
 
-  rebuildThemeStylesheet() {
+  async rebuildThemeStylesheet() {
     this._themes = null;
-    this.updateStylesheet();
+    await this.updateStylesheet();
   }
 
   get styleSheetURI() {
@@ -99,21 +99,21 @@ var gZenThemeImporter = new (class {
     return Services.io.newFileURI(new FileUtils.File(PathUtils.join(this.getThemeFolder(theme), 'chrome.css')));
   }
 
-  insertStylesheet() {
-    if (IOUtils.exists(this.styleSheetPath)) {
-      this.sss.loadAndRegisterSheet(this.styleSheetURI, this.sss.AGENT_SHEET);
+  async insertStylesheet() {
+    if (await IOUtils.exists(this.styleSheetPath)) {
+      await this.sss.loadAndRegisterSheet(this.styleSheetURI, this.sss.AGENT_SHEET);
     }
   }
 
-  removeStylesheet() {
-    this.sss.unregisterSheet(this.styleSheetURI, this.sss.AGENT_SHEET);
+  async removeStylesheet() {
+    await this.sss.unregisterSheet(this.styleSheetURI, this.sss.AGENT_SHEET);
   }
 
   async updateStylesheet() {
-    this.removeStylesheet();
+    await this.removeStylesheet();
     await this.writeStylesheet();
     await this.writeToDom();
-    this.insertStylesheet();
+    await this.insertStylesheet();
   }
 
   _getBrowser() {
