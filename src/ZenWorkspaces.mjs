@@ -101,9 +101,7 @@ var ZenWorkspaces = {
     }
   },
 
-  // Convert all the icons to just the first character, just in case someone
-  // decides to use a string with more than one character
-  _kIcons: JSON.parse(Services.prefs.getStringPref("zen.workspaces.icons")).map((icon) => icon[0]),
+  _kIcons: JSON.parse(Services.prefs.getStringPref("zen.workspaces.icons")).map((icon) => icon),
 
   _initializeWorkspaceCreationIcons() {
     let container = document.getElementById('PanelUI-zen-workspaces-create-icons-container');
