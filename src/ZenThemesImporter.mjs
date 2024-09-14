@@ -12,6 +12,9 @@ var gZenStylesheetManager = {
   async writeStylesheet(path, themes) {
     let content = kZenStylesheetThemeHeader;
     for (let theme of themes) {
+      if (theme.disabled) {
+        continue;
+      }
       content += this.getThemeCSS(theme);
     }
     content += kenStylesheetFooter;
