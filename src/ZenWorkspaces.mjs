@@ -1,5 +1,10 @@
 
 var ZenWorkspaces = {
+  /**
+   * Stores workspace IDs and their last selected tabs.
+   */
+  _lastSelectedWorkspaceTabs: {},
+
   async init() {
     let docElement = document.documentElement;
     if (
@@ -165,6 +170,7 @@ var ZenWorkspaces = {
     console.info('ZenWorkspaces: Removing workspace', windowID);
     await this.changeWorkspace(json.workspaces.find((workspace) => workspace.uuid !== windowID));
     this._deleteAllTabsInWorkspace(windowID);
+    delete this._lastSelectedWorkspaceTabs[windowID];
     json.workspaces = json.workspaces.filter((workspace) => workspace.uuid !== windowID);
     await this.unsafeSaveWorkspaces(json);
     await this._propagateWorkspaceData();
@@ -242,8 +248,8 @@ var ZenWorkspaces = {
         (container) => container.userContextId === workspace.containerTabId
       );
       if (containerGroup) {
-        element.classList.add("identity-color-" + containerGroup.color);
-        element.setAttribute("data-usercontextid", containerGroup.userContextId);
+        element.classList.add('identity-color-' + containerGroup.color);
+        element.setAttribute('data-usercontextid', containerGroup.userContextId);
       }
       let childs = window.MozXULElement.parseXULToFragment(`
         <div class="zen-workspace-icon">
@@ -501,7 +507,7 @@ var ZenWorkspaces = {
       }
     }
     if (firstTab) {
-      gBrowser.selectedTab = firstTab;
+      gBrowser.selectedTab = this._lastSelectedWorkspaceTabs[window.uuid] ?? firstTab;
     }
     if (typeof firstTab === 'undefined' && !onInit) {
       this._createNewTabForWorkspace(window);
@@ -575,7 +581,9 @@ var ZenWorkspaces = {
         return;
       }
       tab.setAttribute('zen-workspace-id', activeWorkspace.uuid);
+      workspaceID = activeWorkspace.uuid;
     }
+    this._lastSelectedWorkspaceTabs[workspaceID] = tab;
   },
 
   // Context menu management
@@ -613,9 +621,7 @@ var ZenWorkspaces = {
   async contextChangeContainerTab(event) {
     let workspaces = await this._workspaces();
     let workspace = workspaces.workspaces.find((workspace) => workspace.uuid === this._contextMenuId);
-    let userContextId = parseInt(
-      event.target.getAttribute("data-usercontextid")
-    );
+    let userContextId = parseInt(event.target.getAttribute('data-usercontextid'));
     workspace.containerTabId = userContextId;
     await this.saveWorkspace(workspace);
     await this._propagateWorkspaceData();
@@ -683,8 +689,14 @@ var ZenWorkspaces = {
 
   async changeTabWorkspace(workspaceID) {
     const tabs = TabContextMenu.contextTab.multiselected ? gBrowser.selectedTabs : [TabContextMenu.contextTab];
+    const previousWorkspaceID = document.documentElement.getAttribute('zen-workspace-id');
     for (let tab of tabs) {
       tab.setAttribute('zen-workspace-id', workspaceID);
+      if (this._lastSelectedWorkspaceTabs[previousWorkspaceID] === tab) {
+        // This tab is no longer the last selected tab in the previous workspace because it's being moved to
+        // the current workspace
+        delete this._lastSelectedWorkspaceTabs[previousWorkspaceID];
+      }
     }
     const workspaces = await this._workspaces();
     await this.changeWorkspace(workspaces.workspaces.find((workspace) => workspace.uuid === workspaceID));
@@ -703,7 +715,7 @@ var ZenWorkspaces = {
   },
 
   getContextIdIfNeeded(userContextId) {
-    if (typeof userContextId !== "undefined" || !this.workspaceEnabled) {
+    if (typeof userContextId !== 'undefined' || !this.workspaceEnabled) {
       return [userContextId, false];
     }
     const activeWorkspace = this.getActiveWorkspaceFromCache();
