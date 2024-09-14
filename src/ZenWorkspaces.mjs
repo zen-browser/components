@@ -508,6 +508,8 @@ var ZenWorkspaces = {
     }
     for (let tab of gBrowser.tabs) {
       if (tab.getAttribute('zen-workspace-id') !== window.uuid) {
+        // FOR UNLOADING TABS:
+        // gBrowser.discardBrowser(tab, true);
         gBrowser.hideTab(tab, undefined, shouldAllowPinnedTabs);
       }
     }
