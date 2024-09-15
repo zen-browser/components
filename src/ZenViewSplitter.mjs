@@ -102,6 +102,8 @@ var gZenViewSplitter = new (class {
     this.currentView = -1;
     this.tabBrowserPanel.removeAttribute('zen-split-view');
     this.tabBrowserPanel.style.gridTemplateAreas = '';
+    this.tabBrowserPanel.style.gridTemplateColumns = '';
+    this.tabBrowserPanel.style.gridTemplateRows = '';
   }
 
   /**
@@ -270,7 +272,6 @@ var gZenViewSplitter = new (class {
       }
     }
 
-    this.applySplitters(splitData);
     this.activateSplitView(splitData, tab);
   }
 
@@ -286,6 +287,7 @@ var gZenViewSplitter = new (class {
     this.tabBrowserPanel.removeAttribute('zen-split-view');
     this.tabBrowserPanel.style.gridTemplateAreas = '';
     this.tabBrowserPanel.style.gridTemplateColumns = '';
+    this.tabBrowserPanel.style.gridTemplateRows = '';
     this.setTabsDocShellState(this._data[this.currentView].tabs, false);
     this.currentView = -1;
   }
@@ -305,6 +307,7 @@ var gZenViewSplitter = new (class {
 
     this.setTabsDocShellState(splitData.tabs, true);
     this.updateSplitViewButton(false);
+    this.applySplitters(splitData);
     this.updateGridSizes();
   }
 
@@ -335,11 +338,10 @@ var gZenViewSplitter = new (class {
       splitter.className = 'zen-split-view-splitter';
       splitter.setAttribute('orient', orient);
       splitter.setAttribute('idx', i + 1);
-      splitter.style = `grid-area: splitter${i + 1}`;
+      splitter.style = `grid-area: ${orient === 'vertical' ? 'v' : 'h'}Splitter${i + 1}`;
       splitter.addEventListener('mousedown', this.handleSplitterMouseDown);
       this.tabBrowserPanel.insertAdjacentElement("afterbegin", splitter);
     }
-
 
     const splitters = [...gZenViewSplitter.tabBrowserPanel.children].filter(e => e.classList.contains('zen-split-view-splitter'));
 
@@ -358,18 +360,15 @@ var gZenViewSplitter = new (class {
         insertSplitter(i, 'horizontal');
     }
     for (let i = 0; i < hSplitters.length - hSplittersNeeded; i++) {
-        vSplitters[i].remove();
+        hSplitters[i].remove();
     }
 
-    if (!splitData.sizes) {
-      if (splitData.gridType === 'vsep') {
-        const w = 100 / tabs.length;
-        splitData.widths = tabs.map(t => w);
-        splitData.heights = [100];
-      } else if (splitData.gridType === 'hsep') {
-        splitData.widths = [100];
-        splitData.heights = tabs.map(t => 100 / tabs.length);
-      }
+    if (splitData.gridType === 'vsep' && splitData?.widths !== splitData.tabs.length) {
+      splitData.widths = tabs.map(t => 100 / tabs.length);
+      splitData.heights = [100];
+    } else if (splitData.gridType === 'hsep' && splitData?.widths !== splitData.tabs.length) {
+      splitData.widths = [100];
+      splitData.heights = tabs.map(t => 100 / tabs.length);
     }
   }
 
@@ -385,10 +384,10 @@ var gZenViewSplitter = new (class {
       return this.calculateGridAreasForGrid(tabs);
     }
     if (gridType === 'vsep') {
-      return `'${tabs.slice(0, -1).map((_, j) => `tab${j + 1} splitter${j + 1}`).join(' ')} tab${tabs.length}'`;
+      return `'${tabs.slice(0, -1).map((_, j) => `tab${j + 1} vSplitter${j + 1}`).join(' ')} tab${tabs.length}'`;
     }
     if (gridType === 'hsep') {
-      return tabs.slice(0, -1).map((_, j) => `'tab${j + 1}' 'splitter${j + 1}'`).join(' ') + `'tab${tabs.length}`;
+      return tabs.slice(0, -1).map((_, j) => `'tab${j + 1}' 'hSplitter${j + 1}'`).join(' ') + `'tab${tabs.length}`;
     }
     return '';
   }
@@ -495,13 +494,21 @@ var gZenViewSplitter = new (class {
 
   updateGridSizes() {
     const splitData = this._data[this.currentView];
-    this.tabBrowserPanel.style.gridTemplateColumns = splitData.tabs.slice(0, -1).map(
-      (t, i) => `calc(${splitData.widths[i]}% - 7px) 7px`
-    ).join(' ');
+    if (splitData.widths.length === 1) {
+      this.tabBrowserPanel.style.gridTemplateColumns = '';
+    } else {
+      this.tabBrowserPanel.style.gridTemplateColumns = splitData.widths.slice(0, -1).map(
+          (w) => `calc(${w}% - 7px) 7px`
+      ).join(' ');
+    }
 
-    this.tabBrowserPanel.style.gridTemplateRows = splitData.tabs.slice(0, -1).map(
-      (t, i) => `calc(${splitData.heights[i]}% - 7px) 7px`
-    ).join(' ');
+    if (splitData.heights.length === 1) {
+      this.tabBrowserPanel.style.gridTemplateRows = '';
+    } else {
+      this.tabBrowserPanel.style.gridTemplateRows = splitData.heights.slice(0, -1).map(
+          (h) => `calc(${h}% - 7px) 7px`
+      ).join(' ');
+    }
   }
 
   /**
