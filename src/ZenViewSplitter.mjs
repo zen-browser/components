@@ -3,6 +3,7 @@ var gZenViewSplitter = new (class {
     this._data = [];
     this.currentView = -1;
     this._tabBrowserPanel = null;
+    this._minAdjustmentWidth = 7;
     this.__modifierElement = null;
     this.__hasSetMenuListener = false;
 
@@ -329,19 +330,24 @@ var gZenViewSplitter = new (class {
     const tabs = splitData.tabs;
     const gridType = splitData.gridType;
 
-    const vSplitters = gridType === 'vsep' ? (tabs.length - 1) : gridType === 'hsep' ? 0 : NaN;
-
-    const totalVsplitters = Math.max(...this._data.map(s => s.verticalSplitters || 0));
-    for (let i = totalVsplitters; i < vSplitters; i++) {
+    const insertSplitter = (i, orient) => {
       let splitter = document.createXULElement('div');
       splitter.className = 'zen-split-view-splitter';
-      splitter.setAttribute('orient', 'vertical');
+      splitter.setAttribute('orient', orient);
       splitter.setAttribute('idx', i + 1);
       splitter.style = `grid-area: splitter${i + 1}`;
       splitter.addEventListener('mousedown', this.handleSplitterMouseDown);
       this.tabBrowserPanel.insertAdjacentElement("afterbegin", splitter);
     }
-    splitData.verticalSplitters = vSplitters;
+
+    const vSplittersNeeded = gridType === 'vsep' ? (tabs.length - 1) : gridType === 'hsep' ? 0 : NaN;
+    const vSplitters = [...gZenViewSplitter.tabBrowserPanel.children].filter(e => e.classList.contains('zen-split-view-splitter'));
+    for (let i = vSplitters.length; i < vSplittersNeeded; i++) {
+      insertSplitter(i, 'vertical');
+    }
+    for (let i = 0; i < vSplitters.length - vSplittersNeeded; i++) {
+      vSplitters[i].remove();
+    }
 
     if (!splitData.sizes) {
       if (splitData.gridType === 'vsep') {
@@ -431,21 +437,36 @@ var gZenViewSplitter = new (class {
   };
 
   handleSplitterMouseDown = (event) => {
-    const container = event.target.parentElement;
-    const tab = window.gBrowser.tabs.find((t) => t.linkedBrowser.closest('.browserSidebarContainer') === container);
     const currentView = this._data[this.currentView];
 
+    const isVertical = event.target.getAttribute('orient') === 'vertical';
+    const dimension = isVertical ? 'width' : 'height';
+    const clientAxis = isVertical ? 'clientX' : 'clientY';
+
     const tabIdx = event.target.getAttribute('idx');
-    let dragFunc;
-    let prevX = event.clientX;
-    dragFunc = (dEvent) => {
+    let prevPosition = event[clientAxis];
+    const dragFunc = (dEvent) => {
       requestAnimationFrame(() => {
-        const movementX = dEvent.clientX - prevX;
-        const percentageChange = (movementX / this._tabBrowserPanel.getBoundingClientRect().width) * 100;
-        currentView.sizes[tabIdx - 1].width += percentageChange;
-        currentView.sizes[tabIdx].width -= percentageChange;
+        const movementX = dEvent[clientAxis] - prevPosition;
+        let percentageChange = (movementX / this._tabBrowserPanel.getBoundingClientRect()[dimension]) * 100;
+
+        const currentSize = currentView.sizes[tabIdx - 1][dimension];
+        const neighborSize = currentView.sizes[tabIdx][dimension];
+        if (currentSize < this._minAdjustmentWidth && neighborSize < this._minAdjustmentWidth) {
+          return;
+        }
+        let max = false;
+        if (currentSize + percentageChange < this._minAdjustmentWidth) {
+          percentageChange = this._minAdjustmentWidth - currentSize;
+          max = true;
+        } else if (neighborSize - percentageChange < this._minAdjustmentWidth) {
+          percentageChange = neighborSize - this._minAdjustmentWidth;
+          max = true;
+        }
+        currentView.sizes[tabIdx - 1][dimension] += percentageChange;
+        currentView.sizes[tabIdx][dimension] -= percentageChange;
         this.updateGridSizes();
-        prevX = dEvent.clientX;
+        if (!max) prevPosition = dEvent.clientX;
       });
     }
     const stopListeners = () => {
