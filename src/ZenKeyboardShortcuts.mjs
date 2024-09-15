@@ -23,7 +23,6 @@ const kZKSActions = {
   showNextTab: ['gBrowser.tabContainer.advanceSelectedTab(1, true)', 'show-next-tab', 'tab-action'],
   showPreviousTab: ['gBrowser.tabContainer.advanceSelectedTab(-1, true)', 'show-previous-tab', 'tab-action'],
   showAllTabsPanel: ['gTabsPanel.showAllTabsPanel()', 'show-all-tabs-panel', 'tab-action'],
-  focusUrlbar: ['command:Browser:OpenLocation', 'focus-urlbar', 'tab-action'],
 
   // Compact mode actions
   zenToggleCompactMode: ['gZenCompactModeManager.toggle()', 'zen-toggle-compact-mode', 'compact-mode-action'],
