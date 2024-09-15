@@ -490,13 +490,14 @@ var ZenWorkspaces = {
     }
     this.unsafeSaveWorkspaces(workspaces);
     console.info('ZenWorkspaces: Changing workspace to', window.uuid);
-    for (let tab of gBrowser.tabs) {
+    for (let i = 0; i < gBrowser.tabs.length; i++) {
+      let tab = gBrowser.tabs[i];
       if ((tab.getAttribute('zen-workspace-id') === window.uuid && !(tab.pinned && !shouldAllowPinnedTabs)) || !tab.hasAttribute('zen-workspace-id')) {
         if (!firstTab) {
           firstTab = tab;
         } else if (gBrowser.selectedTab === tab) {
           // If the selected tab is already in the workspace, we don't want to change it
-          firstTab = undefined;
+          firstTab = null; // note: Do not add "undefined" here, a new tab would be created
         }
         gBrowser.showTab(tab);
         if (!tab.hasAttribute('zen-workspace-id')) {
@@ -512,7 +513,8 @@ var ZenWorkspaces = {
     if (typeof firstTab === 'undefined' && !onInit) {
       this._createNewTabForWorkspace(window);
     }
-    for (let tab of gBrowser.tabs) {
+    for (let i = 0; i < gBrowser.tabs.length; i++) {
+      let tab = gBrowser.tabs[i];
       if (tab.getAttribute('zen-workspace-id') !== window.uuid) {
         // FOR UNLOADING TABS:
         // gBrowser.discardBrowser(tab, true);
