@@ -536,8 +536,9 @@ var gZenViewSplitter = new (class {
     if (this.currentView < 0) return;
     const currentTab = window.gBrowser.selectedTab;
     const tabs = this._data[this.currentView].tabs;
-    for (const tab of tabs) {
-      this.handleTabClose({ target: tab, forUnsplit: true });
+    // note: This MUST be an index loop, as we are removing tabs from the array
+    for (let i = tabs.length - 1; i >= 0; i--) {
+      this.handleTabClose({ target: tabs[i], forUnsplit: true });
     }
     window.gBrowser.selectedTab = currentTab;
     this.updateSplitViewButton(true);
