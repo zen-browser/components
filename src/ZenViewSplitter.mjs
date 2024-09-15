@@ -337,38 +337,58 @@ var gZenViewSplitter = new (class {
       let splitter = document.createXULElement('div');
       splitter.className = 'zen-split-view-splitter';
       splitter.setAttribute('orient', orient);
-      splitter.setAttribute('idx', i + 1);
-      splitter.style = `grid-area: ${orient === 'vertical' ? 'v' : 'h'}Splitter${i + 1}`;
+      splitter.setAttribute('idx', gridType === 'grid' && orient === 'vertical' ? Math.ceil(i/2) : i);
+      splitter.style = `grid-area: ${orient === 'vertical' ? 'v' : 'h'}Splitter${i}`;
       splitter.addEventListener('mousedown', this.handleSplitterMouseDown);
       this.tabBrowserPanel.insertAdjacentElement("afterbegin", splitter);
     }
 
-    const splitters = [...gZenViewSplitter.tabBrowserPanel.children].filter(e => e.classList.contains('zen-split-view-splitter'));
 
-    const vSplittersNeeded = gridType === 'vsep' ? (tabs.length - 1) : gridType === 'hsep' ? 0 : NaN;
-    const vSplitters = splitters.filter(s => s.getAttribute('orient') === 'vertical');
-    for (let i = vSplitters.length; i < vSplittersNeeded; i++) {
+    let vSplittersNeeded; let hSplittersNeeded;
+    switch (gridType) {
+      case 'vsep':
+        vSplittersNeeded = tabs.length - 1;
+        hSplittersNeeded = 0;
+        break;
+      case 'hsep':
+        vSplittersNeeded = 0
+        hSplittersNeeded = tabs.length - 1;
+        break;
+      case 'grid':
+        if (tabs.length < 2) {
+          vSplittersNeeded = 1;
+          hSplittersNeeded = 0;
+        } else {
+          vSplittersNeeded = (tabs.length - ((tabs.length % 2 === 0) ? 2 : 1));
+          hSplittersNeeded = 1;
+        }
+    }
+
+
+    const splitters = [...gZenViewSplitter.tabBrowserPanel.children].filter(e => e.classList.contains('zen-split-view-splitter'));
+    splitters.forEach(s => s.remove());
+
+    for (let i = 1; i <= vSplittersNeeded; i++) {
       insertSplitter(i, 'vertical');
     }
-    for (let i = 0; i < vSplitters.length - vSplittersNeeded; i++) {
-      vSplitters[i].remove();
+
+    for (let i = 1; i <= hSplittersNeeded; i++) {
+      insertSplitter(i, 'horizontal');
     }
 
-    const hSplittersNeeded = gridType === 'vsep' ? 0 : gridType === 'hsep' ? (tabs.length - 1) : NaN;
-    const hSplitters = splitters.filter(s => s.getAttribute('orient') === 'horizontal');
-    for (let i = hSplitters.length; i < hSplittersNeeded; i++) {
-        insertSplitter(i, 'horizontal');
+    let nrOfWidths = 1;
+    let nrOfHeights = 1;
+    if (splitData.gridType === 'vsep') {
+      nrOfWidths = tabs.length;
+    } else if (splitData.gridType === 'hsep') {
+      nrOfHeights = tabs.length;
+    } else if (splitData.gridType === 'grid') {
+      nrOfWidths = tabs.length > 2 ? Math.ceil(tabs.length / 2) : 2;
+      nrOfHeights = tabs.length > 2 ? 2 : 1;
     }
-    for (let i = 0; i < hSplitters.length - hSplittersNeeded; i++) {
-        hSplitters[i].remove();
-    }
-
-    if (splitData.gridType === 'vsep' && splitData?.widths !== splitData.tabs.length) {
-      splitData.widths = tabs.map(t => 100 / tabs.length);
-      splitData.heights = [100];
-    } else if (splitData.gridType === 'hsep' && splitData?.widths !== splitData.tabs.length) {
-      splitData.widths = [100];
-      splitData.heights = tabs.map(t => 100 / tabs.length);
+    if (splitData.widths?.length !== nrOfWidths || splitData.heights?.length !== nrOfHeights) {
+      splitData.widths = Array(nrOfWidths).fill(100 / nrOfWidths);
+      splitData.heights = Array(nrOfHeights).fill(100 / nrOfHeights);
     }
   }
 
@@ -399,24 +419,32 @@ var gZenViewSplitter = new (class {
    * @returns {string} The calculated grid areas.
    */
   calculateGridAreasForGrid(tabs) {
-    const rows = ['', ''];
-    tabs.forEach((_, i) => {
-      if (i % 2 === 0) {
-        rows[0] += ` tab${i + 1}`;
-      } else {
-        rows[1] += ` tab${i + 1}`;
-      }
-    });
-
     if (tabs.length === 2) {
-      return "'tab1 tab2'";
+      return "'tab1 vSplitter1 tab2'";
     }
 
+    const rows = ['', ''];
+    for (let i = 0; i < tabs.length - 2; i++) {
+      if (i % 2 === 0) {
+        rows[0] += ` tab${i + 1} vSplitter${i + 1}`;
+      } else {
+        rows[1] += ` tab${i + 1} vSplitter${i + 1}`;
+      }
+    }
+    for (let i = tabs.length - 2; i < tabs.length; i++) {
+        if (i % 2 === 0) {
+            rows[0] += ` tab${i + 1}`;
+        } else {
+            rows[1] += ` tab${i + 1}`;
+        }
+    }
+
+    let middleColumn = 'hSplitter1 '.repeat(tabs.length - 1);
     if (tabs.length % 2 !== 0) {
-      rows[1] += ` tab${tabs.length}`;
+      rows[1] += ` vSplitter${tabs.length - 1} tab${tabs.length}`;
+      middleColumn += ` tab${tabs.length}`;
     }
-
-    return `'${rows[0].trim()}' '${rows[1].trim()}'`;
+    return `'${rows[0].trim()}' '${middleColumn}' '${rows[1].trim()}'`;
   }
 
   /**
