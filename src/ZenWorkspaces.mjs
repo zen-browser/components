@@ -269,8 +269,8 @@ var ZenWorkspaces = {
       childs.querySelector('.zen-workspace-icon').textContent = this.getWorkspaceIcon(workspace);
       childs.querySelector('.zen-workspace-name').textContent = workspace.name;
       if (containerGroup) {
-        childs.querySelector('.zen-workspace-container').textContent = ContextualIdentityService.formatContextLabel(
-          containerGroup.l10nId
+        childs.querySelector('.zen-workspace-container').textContent = ContextualIdentityService.getUserContextLabel(
+          containerGroup.userContextId
         );
       }
 
