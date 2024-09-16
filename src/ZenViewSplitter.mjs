@@ -3,7 +3,6 @@ var gZenViewSplitter = new (class {
     this._data = [];
     this.currentView = -1;
     this._tabBrowserPanel = null;
-    this._minAdjustmentWidth = 7;
     this.__modifierElement = null;
     this.__hasSetMenuListener = false;
 
@@ -170,6 +169,10 @@ var gZenViewSplitter = new (class {
       this._tabBrowserPanel = document.getElementById('tabbrowser-tabpanels');
     }
     return this._tabBrowserPanel;
+  }
+
+  get minResizeWidth() {
+    return Services.prefs.getIntPref('zen.splitView.min-resize-width');
   }
 
   /**
@@ -488,15 +491,15 @@ var gZenViewSplitter = new (class {
 
         const currentSize = splitData[dimension][gridIdx - 1];
         const neighborSize = splitData[dimension][gridIdx];
-        if (currentSize < this._minAdjustmentWidth && neighborSize < this._minAdjustmentWidth) {
+        if (currentSize < this.minResizeWidth && neighborSize < this.minResizeWidth) {
           return;
         }
         let max = false;
-        if (currentSize + percentageChange < this._minAdjustmentWidth) {
-          percentageChange = this._minAdjustmentWidth - currentSize;
+        if (currentSize + percentageChange < this.minResizeWidth) {
+          percentageChange = this.minResizeWidth - currentSize;
           max = true;
-        } else if (neighborSize - percentageChange < this._minAdjustmentWidth) {
-          percentageChange = neighborSize - this._minAdjustmentWidth;
+        } else if (neighborSize - percentageChange < this.minResizeWidth) {
+          percentageChange = neighborSize - this.minResizeWidth;
           max = true;
         }
         splitData[dimension][gridIdx - 1] += percentageChange;
