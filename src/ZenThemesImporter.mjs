@@ -145,9 +145,13 @@ var gZenThemeImporter = new (class {
     const browser = this._getBrowser();
 
     for (const theme of Object.values(await this.getThemes())) {
-      const { preferences, areOldPreferences } = (await this._getThemePreferences(theme)).filter(
-        ({ type }) => type !== 'checkbox'
-      );
+      const { preferences, areOldPreferences } = await this._getThemePreferences(theme);
+
+      if (areOldPreferences) {
+        continue;
+      }
+
+      const filteredPreferences = preferences.filter(({ type }) => type !== 'checkbox');
       const sanitizedName = `theme-${theme.name?.replaceAll(/\s/g, '-')?.replaceAll(/[^A-z_-]+/g, '')}`;
 
       if (!theme.enabled) {
@@ -157,14 +161,14 @@ var gZenThemeImporter = new (class {
           element.remove();
         }
 
-        if (document.querySelector(':root').style.hasProperty(`--${sanitizedProperty}`)) {
-          document.querySelector(':root').style.removeProperty(`--${sanitizedProperty}`);
+        for (const { property } of filteredPreferences) {
+          const sanitizedProperty = property?.replaceAll(/\./g, '-');
+
+          if (document.querySelector(':root').style.hasProperty(`--${sanitizedProperty}`)) {
+            document.querySelector(':root').style.removeProperty(`--${sanitizedProperty}`);
+          }
         }
 
-        continue;
-      }
-
-      if (areOldPreferences) {
         continue;
       }
 
