@@ -145,7 +145,9 @@ var gZenThemeImporter = new (class {
     const browser = this._getBrowser();
 
     for (const theme of Object.values(await this.getThemes())) {
-      const { preferences, areOldPreferences } = await this._getThemePreferences(theme);
+      const { preferences, areOldPreferences } = (await this._getThemePreferences(theme)).filter(
+        ({ type }) => type !== 'checkbox'
+      );
       const sanitizedName = `theme-${theme.name?.replaceAll(/\s/g, '-')?.replaceAll(/[^A-z_-]+/g, '')}`;
 
       if (!theme.enabled) {
@@ -155,6 +157,10 @@ var gZenThemeImporter = new (class {
           element.remove();
         }
 
+        if (document.querySelector(':root').style.hasProperty(`--${sanitizedProperty}`)) {
+          document.querySelector(':root').style.removeProperty(`--${sanitizedProperty}`);
+        }
+
         continue;
       }
 
@@ -162,24 +168,40 @@ var gZenThemeImporter = new (class {
         continue;
       }
 
-      const themePreferences = preferences.filter(({ type }) => type === 'dropdown');
-
-      for (const { property } of themePreferences) {
+      for (const { property, type } of preferences) {
         const value = Services.prefs.getStringPref(property, '');
+        const sanitizedProperty = property?.replaceAll(/\./g, '-');
 
-        if (value !== '') {
-          let element = browser.document.getElementById(sanitizedName);
+        switch (type) {
+          case 'dropdown': {
+            if (value !== '') {
+              let element = browser.document.getElementById(sanitizedName);
 
-          if (!element) {
-            element = browser.document.createElement('div');
+              if (!element) {
+                element = browser.document.createElement('div');
 
-            element.style.display = 'none';
-            element.setAttribute('id', sanitizedName);
+                element.style.display = 'none';
+                element.setAttribute('id', sanitizedName);
 
-            browser.document.body.appendChild(element);
+                browser.document.body.appendChild(element);
+              }
+
+              element.setAttribute(sanitizedProperty, value);
+            }
+            break;
           }
 
-          element.setAttribute(property?.replaceAll(/\./g, '-'), value);
+          case 'string': {
+            if (value === '') {
+              document.querySelector(':root').style.removeProperty(`--${sanitizedProperty}`);
+            } else {
+              document.querySelector(':root').style.setProperty(`--${sanitizedProperty}`, value);
+            }
+            break;
+          }
+
+          default: {
+          }
         }
       }
     }
