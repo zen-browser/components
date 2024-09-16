@@ -477,7 +477,7 @@ var gZenViewSplitter = new (class {
 
     const isVertical = event.target.getAttribute('orient') === 'vertical';
     const dimension = isVertical ? 'widths' : 'heights';
-    const clientAxis = isVertical ? 'clientX' : 'clientY';
+    const clientAxis = isVertical ? 'screenX' : 'screenY';
 
     const gridIdx = event.target.getAttribute('gridIdx');
     let prevPosition = event[clientAxis];
@@ -515,21 +515,16 @@ var gZenViewSplitter = new (class {
 
   updateGridSizes() {
     const splitData = this._data[this.currentView];
-    if (splitData.widths.length === 1) {
-      this.tabBrowserPanel.style.gridTemplateColumns = '';
-    } else {
-      this.tabBrowserPanel.style.gridTemplateColumns = splitData.widths.slice(0, -1).map(
-          (w) => `calc(${w}% - 7px) 7px`
-      ).join(' ');
-    }
+    const columnGap = 'var(--zen-split-column-gap)';
+    const rowGap = 'var(--zen-split-row-gap)';
 
-    if (splitData.heights.length === 1) {
-      this.tabBrowserPanel.style.gridTemplateRows = '';
-    } else {
-      this.tabBrowserPanel.style.gridTemplateRows = splitData.heights.slice(0, -1).map(
-          (h) => `calc(${h}% - 7px) 7px`
-      ).join(' ');
-    }
+    this.tabBrowserPanel.style.gridTemplateColumns = splitData.widths.slice(0, -1).map(
+        (w) => `calc(${w}% - ${columnGap} * ${splitData.widths.length - 1}/${splitData.widths.length}) ${columnGap}`
+    ).join(' ');
+
+    this.tabBrowserPanel.style.gridTemplateRows = splitData.heights.slice(0, -1).map(
+        (h) => `calc(${h}% - ${rowGap} * ${splitData.heights.length - 1}/${splitData.heights.length}) ${rowGap}`
+    ).join(' ');
   }
 
   /**
