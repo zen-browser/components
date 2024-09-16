@@ -508,9 +508,11 @@ var gZenViewSplitter = new (class {
     const stopListeners = () => {
       removeEventListener('mousemove', dragFunc);
       removeEventListener('mouseup', stopListeners);
+      setCursor('auto');
     }
     addEventListener('mousemove', dragFunc);
     addEventListener('mouseup', stopListeners);
+    setCursor(isVertical ? 'ew-resize' : 'n-resize');
   }
 
   updateGridSizes() {
