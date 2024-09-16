@@ -311,8 +311,9 @@ var gZenViewSplitter = new (class {
 
     this.setTabsDocShellState(splitData.tabs, true);
     this.updateSplitViewButton(false);
-    this.applySplitters(splitData);
-    this.updateGridSizes();
+    this.updateGridSizes(splitData);
+    this.applySplitters(splitData.widths.length , splitData.heights.length);
+    this.applyGridSizes();
   }
 
   /**
@@ -334,51 +335,55 @@ var gZenViewSplitter = new (class {
   }
 
   /**
-   * Adds splitters to tabBrowserPanel, adds default widths and heights to splitData
+   * Adds splitters to tabBrowserPanel
+   *
+   * @param nrOfColumns number of columns in the grid
+   * @param nrOfRows number of rows in the grid
+   */
+  applySplitters(nrOfColumns, nrOfRows) {
+    this.removeSplitters();
+    const vSplittersNeeded = (nrOfColumns - 1) * nrOfRows;
+    const hSplittersNeeded = nrOfRows - 1;
+
+    const insertSplitter = (i, orient, gridIdx) => {
+      const splitter = document.createElement('div');
+      splitter.className = 'zen-split-view-splitter';
+      splitter.setAttribute('orient', orient);
+      splitter.setAttribute('gridIdx', gridIdx);
+      splitter.style.gridArea = `${orient === 'vertical' ? 'v' : 'h'}Splitter${i}`;
+      splitter.addEventListener('mousedown', this.handleSplitterMouseDown);
+      this.tabBrowserPanel.insertAdjacentElement("afterbegin", splitter);
+    }
+    for (let i = 1; i <= vSplittersNeeded; i++) {
+      insertSplitter(i, 'vertical', Math.floor((i - 1) /nrOfRows) + 1);
+    }
+    for (let i = 1; i <= hSplittersNeeded; i++) {
+      insertSplitter(i, 'horizontal', i);
+    }
+  }
+
+  /**
+   * Initialize splitData with default widths and heights if dimensions of grid don't match
    *
    * @param {object} splitData - The split data.
    */
-  applySplitters(splitData) {
+  updateGridSizes(splitData) {
     const tabs = splitData.tabs;
     const gridType = splitData.gridType;
 
     let nrOfWidths = 1;
     let nrOfHeights = 1;
-    if (splitData.gridType === 'vsep') {
+    if (gridType === 'vsep') {
       nrOfWidths = tabs.length;
-    } else if (splitData.gridType === 'hsep') {
+    } else if (gridType === 'hsep') {
       nrOfHeights = tabs.length;
-    } else if (splitData.gridType === 'grid') {
+    } else if (gridType === 'grid') {
       nrOfWidths = tabs.length > 2 ? Math.ceil(tabs.length / 2) : 2;
       nrOfHeights = tabs.length > 2 ? 2 : 1;
     }
     if (splitData.widths?.length !== nrOfWidths || splitData.heights?.length !== nrOfHeights) {
       splitData.widths = Array(nrOfWidths).fill(100 / nrOfWidths);
       splitData.heights = Array(nrOfHeights).fill(100 / nrOfHeights);
-    }
-
-    let vSplittersNeeded = nrOfWidths - 1;
-    let hSplittersNeeded = nrOfHeights - 1;
-    if (splitData.gridType === 'grid' && tabs.length > 2) {
-      vSplittersNeeded = (tabs.length - ((tabs.length % 2 === 0) ? 2 : 1));
-      hSplittersNeeded = 1;
-    }
-    this.removeSplitters();
-
-    const insertSplitter = (i, orient) => {
-      const splitter = document.createXULElement('div');
-      splitter.className = 'zen-split-view-splitter';
-      splitter.setAttribute('orient', orient);
-      splitter.setAttribute('gridIdx', gridType === 'grid' && orient === 'vertical' ? Math.ceil(i/2) : i);
-      splitter.style = `grid-area: ${orient === 'vertical' ? 'v' : 'h'}Splitter${i}`;
-      splitter.addEventListener('mousedown', this.handleSplitterMouseDown);
-      this.tabBrowserPanel.insertAdjacentElement("afterbegin", splitter);
-    }
-    for (let i = 1; i <= vSplittersNeeded; i++) {
-      insertSplitter(i, 'vertical');
-    }
-    for (let i = 1; i <= hSplittersNeeded; i++) {
-      insertSplitter(i, 'horizontal');
     }
   }
 
@@ -504,7 +509,7 @@ var gZenViewSplitter = new (class {
         }
         splitData[dimension][gridIdx - 1] += percentageChange;
         splitData[dimension][gridIdx] -= percentageChange;
-        this.updateGridSizes();
+        this.applyGridSizes();
         if (!max) prevPosition = dEvent[clientAxis];
       });
     }
@@ -518,7 +523,10 @@ var gZenViewSplitter = new (class {
     setCursor(isVertical ? 'ew-resize' : 'n-resize');
   }
 
-  updateGridSizes() {
+  /**
+   * Applies the grid column and row sizes
+   */
+  applyGridSizes() {
     const splitData = this._data[this.currentView];
     const columnGap = 'var(--zen-split-column-gap)';
     const rowGap = 'var(--zen-split-row-gap)';
