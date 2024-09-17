@@ -379,15 +379,18 @@ var gZenViewSplitter = new class {
     for (let i = 0; i < rows.length; i++) {
       let nextRow = '';
       finalTemplateAreas += `'`;
-      let buildingHSplitter = false;
       for (let j = 0; j < rows[i].length; j++) {
         const current = rows[i][j];
         const rightNeighbor = rows[i][j + 1];
         finalTemplateAreas += " " + current;
-        if (rightNeighbor && rightNeighbor !== current) {
-          finalTemplateAreas += ` vSplitter${vSplitterCount + 1}`;
-          vSplitterCount++;
-          splitters.push({nr: vSplitterCount, orient: 'vertical', gridIdx: j + 1});
+        if (rightNeighbor) {
+          if (rightNeighbor !== current) {
+            finalTemplateAreas += ` vSplitter${vSplitterCount + 1}`;
+            vSplitterCount++;
+            splitters.push({nr: vSplitterCount, orient: 'vertical', gridIdx: j + 1, panels: current + 1});
+          } else {
+            finalTemplateAreas += " " + current;
+          }
         }
 
         if (!rows[i + 1]) {
@@ -396,19 +399,16 @@ var gZenViewSplitter = new class {
         const underNeighbor = rows[i + 1][j];
         if (underNeighbor !== current) {
           nextRow += ` hSplitter${hSplitterCount + 1}`;
-          buildingHSplitter = true;
+          hSplitterCount++;
+          let panels = 1;
+          while (rows[i][j - panels] === current) {
+            panels++;
+          }
+          splitters.push({nr: hSplitterCount, orient: 'horizontal', gridIdx: i + 1, panels: panels});
         } else {
           nextRow += ' ' + current;
-          hSplitterCount++;
-          splitters.push({nr: hSplitterCount, orient: 'horizontal', gridIdx: i + 1});
-          buildingHSplitter = false;
         }
         if (j === rows[i].length - 1) {
-          if (buildingHSplitter) {
-            hSplitterCount++;
-            splitters.push({nr: hSplitterCount, orient: 'horizontal', gridIdx: i + 1});
-            buildingHSplitter = false;
-          }
           continue;
         }
         const rightNeighborJoinedWithUnderNeighbor = rightNeighbor === rows[i + 1][j + 1];
