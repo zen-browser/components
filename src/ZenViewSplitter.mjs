@@ -321,13 +321,13 @@ var gZenViewSplitter = new class {
     this.currentView = this._data.indexOf(splitData);
 
     const gridType = splitData.gridType || 'grid';
-    this.applyGridLayout(splitData.tabs, gridType, activeTab);
 
     this.setTabsDocShellState(splitData.tabs, true);
     this.updateSplitViewButton(false);
-    this.updateGridSizes(splitData);
-    this.applySplitters(splitData.widths.length , splitData.heights.length);
-    this.applyGridSizes();
+
+    this.applyGridToTabs(splitData.tabs, gridType, activeTab);
+    const gridAreas = this.calculateGridAreas(splitData.tabs, gridType);
+    this.applyGridLayout(gridAreas);
   }
 
   /**
@@ -337,10 +337,7 @@ var gZenViewSplitter = new class {
    * @param {string} gridType - The type of grid layout.
    * @param {Tab} activeTab - The active tab.
    */
-  applyGridLayout(tabs, gridType, activeTab) {
-    const gridAreas = this.calculateGridAreas(tabs, gridType);
-    this.tabBrowserPanel.style.gridTemplateAreas = gridAreas;
-
+  applyGridToTabs(tabs, gridType, activeTab) {
     tabs.forEach((tab, index) => {
       tab.splitView = true;
       const container = tab.linkedBrowser.closest('.browserSidebarContainer');
@@ -349,55 +346,109 @@ var gZenViewSplitter = new class {
   }
 
   /**
-   * Adds splitters to tabBrowserPanel
+   * Apply grid layout to tabBrowserPanel
    *
-   * @param nrOfColumns number of columns in the grid
-   * @param nrOfRows number of rows in the grid
+   * @param gridTemplateAreas
    */
-  applySplitters(nrOfColumns, nrOfRows) {
-    this.removeSplitters();
-    const vSplittersNeeded = (nrOfColumns - 1) * nrOfRows;
-    const hSplittersNeeded = nrOfRows - 1;
+  applyGridLayout(gridTemplateAreas) {
+    const finalLayout = this.calculateLayoutWithSplitters(gridTemplateAreas);
 
-    const insertSplitter = (i, orient, gridIdx) => {
-      const splitter = document.createElement('div');
-      splitter.className = 'zen-split-view-splitter';
-      splitter.setAttribute('orient', orient);
-      splitter.setAttribute('gridIdx', gridIdx);
-      splitter.style.gridArea = `${orient === 'vertical' ? 'v' : 'h'}Splitter${i}`;
-      splitter.addEventListener('mousedown', this.handleSplitterMouseDown);
-      this.tabBrowserPanel.insertAdjacentElement("afterbegin", splitter);
+    this.tabBrowserPanel.style.gridTemplateAreas = finalLayout.templateAreas;
+    this.removeSplitters();
+    finalLayout.splitters.forEach(s => this.insertSplitter(s.nr, s.orient, s.gridIdx));
+
+    this.updateGridDimensions(this._data[this.currentView], finalLayout.nrOfRows, finalLayout.nrOfColumns);
+    this.applyGridSizes();
+  }
+
+
+  /**
+   * Takes a gridLayout and returns a new one with splitters.
+   *
+   * @param girdTemplateAreas
+   * @returns {{splitters: *[], templateAreas: string, nrOfColumns: number, nrOfRows: number}}
+   */
+  calculateLayoutWithSplitters(girdTemplateAreas) {
+    const rows = girdTemplateAreas.split(/['"]\s+['"]/).map(r => r.replaceAll(/['"]/g, '').split(/\s+/));
+
+    let finalTemplateAreas = '';
+    const splitters = [];
+
+    let vSplitterCount = 0;
+    let hSplitterCount = 0;
+    for (let i = 0; i < rows.length; i++) {
+      let nextRow = '';
+      finalTemplateAreas += `'`;
+      let buildingHSplitter = false;
+      for (let j = 0; j < rows[i].length; j++) {
+        const current = rows[i][j];
+        const rightNeighbor = rows[i][j + 1];
+        finalTemplateAreas += " " + current;
+        if (rightNeighbor && rightNeighbor !== current) {
+          finalTemplateAreas += ` vSplitter${vSplitterCount + 1}`;
+          vSplitterCount++;
+          splitters.push({nr: vSplitterCount, orient: 'vertical', gridIdx: j + 1});
+        }
+
+        if (!rows[i + 1]) {
+          continue;
+        }
+        const underNeighbor = rows[i + 1][j];
+        if (underNeighbor !== current) {
+          nextRow += ` hSplitter${hSplitterCount + 1}`;
+          buildingHSplitter = true;
+        } else {
+          nextRow += ' ' + current;
+          hSplitterCount++;
+          splitters.push({nr: hSplitterCount, orient: 'horizontal', gridIdx: i + 1});
+          buildingHSplitter = false;
+        }
+        if (j === rows[i].length - 1) {
+          if (buildingHSplitter) {
+            hSplitterCount++;
+            splitters.push({nr: hSplitterCount, orient: 'horizontal', gridIdx: i + 1});
+            buildingHSplitter = false;
+          }
+          continue;
+        }
+        const rightNeighborJoinedWithUnderNeighbor = rightNeighbor === rows[i + 1][j + 1];
+        if (rightNeighborJoinedWithUnderNeighbor && (underNeighbor === current)) {
+          if (current === rightNeighbor) nextRow += ' ' + current; // square
+          else nextRow += ` vSplitter${vSplitterCount}`;
+        } else {
+          nextRow += ` hSplitter${hSplitterCount + 1}`;
+        }
+      }
+      finalTemplateAreas += `'`;
+      if (nextRow) {
+        finalTemplateAreas += `'${nextRow}'`;
+      }
     }
-    for (let i = 1; i <= vSplittersNeeded; i++) {
-      insertSplitter(i, 'vertical', Math.floor((i - 1) /nrOfRows) + 1);
-    }
-    for (let i = 1; i <= hSplittersNeeded; i++) {
-      insertSplitter(i, 'horizontal', i);
-    }
+
+    return {templateAreas: finalTemplateAreas, splitters: splitters, nrOfRows: rows.length, nrOfColumns: rows[0]?.length || 0};
+  }
+
+  insertSplitter(nr, orient, gridIdx) {
+    const splitter = document.createElement('div');
+    splitter.className = 'zen-split-view-splitter';
+    splitter.setAttribute('orient', orient);
+    splitter.setAttribute('gridIdx', gridIdx);
+    splitter.style.gridArea = `${orient === 'vertical' ? 'v' : 'h'}Splitter${nr}`;
+    splitter.addEventListener('mousedown', this.handleSplitterMouseDown);
+    this.tabBrowserPanel.insertAdjacentElement("afterbegin", splitter);
   }
 
   /**
    * Initialize splitData with default widths and heights if dimensions of grid don't match
    *
-   * @param {object} splitData - The split data.
+   * @param splitData the splits data
+   * @param nrOfRows number of rows in the grid (excluding splitters)
+   * @param nrOfColumns number of columns in the grid (excluding splitters)
    */
-  updateGridSizes(splitData) {
-    const tabs = splitData.tabs;
-    const gridType = splitData.gridType;
-
-    let nrOfWidths = 1;
-    let nrOfHeights = 1;
-    if (gridType === 'vsep') {
-      nrOfWidths = tabs.length;
-    } else if (gridType === 'hsep') {
-      nrOfHeights = tabs.length;
-    } else if (gridType === 'grid') {
-      nrOfWidths = tabs.length > 2 ? Math.ceil(tabs.length / 2) : 2;
-      nrOfHeights = tabs.length > 2 ? 2 : 1;
-    }
-    if (splitData.widths?.length !== nrOfWidths || splitData.heights?.length !== nrOfHeights) {
-      splitData.widths = Array(nrOfWidths).fill(100 / nrOfWidths);
-      splitData.heights = Array(nrOfHeights).fill(100 / nrOfHeights);
+  updateGridDimensions(splitData, nrOfRows, nrOfColumns) {
+    if (splitData.widths?.length !== nrOfColumns || splitData.heights?.length !== nrOfRows) {
+      splitData.widths = Array( nrOfColumns).fill(100 / nrOfColumns);
+      splitData.heights = Array(nrOfRows).fill(100 / nrOfRows);
     }
   }
 
@@ -419,10 +470,10 @@ var gZenViewSplitter = new class {
       return this.calculateGridAreasForGrid(tabs);
     }
     if (gridType === 'vsep') {
-      return `'${tabs.slice(0, -1).map((_, j) => `tab${j + 1} vSplitter${j + 1}`).join(' ')} tab${tabs.length}'`;
+      return `'${tabs.map((_, j) => `tab${j + 1}`).join(' ')}'`;
     }
     if (gridType === 'hsep') {
-      return tabs.slice(0, -1).map((_, j) => `'tab${j + 1}' 'hSplitter${j + 1}'`).join(' ') + `'tab${tabs.length}`;
+      return tabs.map((_, j) => `'tab${j + 1}'`).join(' ');
     }
     return '';
   }
@@ -434,32 +485,24 @@ var gZenViewSplitter = new class {
    * @returns {string} The calculated grid areas.
    */
   calculateGridAreasForGrid(tabs) {
-    if (tabs.length === 2) {
-      return "'tab1 vSplitter1 tab2'";
-    }
-
     const rows = ['', ''];
-    for (let i = 0; i < tabs.length - 2; i++) {
+    tabs.forEach((_, i) => {
       if (i % 2 === 0) {
-        rows[0] += ` tab${i + 1} vSplitter${i + 1}`;
+        rows[0] += ` tab${i + 1}`;
       } else {
-        rows[1] += ` tab${i + 1} vSplitter${i + 1}`;
+        rows[1] += ` tab${i + 1}`;
       }
-    }
-    for (let i = tabs.length - 2; i < tabs.length; i++) {
-        if (i % 2 === 0) {
-            rows[0] += ` tab${i + 1}`;
-        } else {
-            rows[1] += ` tab${i + 1}`;
-        }
+    });
+
+    if (tabs.length === 2) {
+      return "'tab1 tab2'";
     }
 
-    let middleColumn = 'hSplitter1 '.repeat(tabs.length - 1);
     if (tabs.length % 2 !== 0) {
-      rows[1] += ` vSplitter${tabs.length - 1} tab${tabs.length}`;
-      middleColumn += ` tab${tabs.length}`;
+      rows[1] += ` tab${tabs.length}`;
     }
-    return `'${rows[0].trim()}' '${middleColumn}' '${rows[1].trim()}'`;
+
+    return `'${rows[0].trim()}' '${rows[1].trim()}'`;
   }
 
   /**
