@@ -5,13 +5,8 @@ var ZenWorkspaces = {
    */
   _lastSelectedWorkspaceTabs: {},
 
-  async init() {
-    let docElement = document.documentElement;
-    if (
-      docElement.getAttribute('chromehidden').includes('toolbar') ||
-      docElement.getAttribute('chromehidden').includes('menubar') ||
-      docElement.hasAttribute('privatebrowsingmode')
-    ) {
+  init() {
+    if (!this.shouldHaveWorkspaces) {
       console.warn('ZenWorkspaces: !!! ZenWorkspaces is disabled in hidden windows !!!');
       return; // We are in a hidden window, don't initialize ZenWorkspaces
     }
@@ -22,8 +17,19 @@ var ZenWorkspaces = {
     });
   },
 
+  get shouldHaveWorkspaces() {
+    delete this.shouldHaveWorkspaces;
+    let docElement = document.documentElement;
+    this.shouldHaveWorkspaces = !(docElement.hasAttribute('privatebrowsingmode') 
+      || docElement.getAttribute('chromehidden').includes('toolbar')
+      || docElement.getAttribute('chromehidden').includes('menubar'));
+    return this.shouldHaveWorkspaces;
+  },
+
   get workspaceEnabled() {
-    return Services.prefs.getBoolPref('zen.workspaces.enabled', false);
+    delete this.workspaceEnabled;
+    this.workspaceEnabled = Services.prefs.getBoolPref('zen.workspaces.enabled', false) && this.shouldHaveWorkspaces;
+    return this.workspaceEnabled;
   },
 
   getActiveWorkspaceFromCache() {
@@ -744,4 +750,3 @@ var ZenWorkspaces = {
   },
 };
 
-ZenWorkspaces.init();
