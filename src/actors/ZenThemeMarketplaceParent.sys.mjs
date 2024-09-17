@@ -74,6 +74,7 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
       }
       if (!this.compareversion(themeInfo.version, theme.version || '0.0.0') && themeInfo.version != theme.version) {
         console.info('ZenThemeMarketplaceParent: Theme update found', theme.id, theme.version, themeInfo.version);
+        themeInfo.enabled = theme.enabled;
         updates.push(themeInfo);
         await this.removeTheme(theme.id, false);
         this._themes[themeInfo.id] = themeInfo;
