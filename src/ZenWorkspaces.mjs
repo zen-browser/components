@@ -344,14 +344,14 @@ var ZenWorkspaces = {
       button.removeAttribute('hidden');
       return;
     }
-    let browserTabs = document.getElementById('tabbrowser-tabs');
+    const nextSibling = document.getElementById('zen-sidepanel-button');
     let button = document.createElement('toolbarbutton');
     button.id = 'zen-workspaces-button';
     button.className = 'toolbarbutton-1 chromeclass-toolbar-additional';
     button.setAttribute('label', 'Workspaces');
     button.setAttribute('tooltiptext', 'Workspaces');
     button.onclick = this.openWorkspacesDialog.bind(this);
-    browserTabs.insertAdjacentElement('beforebegin', button);
+    nextSibling.before(button);
   },
 
   async _updateWorkspacesButton() {
