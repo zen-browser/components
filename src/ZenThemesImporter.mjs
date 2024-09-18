@@ -19,7 +19,7 @@ var gZenStylesheetManager = {
   async writeStylesheet(path, themes) {
     let content = kZenStylesheetThemeHeader;
     for (let theme of themes) {
-      if (!theme.enabled) {
+      if (theme.enabled !== undefined && !theme.enabled) {
         continue;
       }
       content += this.getThemeCSS(theme);
@@ -208,7 +208,11 @@ var gZenThemeImporter = new (class {
   }
 
   setDefaults(themesWithPreferences) {
-    for (const { preferences } of themesWithPreferences) {
+    for (const { preferences, enabled } of themesWithPreferences) {
+      if (enabled !== undefined && !enabled) {
+        continue;
+      }
+
       for (const { type, property, defaultValue } of preferences) {
         if (defaultValue === undefined) {
           continue;
@@ -251,7 +255,7 @@ var gZenThemeImporter = new (class {
     for (const { enabled, preferences, name } of themesWithPreferences) {
       const sanitizedName = `theme-${name?.replaceAll(/\s/g, '-')?.replaceAll(/[^A-z_-]+/g, '')}`;
 
-      if (!enabled) {
+      if (enabled !== undefined && !enabled) {
         const element = browser.document.getElementById(sanitizedName);
 
         if (element) {
