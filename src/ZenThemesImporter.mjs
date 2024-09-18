@@ -9,12 +9,6 @@ const kenStylesheetFooter = `
 /* End of Zen Themes */
 `;
 
-const kZenOSToSmallName = {
-  WINNT: 'windows',
-  Darwin: 'macos',
-  Linux: 'linux',
-};
-
 var gZenStylesheetManager = {
   async writeStylesheet(path, themes) {
     let content = kZenStylesheetThemeHeader;
@@ -50,8 +44,8 @@ var gZenThemeImporter = new (class {
         this.insertStylesheet();
 
         const themesWithPreferences = await Promise.all(
-          Object.values(await this.getThemes()).map(async (theme) => {
-            const preferences = await this._getThemePreferences(theme);
+          Object.values(await ZenThemesCommon.getThemes()).map(async (theme) => {
+            const preferences = await ZenThemesCommon.getThemePreferences(theme);
 
             return {
               name: theme.name,
@@ -81,29 +75,6 @@ var gZenThemeImporter = new (class {
     return PathUtils.join(PathUtils.profileDir, 'chrome', 'zen-themes.css');
   }
 
-  get themesRootPath() {
-    return PathUtils.join(PathUtils.profileDir, 'chrome', 'zen-themes');
-  }
-
-  get themesDataFile() {
-    return PathUtils.join(PathUtils.profileDir, 'zen-themes.json');
-  }
-
-  getThemeFolder(theme) {
-    return PathUtils.join(this.themesRootPath, theme.id);
-  }
-
-  async getThemes() {
-    if (!this._themes) {
-      if (!(await IOUtils.exists(this.themesDataFile))) {
-        await IOUtils.writeJSON(this.themesDataFile, {});
-      }
-
-      this._themes = await IOUtils.readJSON(this.themesDataFile);
-    }
-    return this._themes;
-  }
-
   async rebuildThemeStylesheet() {
     this._themes = null;
     await this.updateStylesheet();
@@ -117,7 +88,7 @@ var gZenThemeImporter = new (class {
   }
 
   getStylesheetURIForTheme(theme) {
-    return Services.io.newFileURI(new FileUtils.File(PathUtils.join(this.getThemeFolder(theme), 'chrome.css')));
+    return Services.io.newFileURI(new FileUtils.File(PathUtils.join(ZenThemesCommon.getThemeFolder(theme.id), 'chrome.css')));
   }
 
   async insertStylesheet() {
@@ -133,12 +104,12 @@ var gZenThemeImporter = new (class {
   async updateStylesheet() {
     await this.removeStylesheet();
 
-    const themes = Object.values(await this.getThemes());
+    const themes = Object.values(await ZenThemesCommon.getThemes());
     await this.writeStylesheet(themes);
 
     const themesWithPreferences = await Promise.all(
       themes.map(async (theme) => {
-        const preferences = await this._getThemePreferences(theme);
+        const preferences = await ZenThemesCommon.getThemePreferences(theme);
 
         return {
           name: theme.name,
@@ -152,59 +123,6 @@ var gZenThemeImporter = new (class {
     this.writeToDom(themesWithPreferences);
 
     await this.insertStylesheet();
-  }
-
-  _getBrowser() {
-    if (!this.__browser) {
-      this.__browser = Services.wm.getMostRecentWindow('navigator:browser');
-    }
-
-    return this.__browser;
-  }
-
-  get currentOperatingSystem() {
-    let os = Services.appinfo.OS;
-    return kZenOSToSmallName[os];
-  }
-
-  async _getThemePreferences(theme) {
-    const themePath = PathUtils.join(this.getThemeFolder(theme), 'preferences.json');
-
-    if (!(await IOUtils.exists(themePath)) || !theme.preferences) {
-      return [];
-    }
-
-    const preferences = await IOUtils.readJSON(themePath);
-
-    if (typeof preferences === 'object' && !Array.isArray(preferences)) {
-      console.warn(
-        `[ZenThemesImporter]: Warning, ${theme.name} uses legacy preferences, please migrate them to the new preferences style, as legacy preferences might be removed at a future release. More information at: https://docs.zen-browser.app/themes-store/themes-marketplace-preferences`
-      );
-      const newThemePreferences = [];
-
-      for (let [entry, label] of Object.entries(preferences)) {
-        const [_, negation = '', os = '', property] = /(!?)(?:(macos|windows|linux):)?([A-z0-9-_.]+)/g.exec(entry);
-        const isNegation = negation === '!';
-
-        if (
-          (isNegation && os === this.currentOperatingSystem) ||
-          (os !== '' && os !== this.currentOperatingSystem && !isNegation)
-        ) {
-          continue;
-        }
-
-        newThemePreferences.push({
-          property,
-          label,
-          type: 'checkbox',
-          disabledOn: os !== '' ? [os] : [],
-        });
-      }
-
-      return newThemePreferences;
-    }
-
-    return preferences.filter(({ disabledOn = [] }) => !disabledOn.includes(this.currentOperatingSystem));
   }
 
   setDefaults(themesWithPreferences) {
@@ -250,7 +168,7 @@ var gZenThemeImporter = new (class {
   }
 
   writeToDom(themesWithPreferences) {
-    const browser = this._getBrowser();
+    const browser = ZenThemesCommon.getBrowser();
 
     for (const { enabled, preferences, name } of themesWithPreferences) {
       const sanitizedName = `theme-${name?.replaceAll(/\s/g, '-')?.replaceAll(/[^A-z_-]+/g, '')}`;
