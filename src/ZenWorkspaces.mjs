@@ -17,6 +17,12 @@ var ZenWorkspaces = {
     });
   },
 
+  get shouldShowIconStrip() {
+    delete this.shouldShowIconStrip;
+    this.shouldShowIconStrip = Services.prefs.getBoolPref('zen.workspaces.show-icon-strip', true);
+    return this.shouldShowIconStrip;
+  },
+
   get shouldHaveWorkspaces() {
     delete this.shouldHaveWorkspaces;
     let docElement = document.documentElement;
@@ -63,8 +69,14 @@ var ZenWorkspaces = {
     }
   },
 
+  async onWorkspacesIconStripChanged() {
+    this.shouldShowIconStrip = Services.prefs.getBoolPref('zen.workspaces.show-icon-strip', true);
+    await this._expandWorkspacesStrip();
+  },
+
   async initializeWorkspaces() {
     Services.prefs.addObserver('zen.workspaces.enabled', this.onWorkspacesEnabledChanged.bind(this));
+    Services.prefs.addObserver('zen.workspaces.show-icon-strip', this.onWorkspacesIconStripChanged.bind(this));
     await this.initializeWorkspacesButton();
     let file = new FileUtils.File(this._storeFile);
     if (!file.exists()) {
@@ -237,10 +249,14 @@ var ZenWorkspaces = {
     return workspace.name[0].toUpperCase();
   },
 
-  async _propagateWorkspaceData() {
+  async _propagateWorkspaceData({
+    ignoreStrip = false
+  } = {}) {
     let currentContainer = document.getElementById('PanelUI-zen-workspaces-current-info');
     let workspaceList = document.getElementById('PanelUI-zen-workspaces-list');
-    await this._expandWorkspacesStrip();
+    if (!ignoreStrip) {
+      await this._expandWorkspacesStrip();
+    }
     const createWorkspaceElement = (workspace) => {
       let element = document.createXULElement('toolbarbutton');
       element.className = 'subviewbutton';
@@ -330,7 +346,9 @@ var ZenWorkspaces = {
     }
     let target = event.target;
     let panel = document.getElementById('PanelUI-zen-workspaces');
-    await this._propagateWorkspaceData();
+    await this._propagateWorkspaceData({
+      ignoreStrip: true
+    });
     PanelMultiView.openPopup(panel, target, {
       position: 'bottomright topright',
       triggerEvent: event,
@@ -347,40 +365,46 @@ var ZenWorkspaces = {
     }
     const nextSibling = document.getElementById('zen-sidepanel-button');
     const wrapper = document.createXULElement('toolbarbutton');
-    wrapper.id = 'zen-workspaces-buttons';
-    wrapper.className = 'subviewbutton';
-    nextSibling.before(wrapper);
+    wrapper.id = 'zen-workspaces-button';
+    nextSibling.after(wrapper);
     await this._expandWorkspacesStrip();
   },
 
   async _expandWorkspacesStrip() {
     let workspaces = await this._workspaces();
-    let activeWorkspace = workspaces.workspaces.find((workspace) => workspace.used);
-    let workspaceList = document.getElementById('zen-workspaces-buttons');
-    workspaceList.innerHTML = '';
-    for (let workspace of workspaces.workspaces) {
-      let button = document.createXULElement('toolbarbutton');
-      button.className = 'subviewbutton';
-      button.setAttribute('tooltiptext', workspace.name);
-      button.setAttribute('zen-workspace-id', workspace.uuid);
-      if (workspace.used) {
-        button.setAttribute('active', 'true');
+    let workspaceList = document.getElementById('zen-workspaces-button');
+    const newWorkspacesButton = document.createXULElement(this.shouldShowIconStrip ? 'hbox' : 'toolbarbutton');
+    newWorkspacesButton.id = 'zen-workspaces-button';
+    newWorkspacesButton.setAttribute('tooltiptext', 'Workspaces');
+
+    if (this.shouldShowIconStrip) {
+      for (let workspace of workspaces.workspaces) {
+        let button = document.createXULElement('toolbarbutton');
+        button.className = 'subviewbutton';
+        button.setAttribute('tooltiptext', workspace.name);
+        button.setAttribute('zen-workspace-id', workspace.uuid);
+        if (workspace.used) {
+          button.setAttribute('active', 'true');
+        }
+        if (workspace.default) {
+          button.setAttribute('default', 'true');
+        }
+        button.onclick = (async () => {
+          await this.changeWorkspace(workspace);
+        }).bind(this, workspace);
+        let icon = document.createXULElement('div');
+        icon.className = 'zen-workspace-icon';
+        icon.textContent = this.getWorkspaceIcon(workspace);
+        button.appendChild(icon);
+        newWorkspacesButton.appendChild(button);
       }
-      if (workspace.default) {
-        button.setAttribute('default', 'true');
-      }
-      button.onclick = (async () => {
-        await this.changeWorkspace(workspace);
-      }).bind(this, workspace);
-      let icon = document.createXULElement('div');
-      icon.className = 'zen-workspace-icon';
-      icon.textContent = this.getWorkspaceIcon(workspace);
-      let name = document.createXULElement('div');
-      name.className = 'zen-workspace-name';
-      name.textContent = workspace.name;
-      button.appendChild(icon);
-      button.appendChild(name);
-      workspaceList.appendChild(button);
+    }
+
+    workspaceList.after(newWorkspacesButton);
+    workspaceList.remove();
+
+    if (!this.shouldShowIconStrip) {
+      await this._updateWorkspacesButton();
     }
   },
 
@@ -391,20 +415,33 @@ var ZenWorkspaces = {
     }
     let activeWorkspace = (await this._workspaces()).workspaces.find((workspace) => workspace.used);
     if (activeWorkspace) {
-      button.innerHTML = `
-        <div class="zen-workspace-sidebar-icon">
-        </div>
-        <div class="zen-workspace-sidebar-name">
-        </div>
-      `;
+      button.setAttribute('as-button', 'true');
+      button.classList.add('toolbarbutton-1', 'zen-sidebar-action-button');
+
+      button.addEventListener('click', this.openWorkspacesDialog.bind(this));
+
+      const wrapper = document.createXULElement('hbox');
+      wrapper.className = 'zen-workspace-sidebar-wrapper';
+
+      const icon = document.createElement('div');
+      icon.className = 'zen-workspace-sidebar-icon';
+      icon.textContent = this.getWorkspaceIcon(activeWorkspace);
+
 
       // use text content instead of innerHTML to avoid XSS
-      button.querySelector('.zen-workspace-sidebar-name').textContent = activeWorkspace.name;
-      button.querySelector('.zen-workspace-sidebar-icon').textContent = this.getWorkspaceIcon(activeWorkspace);
+      const name = document.createElement('div');
+      name.className = 'zen-workspace-sidebar-name';
+      name.textContent = activeWorkspace.name;
 
       if (!this.workspaceHasIcon(activeWorkspace)) {
-        button.querySelector('.zen-workspace-sidebar-icon').setAttribute('no-icon', 'true');
+        icon.setAttribute('no-icon', 'true');
       }
+      
+      wrapper.appendChild(icon);
+      wrapper.appendChild(name);
+
+      button.innerHTML = '';
+      button.appendChild(wrapper);
     }
   },
 
