@@ -375,6 +375,8 @@ var ZenWorkspaces = {
     let workspaceList = document.getElementById('zen-workspaces-button');
     const newWorkspacesButton = document.createXULElement(this.shouldShowIconStrip ? 'hbox' : 'toolbarbutton');
     newWorkspacesButton.id = 'zen-workspaces-button';
+    newWorkspacesButton.setAttribute('removable', 'false');
+    newWorkspacesButton.setAttribute('showInPrivateBrowsing', 'false');
     newWorkspacesButton.setAttribute('tooltiptext', 'Workspaces');
 
     if (this.shouldShowIconStrip) {
