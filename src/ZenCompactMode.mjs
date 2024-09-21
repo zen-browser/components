@@ -1,5 +1,5 @@
 var gZenCompactModeManager = {
-  _flashSidebarTimeout: null,
+  _flashSidebarTimeout: {},
 
   init() {
     Services.prefs.addObserver('zen.view.compact', this._updateEvent.bind(this));
@@ -58,31 +58,35 @@ var gZenCompactModeManager = {
 
   get hoverableElements() {
     return [
-      this.sidebar,
       document.getElementById('zen-appcontent-navbar-container'),
+      this.sidebar,
     ];
   },
 
-  flashSidebar(element = null, duration = null) {
+  flashSidebar(element = null, duration = null, id = null) {
     if (!element) {
       element = this.sidebar;
     }
     if (!duration) {
       duration = this.flashSidebarDuration;
     }
+    if (!id) {
+      id = this.sidebar.id;
+    }
     let tabPanels = document.getElementById('tabbrowser-tabpanels');
     if (element.matches(':hover') || tabPanels.matches("[zen-split-view='true']")) {
       return;
     }
-    if (this._flashSidebarTimeout) {
-      clearTimeout(this._flashSidebarTimeout);
+    if (this._flashSidebarTimeout[id]) {
+      clearTimeout(this._flashSidebarTimeout[id]);
     } else {
       window.requestAnimationFrame(() => element.setAttribute('flash-popup', ''));
     }
-    this._flashSidebarTimeout = setTimeout(() => {
+    this._flashSidebarTimeout[id] = setTimeout(() => {
       window.requestAnimationFrame(() => {
         element.removeAttribute('flash-popup');
-        this._flashSidebarTimeout = null;
+        element.removeAttribute('zen-has-hover');
+        this._flashSidebarTimeout[id] = null;
       });
     }, duration);
   },
@@ -91,12 +95,12 @@ var gZenCompactModeManager = {
     for (let i = 0; i < this.hoverableElements.length; i++) {
       this.hoverableElements[i].addEventListener('mouseenter', (event) => {
         let target = this.hoverableElements[i];
-        target.setAttribute('zen-user-hover', 'true');
+        target.setAttribute('zen-has-hover', 'true', target.id);
       });
 
       this.hoverableElements[i].addEventListener('mouseleave', (event) => {
         let target = this.hoverableElements[i];
-        this.flashSidebar(target, this.hideAfterHoverDuration);
+        this.flashSidebar(target, this.hideAfterHoverDuration, target.id);
       });
     }
   },
