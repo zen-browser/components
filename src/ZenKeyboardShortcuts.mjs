@@ -10,6 +10,7 @@ const kZKSActions = {
 
   // Workspace actions
   zenChangeWorkspace: ['ZenWorkspaces.changeWorkspaceShortcut()', 'zen-change-workspace', 'workspace-action'],
+  zenChangeWorkspaceBack: ['ZenWorkspaces.changeWorkspaceShortcut(-1)', 'zen-change-workspace-back', 'workspace-action'],
 
   // manage actions
   openNewTab: ['command:cmd_newNavigatorTabNoEvent', 'open-new-tab', 'tab-action'],
@@ -129,7 +130,8 @@ const kZenDefaultShortcuts = {
   zenSplitViewClose: 'Ctrl+Alt+U',
 
   // Workspace actions
-  zenChangeWorkspace: 'Ctrl+Shift+E',
+  zenChangeWorkspace: 'Ctrl+E',
+  zenChangeWorkspaceBack: 'Ctrl+Shift+E',
 
   // Compact mode actions
   zenToggleCompactMode: 'Ctrl+Alt+C',

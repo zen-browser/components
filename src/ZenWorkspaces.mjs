@@ -775,12 +775,13 @@ var ZenWorkspaces = {
     await this.openEditDialog(this._contextMenuId);
   },
 
-  async changeWorkspaceShortcut() {
+  async changeWorkspaceShortcut(offset = 1) {
     // Cycle through workspaces
     let workspaces = await this._workspaces();
     let activeWorkspace = workspaces.workspaces.find((workspace) => workspace.used);
     let workspaceIndex = workspaces.workspaces.indexOf(activeWorkspace);
-    let nextWorkspace = workspaces.workspaces[workspaceIndex + 1] || workspaces.workspaces[0];
+    // note: offset can be negative
+    let nextWorkspace = workspaces.workspaces[(workspaceIndex + offset + workspaces.workspaces.length) % workspaces.workspaces.length];
     this.changeWorkspace(nextWorkspace);
   },
 
