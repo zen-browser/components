@@ -172,60 +172,60 @@ var gZenThemeImporter = new (class {
   }
 
   writeToDom(themesWithPreferences) {
-    const browser = ZenThemesCommon.currentBrowser;
+    for (const browser of ZenThemesCommon.browsers) {
+      for (const { enabled, preferences, name } of themesWithPreferences) {
+        const sanitizedName = `theme-${name?.replaceAll(/\s/g, '-')?.replaceAll(/[^A-z_-]+/g, '')}`;
 
-    for (const { enabled, preferences, name } of themesWithPreferences) {
-      const sanitizedName = `theme-${name?.replaceAll(/\s/g, '-')?.replaceAll(/[^A-z_-]+/g, '')}`;
+        if (enabled !== undefined && !enabled) {
+          const element = browser.document.getElementById(sanitizedName);
 
-      if (enabled !== undefined && !enabled) {
-        const element = browser.document.getElementById(sanitizedName);
+          if (element) {
+            element.remove();
+          }
 
-        if (element) {
-          element.remove();
+          for (const { property } of preferences.filter(({ type }) => type !== 'checkbox')) {
+            const sanitizedProperty = property?.replaceAll(/\./g, '-');
+
+            browser.document.querySelector(':root').style.removeProperty(`--${sanitizedProperty}`);
+          }
+
+          continue;
         }
 
-        for (const { property } of preferences.filter(({ type }) => type !== 'checkbox')) {
+        for (const { property, type } of preferences) {
+          const value = Services.prefs.getStringPref(property, '');
           const sanitizedProperty = property?.replaceAll(/\./g, '-');
 
-          browser.document.querySelector(':root').style.removeProperty(`--${sanitizedProperty}`);
-        }
+          switch (type) {
+            case 'dropdown': {
+              if (value !== '') {
+                let element = browser.document.getElementById(sanitizedName);
 
-        continue;
-      }
+                if (!element) {
+                  element = browser.document.createElement('div');
 
-      for (const { property, type } of preferences) {
-        const value = Services.prefs.getStringPref(property, '');
-        const sanitizedProperty = property?.replaceAll(/\./g, '-');
+                  element.style.display = 'none';
+                  element.setAttribute('id', sanitizedName);
 
-        switch (type) {
-          case 'dropdown': {
-            if (value !== '') {
-              let element = browser.document.getElementById(sanitizedName);
+                  browser.document.body.appendChild(element);
+                }
 
-              if (!element) {
-                element = browser.document.createElement('div');
-
-                element.style.display = 'none';
-                element.setAttribute('id', sanitizedName);
-
-                browser.document.body.appendChild(element);
+                element.setAttribute(sanitizedProperty, value);
               }
-
-              element.setAttribute(sanitizedProperty, value);
+              break;
             }
-            break;
-          }
 
-          case 'string': {
-            if (value === '') {
-              browser.document.querySelector(':root').style.removeProperty(`--${sanitizedProperty}`);
-            } else {
-              browser.document.querySelector(':root').style.setProperty(`--${sanitizedProperty}`, value);
+            case 'string': {
+              if (value === '') {
+                browser.document.querySelector(':root').style.removeProperty(`--${sanitizedProperty}`);
+              } else {
+                browser.document.querySelector(':root').style.setProperty(`--${sanitizedProperty}`, value);
+              }
+              break;
             }
-            break;
-          }
 
-          default: {
+            default: {
+            }
           }
         }
       }
