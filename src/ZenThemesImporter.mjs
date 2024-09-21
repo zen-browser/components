@@ -12,14 +12,18 @@ const kenStylesheetFooter = `
 var gZenStylesheetManager = {
   async writeStylesheet(path, themes) {
     let content = kZenStylesheetThemeHeader;
+
     for (let theme of themes) {
       if (theme.enabled !== undefined && !theme.enabled) {
         continue;
       }
       content += this.getThemeCSS(theme);
     }
+
     content += kenStylesheetFooter;
-    let buffer = new TextEncoder().encode(content);
+
+    const buffer = new TextEncoder().encode(content);
+
     await IOUtils.write(path, buffer);
   },
 
@@ -76,7 +80,7 @@ var gZenThemeImporter = new (class {
   }
 
   async rebuildThemeStylesheet() {
-    this._themes = null;
+    ZenThemesCommon.themes = null;
     await this.updateStylesheet();
   }
 
@@ -168,7 +172,7 @@ var gZenThemeImporter = new (class {
   }
 
   writeToDom(themesWithPreferences) {
-    const browser = ZenThemesCommon.getBrowser();
+    const browser = ZenThemesCommon.currentBrowser;
 
     for (const { enabled, preferences, name } of themesWithPreferences) {
       const sanitizedName = `theme-${name?.replaceAll(/\s/g, '-')?.replaceAll(/[^A-z_-]+/g, '')}`;
@@ -183,9 +187,7 @@ var gZenThemeImporter = new (class {
         for (const { property } of preferences.filter(({ type }) => type !== 'checkbox')) {
           const sanitizedProperty = property?.replaceAll(/\./g, '-');
 
-          if (document.querySelector(':root').style.hasProperty(`--${sanitizedProperty}`)) {
-            document.querySelector(':root').style.removeProperty(`--${sanitizedProperty}`);
-          }
+          browser.document.querySelector(':root').style.removeProperty(`--${sanitizedProperty}`);
         }
 
         continue;
@@ -216,9 +218,9 @@ var gZenThemeImporter = new (class {
 
           case 'string': {
             if (value === '') {
-              document.querySelector(':root').style.removeProperty(`--${sanitizedProperty}`);
+              browser.document.querySelector(':root').style.removeProperty(`--${sanitizedProperty}`);
             } else {
-              document.querySelector(':root').style.setProperty(`--${sanitizedProperty}`, value);
+              browser.document.querySelector(':root').style.setProperty(`--${sanitizedProperty}`, value);
             }
             break;
           }
@@ -232,7 +234,7 @@ var gZenThemeImporter = new (class {
 
   async writeStylesheet(themeList) {
     const themes = [];
-    this._themes = null;
+    ZenThemesCommon.themes = null;
 
     for (let theme of themeList) {
       theme._chromeURL = this.getStylesheetURIForTheme(theme).spec;
