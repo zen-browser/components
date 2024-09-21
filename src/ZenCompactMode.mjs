@@ -7,6 +7,8 @@ var gZenCompactModeManager = {
 
     gZenUIManager.addPopupTrackingAttribute(this.sidebar);
     gZenUIManager.addPopupTrackingAttribute(document.getElementById('zen-appcontent-navbar-container'));
+
+    this.addMouseActions();
   },
 
   get prefefence() {
@@ -47,22 +49,56 @@ var gZenCompactModeManager = {
     return Services.prefs.getIntPref('zen.view.compact.toolbar-flash-popup.duration');
   },
 
-  flashSidebar() {
+  get hideAfterHoverDuration() {
+    if (this._hideAfterHoverDuration) {
+      return this._hideAfterHoverDuration;
+    }
+    return Services.prefs.getIntPref('zen.view.compact.toolbar-hide-after-hover.duration');
+  },
+
+  get hoverableElements() {
+    return [
+      this.sidebar,
+      document.getElementById('zen-appcontent-navbar-container'),
+    ];
+  },
+
+  flashSidebar(element = null, duration = null) {
+    if (!element) {
+      element = this.sidebar;
+    }
+    if (!duration) {
+      duration = this.flashSidebarDuration;
+    }
     let tabPanels = document.getElementById('tabbrowser-tabpanels');
-    if (this.sidebar.matches(':hover') || tabPanels.matches("[zen-split-view='true']")) {
+    if (element.matches(':hover') || tabPanels.matches("[zen-split-view='true']")) {
       return;
     }
     if (this._flashSidebarTimeout) {
       clearTimeout(this._flashSidebarTimeout);
     } else {
-      window.requestAnimationFrame(() => this.sidebar.setAttribute('flash-popup', ''));
+      window.requestAnimationFrame(() => element.setAttribute('flash-popup', ''));
     }
     this._flashSidebarTimeout = setTimeout(() => {
       window.requestAnimationFrame(() => {
-        this.sidebar.removeAttribute('flash-popup');
+        element.removeAttribute('flash-popup');
         this._flashSidebarTimeout = null;
       });
-    }, this.flashSidebarDuration);
+    }, duration);
+  },
+
+  addMouseActions() {
+    for (let i = 0; i < this.hoverableElements.length; i++) {
+      this.hoverableElements[i].addEventListener('mouseenter', (event) => {
+        let target = this.hoverableElements[i];
+        target.setAttribute('zen-user-hover', 'true');
+      });
+
+      this.hoverableElements[i].addEventListener('mouseleave', (event) => {
+        let target = this.hoverableElements[i];
+        this.flashSidebar(target, this.hideAfterHoverDuration);
+      });
+    }
   },
 
   toggleToolbar() {
