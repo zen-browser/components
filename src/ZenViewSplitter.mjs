@@ -97,10 +97,13 @@ var gZenViewSplitter = new (class {
     for (const tab of this._data[this.currentView].tabs) {
       this.resetTabState(tab, true);
     }
+    this.removeSplitters();
 
     this.currentView = -1;
     this.tabBrowserPanel.removeAttribute('zen-split-view');
     this.tabBrowserPanel.style.gridTemplateAreas = '';
+    this.tabBrowserPanel.style.gridTemplateColumns = '';
+    this.tabBrowserPanel.style.gridTemplateRows = '';
   }
 
   /**
@@ -166,6 +169,10 @@ var gZenViewSplitter = new (class {
       this._tabBrowserPanel = document.getElementById('tabbrowser-tabpanels');
     }
     return this._tabBrowserPanel;
+  }
+
+  get minResizeWidth() {
+    return Services.prefs.getIntPref('zen.splitView.min-resize-width');
   }
 
   /**
@@ -283,6 +290,8 @@ var gZenViewSplitter = new (class {
     }
     this.tabBrowserPanel.removeAttribute('zen-split-view');
     this.tabBrowserPanel.style.gridTemplateAreas = '';
+    this.tabBrowserPanel.style.gridTemplateColumns = '';
+    this.tabBrowserPanel.style.gridTemplateRows = '';
     this.setTabsDocShellState(this._data[this.currentView].tabs, false);
     this.currentView = -1;
   }
@@ -302,6 +311,9 @@ var gZenViewSplitter = new (class {
 
     this.setTabsDocShellState(splitData.tabs, true);
     this.updateSplitViewButton(false);
+    this.updateGridSizes(splitData);
+    this.applySplitters(splitData.widths.length , splitData.heights.length);
+    this.applyGridSizes();
   }
 
   /**
@@ -323,6 +335,65 @@ var gZenViewSplitter = new (class {
   }
 
   /**
+   * Adds splitters to tabBrowserPanel
+   *
+   * @param nrOfColumns number of columns in the grid
+   * @param nrOfRows number of rows in the grid
+   */
+  applySplitters(nrOfColumns, nrOfRows) {
+    this.removeSplitters();
+    const vSplittersNeeded = (nrOfColumns - 1) * nrOfRows;
+    const hSplittersNeeded = nrOfRows - 1;
+
+    const insertSplitter = (i, orient, gridIdx) => {
+      const splitter = document.createElement('div');
+      splitter.className = 'zen-split-view-splitter';
+      splitter.setAttribute('orient', orient);
+      splitter.setAttribute('gridIdx', gridIdx);
+      splitter.style.gridArea = `${orient === 'vertical' ? 'v' : 'h'}Splitter${i}`;
+      splitter.addEventListener('mousedown', this.handleSplitterMouseDown);
+      this.tabBrowserPanel.insertAdjacentElement("afterbegin", splitter);
+    }
+    for (let i = 1; i <= vSplittersNeeded; i++) {
+      insertSplitter(i, 'vertical', Math.floor((i - 1) /nrOfRows) + 1);
+    }
+    for (let i = 1; i <= hSplittersNeeded; i++) {
+      insertSplitter(i, 'horizontal', i);
+    }
+  }
+
+  /**
+   * Initialize splitData with default widths and heights if dimensions of grid don't match
+   *
+   * @param {object} splitData - The split data.
+   */
+  updateGridSizes(splitData) {
+    const tabs = splitData.tabs;
+    const gridType = splitData.gridType;
+
+    let nrOfWidths = 1;
+    let nrOfHeights = 1;
+    if (gridType === 'vsep') {
+      nrOfWidths = tabs.length;
+    } else if (gridType === 'hsep') {
+      nrOfHeights = tabs.length;
+    } else if (gridType === 'grid') {
+      nrOfWidths = tabs.length > 2 ? Math.ceil(tabs.length / 2) : 2;
+      nrOfHeights = tabs.length > 2 ? 2 : 1;
+    }
+    if (splitData.widths?.length !== nrOfWidths || splitData.heights?.length !== nrOfHeights) {
+      splitData.widths = Array(nrOfWidths).fill(100 / nrOfWidths);
+      splitData.heights = Array(nrOfHeights).fill(100 / nrOfHeights);
+    }
+  }
+
+  removeSplitters() {
+    [...gZenViewSplitter.tabBrowserPanel.children]
+      .filter(e => e.classList.contains('zen-split-view-splitter'))
+      .forEach(s => s.remove());
+  }
+
+  /**
    * Calculates the grid areas for the tabs.
    *
    * @param {Tab[]} tabs - The tabs.
@@ -334,10 +405,10 @@ var gZenViewSplitter = new (class {
       return this.calculateGridAreasForGrid(tabs);
     }
     if (gridType === 'vsep') {
-      return `'${tabs.map((_, j) => `tab${j + 1}`).join(' ')}'`;
+      return `'${tabs.slice(0, -1).map((_, j) => `tab${j + 1} vSplitter${j + 1}`).join(' ')} tab${tabs.length}'`;
     }
     if (gridType === 'hsep') {
-      return tabs.map((_, j) => `'tab${j + 1}'`).join(' ');
+      return tabs.slice(0, -1).map((_, j) => `'tab${j + 1}' 'hSplitter${j + 1}'`).join(' ') + `'tab${tabs.length}`;
     }
     return '';
   }
@@ -349,24 +420,32 @@ var gZenViewSplitter = new (class {
    * @returns {string} The calculated grid areas.
    */
   calculateGridAreasForGrid(tabs) {
-    const rows = ['', ''];
-    tabs.forEach((_, i) => {
-      if (i % 2 === 0) {
-        rows[0] += ` tab${i + 1}`;
-      } else {
-        rows[1] += ` tab${i + 1}`;
-      }
-    });
-
     if (tabs.length === 2) {
-      return "'tab1 tab2'";
+      return "'tab1 vSplitter1 tab2'";
     }
 
+    const rows = ['', ''];
+    for (let i = 0; i < tabs.length - 2; i++) {
+      if (i % 2 === 0) {
+        rows[0] += ` tab${i + 1} vSplitter${i + 1}`;
+      } else {
+        rows[1] += ` tab${i + 1} vSplitter${i + 1}`;
+      }
+    }
+    for (let i = tabs.length - 2; i < tabs.length; i++) {
+        if (i % 2 === 0) {
+            rows[0] += ` tab${i + 1}`;
+        } else {
+            rows[1] += ` tab${i + 1}`;
+        }
+    }
+
+    let middleColumn = 'hSplitter1 '.repeat(tabs.length - 1);
     if (tabs.length % 2 !== 0) {
-      rows[1] += ` tab${tabs.length}`;
+      rows[1] += ` vSplitter${tabs.length - 1} tab${tabs.length}`;
+      middleColumn += ` tab${tabs.length}`;
     }
-
-    return `'${rows[0].trim()}' '${rows[1].trim()}'`;
+    return `'${rows[0].trim()}' '${middleColumn}' '${rows[1].trim()}'`;
   }
 
   /**
@@ -400,6 +479,66 @@ var gZenViewSplitter = new (class {
       window.gBrowser.selectedTab = tab;
     }
   };
+
+  handleSplitterMouseDown = (event) => {
+    const splitData = this._data[this.currentView];
+
+    const isVertical = event.target.getAttribute('orient') === 'vertical';
+    const dimension = isVertical ? 'widths' : 'heights';
+    const clientAxis = isVertical ? 'screenX' : 'screenY';
+
+    const gridIdx = event.target.getAttribute('gridIdx');
+    let prevPosition = event[clientAxis];
+    const dragFunc = (dEvent) => {
+      requestAnimationFrame(() => {
+        const movementX = dEvent[clientAxis] - prevPosition;
+        let percentageChange = (movementX / this.tabBrowserPanel.getBoundingClientRect()[isVertical ? 'width' : 'height']) * 100;
+
+        const currentSize = splitData[dimension][gridIdx - 1];
+        const neighborSize = splitData[dimension][gridIdx];
+        if (currentSize < this.minResizeWidth && neighborSize < this.minResizeWidth) {
+          return;
+        }
+        let max = false;
+        if (currentSize + percentageChange < this.minResizeWidth) {
+          percentageChange = this.minResizeWidth - currentSize;
+          max = true;
+        } else if (neighborSize - percentageChange < this.minResizeWidth) {
+          percentageChange = neighborSize - this.minResizeWidth;
+          max = true;
+        }
+        splitData[dimension][gridIdx - 1] += percentageChange;
+        splitData[dimension][gridIdx] -= percentageChange;
+        this.applyGridSizes();
+        if (!max) prevPosition = dEvent[clientAxis];
+      });
+    }
+    const stopListeners = () => {
+      removeEventListener('mousemove', dragFunc);
+      removeEventListener('mouseup', stopListeners);
+      setCursor('auto');
+    }
+    addEventListener('mousemove', dragFunc);
+    addEventListener('mouseup', stopListeners);
+    setCursor(isVertical ? 'ew-resize' : 'n-resize');
+  }
+
+  /**
+   * Applies the grid column and row sizes
+   */
+  applyGridSizes() {
+    const splitData = this._data[this.currentView];
+    const columnGap = 'var(--zen-split-column-gap)';
+    const rowGap = 'var(--zen-split-row-gap)';
+
+    this.tabBrowserPanel.style.gridTemplateColumns = splitData.widths.slice(0, -1).map(
+        (w) => `calc(${w}% - ${columnGap} * ${splitData.widths.length - 1}/${splitData.widths.length}) ${columnGap}`
+    ).join(' ');
+
+    this.tabBrowserPanel.style.gridTemplateRows = splitData.heights.slice(0, -1).map(
+        (h) => `calc(${h}% - ${rowGap} * ${splitData.heights.length - 1}/${splitData.heights.length}) ${rowGap}`
+    ).join(' ');
+  }
 
   /**
    * Sets the docshell state for the tabs.

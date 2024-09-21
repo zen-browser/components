@@ -1,5 +1,6 @@
 var gZenCompactModeManager = {
   _flashTimeouts: {},
+  _evenListeners: [],
 
   init() {
     Services.prefs.addObserver('zen.view.compact', this._updateEvent.bind(this));
@@ -34,7 +35,12 @@ var gZenCompactModeManager = {
     return this._sidebar;
   },
 
+  addEventListener(callback) {
+    this._evenListeners.push(callback);
+  },
+
   _updateEvent() {
+    this._evenListeners.forEach((callback) => callback());
     Services.prefs.setBoolPref('zen.view.sidebar-expanded.on-hover', false);
   },
 
@@ -112,9 +118,9 @@ var gZenCompactModeManager = {
 
   addMouseActions() {
     for (let i = 0; i < this.hoverableElements.length; i++) {
-      const target = this.hoverableElements[i].element;
-      target.addEventListener('mouseenter', (event) => {
-        target.setAttribute('zen-user-hover', 'true');
+      this.hoverableElements[i].addEventListener('mouseenter', (event) => {
+        let target = this.hoverableElements[i];
+        target.setAttribute('zen-has-hover', 'true');
       });
 
       if (this.hoverableElements[i].keepHoverDuration) {
