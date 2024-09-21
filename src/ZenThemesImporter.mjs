@@ -106,6 +106,11 @@ var gZenThemeImporter = new (class {
   }
 
   async updateStylesheet() {
+    if (Services.focus.activeWindow !== window) {
+      return;
+    }
+
+    console.log('ZenThemeImporter: Updating Zen themes');
     await this.removeStylesheet();
 
     const themes = Object.values(await ZenThemesCommon.getThemes());
