@@ -12,6 +12,14 @@ var ZenThemesCommon = {
     return this.kZenOSToSmallName[os];
   },
 
+  get browsers() {
+    return Services.wm.getEnumerator('navigator:browser');
+  },
+
+  get currentBrowser() {
+    return Services.wm.getMostRecentWindow('navigator:browser');
+  },
+
   get themesRootPath() {
     return PathUtils.join(PathUtils.profileDir, 'chrome', 'zen-themes');
   },
@@ -24,22 +32,15 @@ var ZenThemesCommon = {
     return PathUtils.join(this.themesRootPath, themeId);
   },
 
-  getBrowser() {
-    if (!this.__browser) {
-      this.__browser = Services.wm.getMostRecentWindow('navigator:browser');
-    }
-
-    return this.__browser;
-  },
-
   async getThemes() {
-    if (!this._themes) {
+    if (!this.themes) {
       if (!(await IOUtils.exists(this.themesDataFile))) {
         await IOUtils.writeJSON(this.themesDataFile, {});
       }
-      this._themes = await IOUtils.readJSON(this.themesDataFile);
+
+      this.themes = await IOUtils.readJSON(this.themesDataFile);
     }
-    return this._themes;
+    return this.themes;
   },
 
   async getThemePreferences(theme) {
