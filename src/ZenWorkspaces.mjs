@@ -515,6 +515,8 @@ var ZenWorkspaces = {
     icon?.removeAttribute('selected');
     await this.createAndSaveWorkspace(workspaceName, false, icon?.label);
     document.getElementById('PanelUI-zen-workspaces').hidePopup(true);
+    await this._updateWorkspacesButton();
+    await this._propagateWorkspaceData();
   },
 
   async saveWorkspaceFromEdit() {

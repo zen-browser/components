@@ -133,6 +133,7 @@ var gZenBrowserManagerSidebar = {
     }
 
     const button = document.getElementById('zen-sidepanel-button');
+    if (!button) return;
     if (Services.prefs.getBoolPref('zen.sidebar.enabled')) {
       button.removeAttribute('hidden');
     } else {
@@ -187,6 +188,7 @@ var gZenBrowserManagerSidebar = {
 
   _updateSidebarButton() {
     let button = document.getElementById('zen-sidepanel-button');
+    if (!button) return;
     if (!document.getElementById('zen-sidebar-web-panel').hasAttribute('hidden')) {
       button.setAttribute('open', 'true');
     } else {
