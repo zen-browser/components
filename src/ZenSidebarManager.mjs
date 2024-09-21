@@ -79,7 +79,7 @@ var gZenBrowserManagerSidebar = {
         // relative to avoid the top margin
         // 20px is the padding
         let parentRelativeHeight =
-          parent.getBoundingClientRect().height - parent.getBoundingClientRect().top + sidebar.getBoundingClientRect().top - 20;
+          parent.getBoundingClientRect().height - parent.getBoundingClientRect().top + sidebar.getBoundingClientRect().top;
         let minHeight = parseInt(computedStyle.getPropertyValue('min-height').replace('px', ''));
         if (!this._isDragging) {
           // Prevent multiple resizes
@@ -304,7 +304,6 @@ var gZenBrowserManagerSidebar = {
     let data = this.sidebarData;
     let newPos = [];
     for (let element of this.__dragingElement.parentNode.children) {
-      console.log(element);
       let panelId = element.getAttribute('zen-sidebar-id');
       newPos.push(panelId);
     }
