@@ -211,8 +211,6 @@ var ZenWorkspaces = {
     delete this._lastSelectedWorkspaceTabs[windowID];
     json.workspaces = json.workspaces.filter((workspace) => workspace.uuid !== windowID);
     this.unsafeSaveWorkspaces(json);
-    this._propagateWorkspaceData();
-    this._updateWorkspacesChangeContextMenu();
   },
 
   saveWorkspaces() {
@@ -228,6 +226,7 @@ var ZenWorkspaces = {
   onSyncChange() {
     console.info("Syncing workspaces...");
     this._propagateWorkspaceData();
+    this._updateWorkspacesChangeContextMenu();
   },
 
   // Workspaces dialog UI management
@@ -273,9 +272,9 @@ var ZenWorkspaces = {
     return workspace.name[0].toUpperCase();
   },
 
-  async _propagateWorkspaceData({
-                                  ignoreStrip = false
-                                } = {}) {
+  _propagateWorkspaceData({
+                            ignoreStrip = false
+                          } = {}) {
     let currentContainer = document.getElementById('PanelUI-zen-workspaces-current-info');
     let workspaceList = document.getElementById('PanelUI-zen-workspaces-list');
     if (!ignoreStrip) {
@@ -547,8 +546,6 @@ var ZenWorkspaces = {
     icon?.removeAttribute('selected');
     this.createAndSaveWorkspace(workspaceName, false, icon?.label);
     document.getElementById('PanelUI-zen-workspaces').hidePopup(true);
-    this._updateWorkspacesButton();
-    this._propagateWorkspaceData();
   },
 
   saveWorkspaceFromEdit() {
@@ -565,8 +562,6 @@ var ZenWorkspaces = {
     workspaceData.name = workspaceName;
     workspaceData.icon = icon?.label;
     this.saveWorkspace(workspaceData);
-    this._updateWorkspacesButton();
-    this._propagateWorkspaceData();
     this.closeWorkspacesSubView();
   },
 
@@ -762,7 +757,6 @@ var ZenWorkspaces = {
     let userContextId = parseInt(event.target.getAttribute('data-usercontextid'));
     workspace.containerTabId = userContextId;
     this.saveWorkspace(workspace);
-    this._propagateWorkspaceData();
   },
 
   onContextMenuClose() {
@@ -781,7 +775,6 @@ var ZenWorkspaces = {
       workspace.default = workspace.uuid === this._contextMenuId;
     }
     this.unsafeSaveWorkspaces(workspaces);
-    this._propagateWorkspaceData();
   },
 
   openWorkspace() {
