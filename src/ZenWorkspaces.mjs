@@ -39,7 +39,11 @@ var ZenWorkspaces = {
   },
 
   getActiveWorkspaceFromCache() {
-    return this._workspaceCache.workspaces.find((workspace) => workspace.used);
+    try {
+      return this._workspaceCache.workspaces.find((workspace) => workspace.used);
+    } catch (e) {
+      return null;
+    }
   },
 
   // Wrorkspaces saving/loading
