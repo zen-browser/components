@@ -168,7 +168,6 @@ const KEYCODE_MAP = {
   BACKSPACE: 'VK_BACK',
 };
 
-const SHORTCUTS_STORAGE_KEY = 'zen.keyboard.shortcuts';
 const ZEN_SHORTCUTS_GROUP = 'zen';
 const FIREFOX_SHORTCUTS_GROUP = 'firefox';
 const VALID_SHORTCUT_GROUPS = [ZEN_SHORTCUTS_GROUP, FIREFOX_SHORTCUTS_GROUP];
@@ -451,26 +450,44 @@ class KeyShortcut {
   }
 }
 
+var gZenKeyboardShortcutsStorage = new class {
+  init() {}
+
+  get shortcutsFile() {
+    return PathUtils.join(PathUtils.profileDir, 'zen-keyboard-shortcuts.json');
+  }
+
+  async save(data) {
+    await IOUtils.writeJSON(this.shortcutsFile, {shortcuts: data});
+  }
+
+  async load() {
+    try {
+      return (await IOUtils.readJSON(this.shortcutsFile)).shortcuts;
+    } catch (e) {
+      console.error('Error loading shortcuts file', e);
+      return null;
+    }
+  }
+}
+
 var gZenKeyboardShortcutsManager = {
-  init() {
+  async init() {
     if (window.location.href == 'chrome://browser/content/browser.xhtml') {
       console.info('Zen CKS: Initializing shortcuts');
 
-      this._currentShortcutList = [];
-      this._saveShortcuts([]); // TODO Remove on release
+      this._currentShortcutList = await this._loadSaved();
 
-      this._currentShortcutList = this._loadSaved();
+      // TODO: add some sort of observer to listen for changes in the shortcuts file
 
-      Services.prefs.addObserver(SHORTCUTS_STORAGE_KEY, this._applyShortcuts.bind(this));
-
-      this._saveShortcuts();
+      await this._saveShortcuts();
 
       console.info('Zen CKS: Initialized');
     }
   },
 
-  _loadSaved() {
-    let data = JSON.parse(Services.prefs.getStringPref(SHORTCUTS_STORAGE_KEY));
+  async _loadSaved() {
+    let data = await gZenKeyboardShortcutsStorage.load();
     if (!data || data.length == 0) {
       return this._loadDefaults();
     }
@@ -523,16 +540,16 @@ var gZenKeyboardShortcutsManager = {
     console.debug('Shortcuts applied...');
   },
 
-  _saveShortcuts() {
+  async _saveShortcuts() {
     let json = [];
     for (shortcut of this._currentShortcutList) {
       json.push(shortcut.toJSONForm());
     }
 
-    Services.prefs.setStringPref(SHORTCUTS_STORAGE_KEY, JSON.stringify(json));
+    await gZenKeyboardShortcutsStorage.save(json);
   },
 
-  setShortcut(action, shortcut, modifiers) {
+  async setShortcut(action, shortcut, modifiers) {
     if (!action) {
       throw new Error('Action cannot be null');
     }
@@ -554,7 +571,7 @@ var gZenKeyboardShortcutsManager = {
 
     console.debug(this._currentShortcutList);
 
-    this._saveShortcuts();
+    await this._saveShortcuts();
   },
 
   getModifiableShortcuts() {
