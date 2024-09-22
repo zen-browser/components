@@ -119,7 +119,6 @@ const kZKSActions = {
   hideSidebar: ['SidebarController.hide()', 'hide-sidebar', 'sidebar-action'],
   toggleSidebar: ['SidebarController.toggle()', 'toggle-sidebar', 'sidebar-action'],
   zenToggleWebPanels: ['gZenBrowserManagerSidebar.toggle()', 'zen-toggle-web-panels', 'sidebar-action'],
-  zenExpandSidebar: ['gZenVerticalTabsManager.toggleExpand()', 'zen-expand-sidebar', 'sidebar-action'],
 };
 
 const kZenDefaultShortcuts = {
@@ -144,8 +143,7 @@ const kZenDefaultShortcuts = {
 
 // Section: ZenKeyboardShortcuts
 
-const kZKSStorageKey = 'zen.keyboard.shortcuts';
-const kZKSKeyCodeMap = {
+const KEYCODE_MAP = {
   F1: 'VK_F1',
   F2: 'VK_F2',
   F3: 'VK_F3',
@@ -170,220 +168,408 @@ const kZKSKeyCodeMap = {
   BACKSPACE: 'VK_BACK',
 };
 
-var gZenKeyboardShortcuts = {
-  init() {
-    if (!Services.prefs.getBoolPref('zen.keyboard.shortcuts.enabled')) {
-      return;
-    }
-    this._initShortcuts();
-  },
+const SHORTCUTS_STORAGE_KEY = 'zen.keyboard.shortcuts';
+const ZEN_SHORTCUTS_GROUP = 'zen';
+const FIREFOX_SHORTCUTS_GROUP = 'firefox';
+const VALID_SHORTCUT_GROUPS = [ZEN_SHORTCUTS_GROUP, FIREFOX_SHORTCUTS_GROUP];
 
-  get _savedShortcuts() {
-    if (!this.__savedShortcuts) {
-      try {
-        const data = Services.prefs.getStringPref(kZKSStorageKey);
-        if (data.length == 0) {
-          this._startUpShortcuts();
-          return this._savedShortcuts;
-        }
-        this.__savedShortcuts = JSON.parse(data);
-      } catch (e) {
-        console.error('Zen CKS: Error parsing saved shortcuts', e);
-        this.__savedShortcuts = {};
+class KeyShortcutModifiers {
+  #ctrl = false;
+  #alt = false;
+  #shift = false;
+  #meta = false;
+
+  constructor(ctrl, alt, shift, meta) {
+    this.#ctrl = ctrl;
+    this.#alt = alt;
+    this.#shift = shift;
+    this.#meta = meta;
+  }
+
+  static parseFromJSON(modifiers) {
+    if (!modifiers) {
+      return new KeyShortcutModifiers(false, false, false, false);
+    }
+
+    return new KeyShortcutModifiers(
+      modifiers['control'] == true,
+      modifiers['alt'] == true,
+      modifiers['shift'] == true,
+      modifiers['meta'] == true || modifiers['accel'] == true
+    );
+  }
+
+  static parseFromXHTMLAttribute(modifiers) {
+    if (!modifiers) {
+      return new KeyShortcutModifiers(false, false, false, false);
+    }
+
+    console.log(modifiers);
+
+    return new KeyShortcutModifiers(
+      modifiers.includes('control') || modifiers.includes('accel'),
+      modifiers.includes('alt'),
+      modifiers.includes('shift'),
+      modifiers.includes('meta')
+    );
+  }
+
+  toUserString() {
+    let str = '';
+    if (this.#ctrl) {
+      str += 'Ctrl+';
+    }
+    if (this.#alt) {
+      str += AppConstants.platform == 'macosx' ? 'Option+' : 'Alt+';
+    }
+    if (this.#shift) {
+      str += 'Shift+';
+    }
+    if (this.#meta) {
+      str += AppConstants.platform == 'macosx' ? 'Cmd+' : 'Win+';
+    }
+    return str;
+  }
+
+  toString() {
+    let str = '';
+    if (this.#ctrl) {
+      str += 'control,';
+    }
+    if (this.#alt) {
+      str += 'alt,';
+    }
+    if (this.#shift) {
+      str += 'shift,';
+    }
+    if (this.#meta) {
+      str += 'meta';
+    }
+    return str;
+  }
+
+  toJSONString() {
+    return {
+      ctrl: this.#ctrl,
+      alt: this.#alt,
+      shift: this.#shift,
+      meta: this.#meta,
+    };
+  }
+
+  areAnyActive() {
+    return this.#ctrl || this.#alt || this.#shift || this.#meta;
+  }
+}
+
+class KeyShortcut {
+  #id = '';
+  #key = '';
+  #keycode = '';
+  #group = FIREFOX_SHORTCUTS_GROUP;
+  #modifiers = new KeyShortcutModifiers(false, false, false, false);
+  #action = '';
+  #l10nId = '';
+  #disabled = false;
+  #reserved = false;
+  #internal = false;
+
+  constructor(id, key, keycode, group, modifiers, action, l10nId, disabled, reserved, internal) {
+    this.#id = id;
+    this.#key = key;
+    this.#keycode = keycode;
+
+    if (!VALID_SHORTCUT_GROUPS.includes(group)) {
+      throw new Error('Illegal group value: ' + group);
+    }
+
+    this.#group = group;
+    this.#modifiers = modifiers;
+    this.#action = action;
+    this.#l10nId = l10nId;
+    this.#disabled = disabled;
+    this.#reserved = reserved;
+    this.#internal = internal;
+  }
+
+  static parseFromSaved(json) {
+    let rv = [];
+
+    for (let key of json) {
+      rv.push(this.#parseFromJSON(key));
+    }
+
+    return rv;
+  }
+
+  static #parseFromJSON(json) {
+    return new KeyShortcut(
+      json['id'],
+      json['key'],
+      json['keycode'],
+      json['group'],
+      KeyShortcutModifiers.parseFromJSON(json['modifiers']),
+      json['action'],
+      json['l10nId'],
+      json['disabled'] == 'true',
+      json['reserved'] == 'true',
+      json['internal'] == 'true'
+    );
+  }
+
+  static parseFromXHTML(key, group) {
+    return new KeyShortcut(
+      key.getAttribute('id'),
+      key.getAttribute('key'),
+      key.getAttribute('keycode'),
+      group,
+      KeyShortcutModifiers.parseFromXHTMLAttribute(key.getAttribute('modifiers')),
+      key.getAttribute('command'),
+      key.getAttribute('data-l10n-id'),
+      key.getAttribute('disabled') == 'true',
+      key.getAttribute('reserved') == 'true',
+      key.getAttribute('internal') == 'true'
+    );
+  }
+
+  toXHTMLElement() {
+    let str = '<key';
+    if (this.#id) {
+      str += ` id="${this.#id}"`;
+    }
+
+    if (this.#key) {
+      str += ` key="${this.#key}"`;
+    }
+
+    if (this.#keycode) {
+      str += ` keycode="${this.#keycode}"`;
+    }
+
+    str += ` group="${this.#group}"`;
+
+    if (this.#l10nId) {
+      str += ` data-l10n-id="${this.#l10nId}"`;
+    }
+
+    if (this.#modifiers) {
+      str += ` modifiers="${this.#modifiers.toString()}"`;
+    }
+
+    if (this.#action) {
+      str += ` command="${this.#action}"`;
+    }
+
+    str += ` disabled="${this.#disabled}" reserved="${this.#reserved}" internal="${this.#internal}"/>`;
+
+    return window.MozXULElement.parseXULToFragment(str);
+  }
+
+  getID() {
+    return this.#id;
+  }
+
+  getAction() {
+    return this.#action;
+  }
+
+  getL10NID() {
+    return this.#l10nId;
+  }
+
+  getGroup() {
+    return this.#group;
+  }
+
+  getModifiers() {
+    return this.#modifiers;
+  }
+
+  setModifiers(modifiers) {
+    if ((!modifiers) instanceof KeyShortcutModifiers) {
+      throw new Error('Only KeyShortcutModifiers allowed');
+    }
+    this.#modifiers = modifiers;
+  }
+
+  toJSONForm() {
+    return {
+      id: this.#id,
+      key: this.#key,
+      keycode: this.#keycode,
+      group: this.#group,
+      l10nId: this.#l10nId,
+      modifiers: this.#modifiers.toJSONString(),
+      action: this.#action,
+      disabled: this.#disabled,
+      reserved: this.#reserved,
+      internal: this.#internal,
+    };
+  }
+
+  toUserString() {
+    let str = this.#modifiers.toUserString();
+
+    if (this.#key) {
+      str += this.#key;
+    } else if (this.#keycode) {
+      str += this.#keycode;
+    } else {
+      return '';
+    }
+    return str;
+  }
+
+  isUserEditable() {
+    if (
+      !this.#id ||
+      !this.#action ||
+      this.#internal ||
+      this.#reserved ||
+      (this.#group == FIREFOX_SHORTCUTS_GROUP && this.#disabled)
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  clearKeybind() {
+    this.#key = '';
+    this.#keycode = '';
+    this.#modifiers = new KeyShortcutModifiers(false, false, false, false);
+  }
+
+  setNewBinding(shortcut) {
+    for (let keycode of Object.entries(KEYCODE_MAP)) {
+      if (KEYCODE_MAP[keycode] == shortcut) {
+        this.#keycode = shortcut;
+        return;
       }
     }
-    return this.__savedShortcuts;
+
+    this.#key = shortcut;
+  }
+}
+
+var gZenKeyboardShortcutsManager = {
+  init() {
+    if (window.location.href == 'chrome://browser/content/browser.xhtml') {
+      console.info('Zen CKS: Initializing shortcuts');
+
+      this._currentShortcutList = [];
+      this._saveShortcuts([]); // TODO Remove on release
+
+      this._currentShortcutList = this._loadSaved();
+
+      Services.prefs.addObserver(SHORTCUTS_STORAGE_KEY, this._applyShortcuts.bind(this));
+
+      this._saveShortcuts();
+
+      console.info('Zen CKS: Initialized');
+    }
   },
 
-  _startUpShortcuts() {
-    this.__savedShortcuts = {};
-    this._addDefaultShortcuts();
-    this._saveShortcuts();
+  _loadSaved() {
+    let data = JSON.parse(Services.prefs.getStringPref(SHORTCUTS_STORAGE_KEY));
+    if (!data || data.length == 0) {
+      return this._loadDefaults();
+    }
+
+    try {
+      return KeyShortcut.parseFromSaved(data);
+    } catch (e) {
+      console.error('Zen CKS: Error parsing saved shortcuts. Resetting to defaults...', e);
+      return this._loadDefaults();
+    }
+  },
+
+  _loadDefaults() {
+    let keySet = document.getElementById('mainKeyset');
+    let newShortcutList = [];
+
+    // Firefox's standard keyset
+    for (let key of keySet.children) {
+      let parsed = KeyShortcut.parseFromXHTML(key, FIREFOX_SHORTCUTS_GROUP);
+      newShortcutList.push(parsed);
+    }
+
+    // TODO: Add Zen's custom actions
+
+    return newShortcutList;
+  },
+
+  _applyShortcuts() {
+    console.debug('Applying shortcuts...');
+
+    let mainKeyset = document.getElementById('mainKeyset');
+    if (!mainKeyset) {
+      throw new Error('Main keyset not found');
+    }
+
+    let parent = mainKeyset.parentElement;
+
+    parent.removeChild(mainKeyset);
+    mainKeyset.innerHTML = [];
+    if (mainKeyset.children.length > 0) {
+      throw new Error('Child list not empty');
+    }
+
+    for (let key of this._currentShortcutList) {
+      let child = key.toXHTMLElement();
+      mainKeyset.appendChild(child);
+    }
+
+    parent.prepend(mainKeyset);
+    console.debug('Shortcuts applied...');
   },
 
   _saveShortcuts() {
-    Services.prefs.setStringPref(
-      kZKSStorageKey,
-      JSON.stringify(this._savedShortcuts),
-    );
-  },
-
-  _parseDefaultShortcut(shortcut) {
-    let ctrl = shortcut.includes('Ctrl+');
-    let alt = shortcut.includes('Alt+');
-    let shift = shortcut.includes('Shift+');
-    let meta = shortcut.includes('Meta+');
-    let key = shortcut.replace(/Ctrl\+|Alt\+|Shift\+|Meta\+/g, '');
-    if (['Tab', 'Enter', 'Escape', 'Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key)) {
-      return { ctrl, alt, shift, meta, key: undefined, keycode: key };
+    let json = [];
+    for (shortcut of this._currentShortcutList) {
+      json.push(shortcut.toJSONForm());
     }
-    let isKeyCode = key.length > 1;
-    return { ctrl, alt, shift, meta, key: isKeyCode ? undefined : key, keycode: isKeyCode ? key : undefined };
+
+    Services.prefs.setStringPref(SHORTCUTS_STORAGE_KEY, JSON.stringify(json));
   },
 
-  _addDefaultShortcuts() {
-    for (let action in kZenDefaultShortcuts) {
-      if (!this._savedShortcuts[action]) {
-        this._savedShortcuts[action] = this._parseDefaultShortcut(
-          kZenDefaultShortcuts[action],
-        );
+  setShortcut(action, shortcut, modifiers) {
+    if (!action) {
+      throw new Error('Action cannot be null');
+    }
+
+    // Unsetting shortcut
+    let filteredShortcuts = this._currentShortcutList.filter((key) => key.getAction() == action);
+    if (!filteredShortcuts) {
+      throw new Error('Shortcut for action ' + action + ' not found');
+    }
+
+    for (let targetShortcut of filteredShortcuts) {
+      if (!shortcut && !modifiers) {
+        targetShortcut.clearKeybind();
+      } else {
+        targetShortcut.setNewBinding(shortcut);
+        targetShortcut.setModifiers(modifiers);
       }
     }
-  },
 
-  setShortcut(id, shortcut) {
-    if (!shortcut) {
-      delete this._savedShortcuts[id];
-    } else if (this.isValidShortcut(shortcut)) {
-      this._savedShortcuts[id] = shortcut;
-    }
+    console.debug(this._currentShortcutList);
+
     this._saveShortcuts();
   },
 
-  _initShortcuts() {
-    if (window.location.href == 'chrome://browser/content/browser.xhtml') {
-      console.info('Zen CKS: Initializing shortcuts');
-      Services.prefs.addObserver(kZKSStorageKey, this._onShortcutChange.bind(this));
-      Services.prefs.addObserver('zen.keyboard.shortcuts.disable-firefox', this._disableFirefoxShortcuts.bind(this));
-      this._initSavedShortcuts();
-      this._disableFirefoxShortcuts();
-    }
-  },
+  getModifiableShortcuts() {
+    let rv = [];
 
-  _disableFirefoxShortcuts() {
-    let disable = Services.prefs.getBoolPref('zen.keyboard.shortcuts.disable-firefox');
-    if (!disable) {
-      return;
-    }
-    window.SessionStore.promiseInitialized.then(() => {
-      let keySet = document.getElementById('mainKeyset');
-      if (!keySet) {
-        throw new Error('Zen CKS: No main keyset found');
-      }
-      for (let child of keySet.children) {
-        if (!child.id.startsWith('zen-key_')) {
-          child.setAttribute('disabled', true);
-        }
-      }
-      console.info('Remove already exist shortcut keys');
-    });
-  },
-
-  _onShortcutChange() {
-    console.info('Zen CKS: Shortcut changed');
-    this.__savedShortcuts = null;
-    this._initSavedShortcuts(true);
-  },
-
-  _getCommandAttribute(action) {
-    if (action.startsWith('command:')) {
-      return `command="${action.substring(8)}"`;
-    }
-    return `oncommand="${action}"`;
-  },
-
-  _createShortcutElement(_action) {
-    let shortcut = this._savedShortcuts[_action];
-    if (!shortcut) {
-      return null;
+    if (!this._currentShortcutList) {
+      this._currentShortcutList = this._loadSaved();
     }
 
-    const action = kZKSActions[_action][0];
-    const keycode = shortcut.keycode?.toUpperCase();
-    const key = shortcut.key?.toUpperCase();
-    let modifiers = {
-      accel: shortcut.ctrl,
-      alt: shortcut.alt,
-      shift: shortcut.shift,
-      meta: shortcut.meta,
-    };
-
-    modifiers = Object.keys(modifiers)
-      .filter((mod) => modifiers[mod])
-      .join(',');
-
-    if (keycode) {
-      const key = kZKSKeyCodeMap[keycode] || keycode;
-      return window.MozXULElement.parseXULToFragment(`
-        <key 
-          id="zen-key_${_action}"
-          class="zen-keyboard-shortcut"
-          keycode="${key}"
-          ${this._getCommandAttribute(action)}
-          modifiers="${modifiers}"/>
-      `);
-    }
-
-    return window.MozXULElement.parseXULToFragment(`
-      <key 
-        id="zen-key_${_action}"
-        class="zen-keyboard-shortcut"
-        key="${gZenUIManager.createValidXULText(key)}" 
-        ${this._getCommandAttribute(action)}
-        modifiers="${modifiers}"/>
-    `);
-  },
-
-  _initSavedShortcuts(fromUpdate = false) {
-    let keySet = document.getElementById('mainKeyset');
-    if (!keySet) {
-      throw new Error('Zen CKS: No main keyset found');
-    }
-
-    for (let action in kZKSActions) {
-      let id = `zen-key_${action}`;
-      let existing = document.getElementById(id);
-      if (existing) {
-        existing.remove();
-      }
-      let shortcut = this._createShortcutElement(action);
-      if (shortcut) {
-        keySet.prepend(shortcut);
+    for (let shortcut of this._currentShortcutList) {
+      if (shortcut.isUserEditable()) {
+        rv.push(shortcut);
       }
     }
 
-    this._fixMeinKeyset();
-  },
-
-  _fixMeinKeyset() {
-    let keySet = document.getElementById('mainKeyset');
-    if (!keySet) {
-      throw new Error('Zen CKS: No main keyset found');
-    }
-    const parent = keySet.parentElement;
-    // We need to re-append the main keyset to the document to make the shortcuts work
-    keySet.remove();
-    parent.prepend(keySet);
-  },
-
-  getShortcut(action) {
-    return this._savedShortcuts[action];
-  },
-
-  isValidShortcut(shortcut) {
-    return shortcut && (shortcut.key || shortcut.keycode);
-  },
-
-  shortCutToString(shortcut) {
-    let str = '';
-    if (shortcut.ctrl) {
-      str += "Ctrl+";
-    }
-    if (shortcut.alt) {
-      str += 'Alt+';
-    }
-    if (shortcut.shift) {
-      str += 'Shift+';
-    }
-    if (shortcut.meta) {
-      str += AppConstants.platform == "macosx" ? "Cmd+" : "Meta+";
-    }
-    if (shortcut.keycode) {
-      str += shortcut.keycode;
-    } else if (shortcut.key) {
-      // It can be undefined if edited from the settings
-      str += shortcut.key;
-    }
-    return str;
+    return rv;
   },
 };
