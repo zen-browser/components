@@ -144,7 +144,7 @@ var gZenCompactModeManager = {
     ];
   },
 
-  flashSidebar(duration = this.flashSidebarDuration) {
+  flashSidebar(duration = lazyCompactMode.COMPACT_MODE_FLASH_DURATION) {
     let tabPanels = document.getElementById('tabbrowser-tabpanels');
     if (!tabPanels.matches("[zen-split-view='true']")) {
       this.flashElement(this.sidebar, duration, this.sidebar.id);
