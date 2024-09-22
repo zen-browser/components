@@ -191,7 +191,7 @@ class KeyShortcutModifiers {
     }
 
     return new KeyShortcutModifiers(
-      modifiers['control'] == true,
+      modifiers['ctrl'] == true,
       modifiers['alt'] == true,
       modifiers['shift'] == true,
       modifiers['meta'] == true || modifiers['accel'] == true
@@ -202,8 +202,6 @@ class KeyShortcutModifiers {
     if (!modifiers) {
       return new KeyShortcutModifiers(false, false, false, false);
     }
-
-    console.log(modifiers);
 
     return new KeyShortcutModifiers(
       modifiers.includes('control') || modifiers.includes('accel'),
@@ -233,7 +231,7 @@ class KeyShortcutModifiers {
   toString() {
     let str = '';
     if (this.#ctrl) {
-      str += 'control,';
+      str += 'accel,';
     }
     if (this.#alt) {
       str += 'alt,';
@@ -574,11 +572,11 @@ var gZenKeyboardShortcutsManager = {
     await this._saveShortcuts();
   },
 
-  getModifiableShortcuts() {
+  async getModifiableShortcuts() {
     let rv = [];
 
     if (!this._currentShortcutList) {
-      this._currentShortcutList = this._loadSaved();
+      this._currentShortcutList = await this._loadSaved();
     }
 
     for (let shortcut of this._currentShortcutList) {
