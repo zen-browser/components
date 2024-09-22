@@ -9,11 +9,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 var gZenCompactModeManager = {
-  _flashSidebarTimeout: {},
+  _flashTimeouts: {},
   _evenListeners: [],
 
   init() {
     Services.prefs.addObserver('zen.view.compact', this._updateEvent.bind(this));
+    Services.prefs.addObserver('zen.tabs.vertical.right-side', this._updateSidebarIsOnRight.bind(this));
 
     gZenUIManager.addPopupTrackingAttribute(this.sidebar);
     gZenUIManager.addPopupTrackingAttribute(document.getElementById('zen-appcontent-navbar-container'));
@@ -29,6 +30,13 @@ var gZenCompactModeManager = {
   set preference(value) {
     Services.prefs.setBoolPref('zen.view.compact', value);
     return value;
+  },
+
+  get sidebarIsOnRight() {
+    if (this._sidebarIsOnRight) {
+      return this._sidebarIsOnRight;
+    }
+    return Services.prefs.getBoolPref('zen.tabs.vertical.right-side');
   },
 
   get sidebar() {
@@ -108,6 +116,10 @@ var gZenCompactModeManager = {
     return this.preference = !this.prefefence;
   },
 
+  _updateSidebarIsOnRight() {
+    this._sidebarIsOnRight = Services.prefs.getBoolPref('zen.tabs.vertical.right-side');
+  },
+
   toggleSidebar() {
     this.sidebar.toggleAttribute('zen-user-show');
   },
@@ -121,56 +133,97 @@ var gZenCompactModeManager = {
 
   get hoverableElements() {
     return [
-      document.getElementById('zen-appcontent-navbar-container'),
-      this.sidebar,
+      {
+        element: this.sidebar,
+        screenEdge: this.sidebarIsOnRight ? "right" : "left",
+      },
+      {
+        element: document.getElementById('zen-appcontent-navbar-container'),
+        screenEdge:"top",
+      }
     ];
   },
 
-  flashSidebar(element = null, duration = null, id = null, forFlash = true) {
-    if (!element) {
-      element = this.sidebar;
-    }
-    if (!duration) {
-      duration = lazyCompactMode.COMPACT_MODE_FLASH_DURATION;
-    }
-    if (!id) {
-      id = this.sidebar.id;
-    }
+  flashSidebar(duration = lazyCompactMode.COMPACT_MODE_FLASH_DURATION) {
     let tabPanels = document.getElementById('tabbrowser-tabpanels');
-    if (element.matches(':hover') || (forFlash && tabPanels.matches("[zen-split-view='true']"))) {
+    if (!tabPanels.matches("[zen-split-view='true']")) {
+      this.flashElement(this.sidebar, duration, this.sidebar.id);
+    }
+  },
+
+  flashElement(element, duration, id, attrName = 'flash-popup') {
+    if (element.matches(':hover')) {
       return;
     }
-    if (this._flashSidebarTimeout[id]) {
-      clearTimeout(this._flashSidebarTimeout[id]);
-    } else if (forFlash) {
-      window.requestAnimationFrame(() => element.setAttribute('flash-popup', ''));
+    if (this._flashTimeouts[id]) {
+      clearTimeout(this._flashTimeouts[id]);
     } else {
-      window.requestAnimationFrame(() => element.setAttribute('zen-has-hover', 'true'));
+      requestAnimationFrame(() => element.setAttribute(attrName, 'true'));
     }
-    this._flashSidebarTimeout[id] = setTimeout(() => {
+    this._flashTimeouts[id] = setTimeout(() => {
       window.requestAnimationFrame(() => {
-        if (forFlash) {
-          element.removeAttribute('flash-popup');
-        } else {
-          element.removeAttribute('zen-has-hover');
-        }
-        this._flashSidebarTimeout[id] = null;
+        element.removeAttribute(attrName);
+        this._flashTimeouts[id] = null;
       });
     }, duration);
   },
 
+  clearFlashTimeout(id) {
+    clearTimeout(this._flashTimeouts[id]);
+    this._flashTimeouts[id] = null;
+  },
+
   addMouseActions() {
     for (let i = 0; i < this.hoverableElements.length; i++) {
-      this.hoverableElements[i].addEventListener('mouseenter', (event) => {
-        let target = this.hoverableElements[i];
+      let target = this.hoverableElements[i].element;
+      target.addEventListener('mouseenter', (event) => {
+        this.clearFlashTimeout('has-hover' + target.id);
         target.setAttribute('zen-has-hover', 'true');
       });
 
-      this.hoverableElements[i].addEventListener('mouseleave', (event) => {
-        let target = this.hoverableElements[i];
-        this.flashSidebar(target, this.hideAfterHoverDuration, target.id, false);
+      target.addEventListener('mouseleave', (event) => {
+        if (this.hoverableElements[i].keepHoverDuration) {
+          this.flashElement(target, keepHoverDuration, "has-hover" + target.id, 'zen-has-hover');
+        } else {
+          target.removeAttribute('zen-has-hover');
+        }
       });
     }
+
+    document.documentElement.addEventListener('mouseleave', (event) => {
+      const screenEdgeCrossed = this._getCrossedEdge(event.pageX, event.pageY);
+      if (!screenEdgeCrossed) return;
+      for (let entry of this.hoverableElements) {
+        if (screenEdgeCrossed !== entry.screenEdge) continue;
+        const target = entry.element;
+        const boundAxis = (entry.screenEdge === "right" || entry.screenEdge === "left" ? "y" : "x");
+        if (!this._positionInBounds(boundAxis, target, event.pageX, event.pageY, 7)) {
+          continue;
+        }
+        this.flashElement(target, this.hideAfterHoverDuration, "has-hover" + target.id, 'zen-has-hover');
+        document.addEventListener('mousemove', () => {
+          if (target.matches(':hover')) return;
+          target.removeAttribute('zen-has-hover');
+          this.clearFlashTimeout('has-hover' + target.id);
+        }, {once: true});
+      }
+    });
+  },
+
+  _getCrossedEdge(posX, posY, element = document.documentElement, maxDistance = 10) {
+    posX = Math.max(0, posX);
+    posY = Math.max(0, posY);
+    const targetBox = element.getBoundingClientRect();
+    return ["top", "bottom", "left", "right"].find((edge, i) => {
+      const distance = Math.abs((i < 2 ? posY : posX) - targetBox[edge]);
+      return distance <= maxDistance;
+    });
+  },
+
+  _positionInBounds(axis = "x", element, x, y, error = 0) {
+    const bBox = element.getBoundingClientRect();
+    if (axis === "y") return bBox.top - error < y && y < bBox.bottom + error;
+    else return bBox.left - error < x && x < bBox.right + error;
   },
 
   toggleToolbar() {
