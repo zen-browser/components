@@ -579,10 +579,6 @@ var ZenWorkspaces = {
     let firstTab = undefined;
     let workspaces = await this._workspaces();
     for (let workspace of workspaces.workspaces) {
-      if (workspace.uuid === window.uuid && workspace.used) {
-        // If the workspace is already active, do nothing
-        return;
-      }
       workspace.used = workspace.uuid === window.uuid;
     }
     await this.unsafeSaveWorkspaces(workspaces);

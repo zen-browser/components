@@ -85,7 +85,10 @@ var gZenViewSplitter = new (class {
    */
   removeGroup(groupIndex) {
     if (this.currentView === groupIndex) {
-      this.resetSplitView();
+      this.resetSplitView(false);
+    }
+    for (const tab of this._data[groupIndex].tabs) {
+      this.resetTabState(tab, true);
     }
     this._data.splice(groupIndex, 1);
   }
@@ -93,9 +96,11 @@ var gZenViewSplitter = new (class {
   /**
    * Resets the split view.
    */
-  resetSplitView() {
-    for (const tab of this._data[this.currentView].tabs) {
-      this.resetTabState(tab, true);
+  resetSplitView(resetTabState = true) {
+    if (resetTabState) {
+      for (const tab of this._data[this.currentView].tabs) {
+        this.resetTabState(tab, true);
+      }
     }
     this.removeSplitters();
 
