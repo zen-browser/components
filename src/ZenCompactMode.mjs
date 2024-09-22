@@ -134,11 +134,13 @@ var gZenCompactModeManager = {
     }
 
     document.documentElement.addEventListener('mouseleave', (event) => {
+      const screenEdgeCrossed = this._getCrossedEdge(event.pageX, event.pageY);
+      if (!screenEdgeCrossed) return;
       for (let entry of this.hoverableElements) {
-        if (!entry.screenEdge) continue;
+        if (screenEdgeCrossed !== entry.screenEdge) continue;
         const target = entry.element;
         const boundAxis = (entry.screenEdge === "right" || entry.screenEdge === "left" ? "y" : "x");
-        if (!this._crossedEdge(entry.screenEdge, event.pageX, event.pageY) || !this._positionInBounds(boundAxis, target, event.pageX, event.pageY, 7)) {
+        if (!this._positionInBounds(boundAxis, target, event.pageX, event.pageY, 7)) {
           continue;
         }
         this.flashElement(target, this.hideAfterHoverDuration, "has-hover" + target.id, 'zen-has-hover');
@@ -151,12 +153,14 @@ var gZenCompactModeManager = {
     });
   },
 
-  _crossedEdge(edge, posX, posY, element = document.documentElement, maxDistance = 10) {
+  _getCrossedEdge(posX, posY, element = document.documentElement, maxDistance = 10) {
     posX = Math.max(0, posX);
     posY = Math.max(0, posY);
     const targetBox = element.getBoundingClientRect();
-    const distance = Math.abs( ((edge === "right" || edge === "left") ? posX : posY) - targetBox[edge]);
-    return distance <= maxDistance;
+    return ["top", "bottom", "left", "right"].find((edge, i) => {
+      const distance = Math.abs((i < 2 ? posY : posX) - targetBox[edge]);
+      return distance <= maxDistance;
+    });
   },
 
   _positionInBounds(axis = "x", element, x, y, error = 0) {
