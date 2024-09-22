@@ -1,16 +1,26 @@
+
+const lazyCompactMode = {};
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazyCompactMode,
+  "COMPACT_MODE_FLASH_DURATION",
+  "zen.view.compact.toolbar-flash-popup.duration",
+  800
+);
+
 var gZenCompactModeManager = {
   _flashTimeouts: {},
   _evenListeners: [],
 
   init() {
     Services.prefs.addObserver('zen.view.compact', this._updateEvent.bind(this));
-    Services.prefs.addObserver('zen.view.compact.toolbar-flash-popup.duration', this._updatedSidebarFlashDuration.bind(this));
     Services.prefs.addObserver('zen.tabs.vertical.right-side', this._updateSidebarIsOnRight.bind(this));
 
     gZenUIManager.addPopupTrackingAttribute(this.sidebar);
     gZenUIManager.addPopupTrackingAttribute(document.getElementById('zen-appcontent-navbar-container'));
 
     this.addMouseActions();
+    this.addContextMenu();
   },
 
   get prefefence() {
@@ -19,6 +29,7 @@ var gZenCompactModeManager = {
 
   set preference(value) {
     Services.prefs.setBoolPref('zen.view.compact', value);
+    return value;
   },
 
   get sidebarIsOnRight() {
@@ -35,6 +46,63 @@ var gZenCompactModeManager = {
     return this._sidebar;
   },
 
+  addContextMenu() {
+    const compactModeActive = Services.prefs.getBoolPref('zen.view.compact');
+    const compactModeSidebar = Services.prefs.getBoolPref('zen.view.compact.hide-tabbar');
+    const compactModeToolbar = Services.prefs.getBoolPref('zen.view.compact.hide-toolbar');
+    const compactModeBoth = compactModeSidebar && compactModeToolbar;
+    const fragment = window.MozXULElement.parseXULToFragment(`
+      <menu id="zen-context-menu-compact-mode" data-l10n-id="zen-toolbar-context-compact-mode">
+        <menupopup>
+          <menuitem checked="${compactModeActive}" id="zen-context-menu-compact-mode-toggle" data-l10n-id="zen-toolbar-context-compact-mode-enable" type="checkbox" oncommand="gZenCompactModeManager.contextMenuToggle();"/>
+          <menuseparator/>
+          <menuitem checked="${!compactModeBoth && compactModeSidebar}" id="zen-context-menu-compact-mode-hide-sidebar" data-l10n-id="zen-toolbar-context-compact-mode-just-tabs" type="radio" oncommand="gZenCompactModeManager.contextMenuHideSidebar();"/>
+          <menuitem checked="${!compactModeBoth && compactModeToolbar}" id="zen-context-menu-compact-mode-hide-toolbar" data-l10n-id="zen-toolbar-context-compact-mode-just-toolbar" type="radio" oncommand="gZenCompactModeManager.contextMenuHideToolbar();"/>
+          <menuitem checked="${compactModeBoth}" id="zen-context-menu-compact-mode-hide-both" data-l10n-id="zen-toolbar-context-compact-mode-hide-both" type="radio" oncommand="gZenCompactModeManager.contextMenuHideBoth();"/>
+        </menupopup>
+      </menu>
+    `);
+    document.getElementById('viewToolbarsMenuSeparator').before(fragment);
+  },
+
+  contextMenuToggle() {
+    document.getElementById('zen-context-menu-compact-mode-toggle')
+      .setAttribute('checked', this.toggle());
+  },
+
+  contextMenuHideSidebar() {
+    Services.prefs.setBoolPref('zen.view.compact.hide-tabbar', true);
+    Services.prefs.setBoolPref('zen.view.compact.hide-toolbar', false);
+    document.getElementById('zen-context-menu-compact-mode-hide-sidebar')
+      .setAttribute('checked', true);
+    document.getElementById('zen-context-menu-compact-mode-hide-toolbar')
+      .setAttribute('checked', false);
+    document.getElementById('zen-context-menu-compact-mode-hide-both')
+      .setAttribute('checked', false);
+  },
+
+  contextMenuHideToolbar() {
+    Services.prefs.setBoolPref('zen.view.compact.hide-toolbar', true);
+    Services.prefs.setBoolPref('zen.view.compact.hide-tabbar', false);
+    document.getElementById('zen-context-menu-compact-mode-hide-sidebar')
+      .setAttribute('checked', false);
+    document.getElementById('zen-context-menu-compact-mode-hide-toolbar')
+      .setAttribute('checked', true);
+    document.getElementById('zen-context-menu-compact-mode-hide-both')
+      .setAttribute('checked', false);
+  },
+
+  contextMenuHideBoth() {
+    Services.prefs.setBoolPref('zen.view.compact.hide-tabbar', true);
+    Services.prefs.setBoolPref('zen.view.compact.hide-toolbar', true);
+    document.getElementById('zen-context-menu-compact-mode-hide-sidebar')
+      .setAttribute('checked', false);
+    document.getElementById('zen-context-menu-compact-mode-hide-toolbar')
+      .setAttribute('checked', false);
+    document.getElementById('zen-context-menu-compact-mode-hide-both')
+      .setAttribute('checked', true);
+  },
+
   addEventListener(callback) {
     this._evenListeners.push(callback);
   },
@@ -45,11 +113,7 @@ var gZenCompactModeManager = {
   },
 
   toggle() {
-    this.preference = !this.prefefence;
-  },
-
-  _updatedSidebarFlashDuration() {
-    this._flashSidebarDuration = Services.prefs.getIntPref('zen.view.compact.toolbar-flash-popup.duration');
+    return this.preference = !this.prefefence;
   },
 
   _updateSidebarIsOnRight() {
@@ -58,13 +122,6 @@ var gZenCompactModeManager = {
 
   toggleSidebar() {
     this.sidebar.toggleAttribute('zen-user-show');
-  },
-
-  get flashSidebarDuration() {
-    if (this._flashSidebarDuration) {
-      return this._flashSidebarDuration;
-    }
-    return Services.prefs.getIntPref('zen.view.compact.toolbar-flash-popup.duration');
   },
 
   get hideAfterHoverDuration() {
