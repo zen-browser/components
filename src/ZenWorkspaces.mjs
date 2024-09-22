@@ -5,16 +5,14 @@ var ZenWorkspaces = {
    */
   _lastSelectedWorkspaceTabs: {},
 
-  init() {
+  async init() {
     if (!this.shouldHaveWorkspaces) {
       console.warn('ZenWorkspaces: !!! ZenWorkspaces is disabled in hidden windows !!!');
       return; // We are in a hidden window, don't initialize ZenWorkspaces
     }
     console.info('ZenWorkspaces: Initializing ZenWorkspaces...');
-    window.SessionStore.promiseInitialized.then(async () => {
-      await this.initializeWorkspaces();
-      console.info('ZenWorkspaces: ZenWorkspaces initialized');
-    });
+    await this.initializeWorkspaces();
+    console.info('ZenWorkspaces: ZenWorkspaces initialized');
   },
 
   get shouldShowIconStrip() {
