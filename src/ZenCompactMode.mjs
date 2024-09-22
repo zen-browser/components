@@ -14,6 +14,7 @@ var gZenCompactModeManager = {
 
   init() {
     Services.prefs.addObserver('zen.view.compact', this._updateEvent.bind(this));
+    Services.prefs.addObserver('zen.view.sidebar-expanded.on-hover', this._disableTabsOnHoverIfConflict.bind(this));
     Services.prefs.addObserver('zen.tabs.vertical.right-side', this._updateSidebarIsOnRight.bind(this));
 
     gZenUIManager.addPopupTrackingAttribute(this.sidebar);
@@ -109,7 +110,14 @@ var gZenCompactModeManager = {
 
   _updateEvent() {
     this._evenListeners.forEach((callback) => callback());
-    Services.prefs.setBoolPref('zen.view.sidebar-expanded.on-hover', false);
+    this._disableTabsOnHoverIfConflict();
+  },
+
+  _disableTabsOnHoverIfConflict() {
+    if (Services.prefs.getBoolPref('zen.view.compact')
+      && Services.prefs.getBoolPref('zen.view.compact.hide-tabbar')) {
+      Services.prefs.setBoolPref('zen.view.sidebar-expanded.on-hover', false);
+    }
   },
 
   toggle() {
