@@ -141,7 +141,7 @@ const kZenDefaultShortcuts = {
 
 // Section: ZenKeyboardShortcuts
 
-const kZKSKeyCodeMap = {
+const KEYCODE_MAP = {
   F1: 'VK_F1',
   F2: 'VK_F2',
   F3: 'VK_F3',
@@ -184,12 +184,32 @@ class KeyShortcutModifiers {
     this.#meta = meta;
   }
 
-  static parseFromString(modifiers) {
-    if (modifiers == null) {
+  static parseFromJSON(modifiers) {
+    if (!modifiers) {
       return new KeyShortcutModifiers(false, false, false, false);
     }
 
-    return new KeyShortcutModifiers(modifiers['ctrl'], modifiers['alt'], modifiers['shift'], modifiers['meta']);
+    return new KeyShortcutModifiers(
+      modifiers['control'] == true,
+      modifiers['alt'] == true,
+      modifiers['shift'] == true,
+      modifiers['meta'] == true || modifiers['accel'] == true
+    );
+  }
+
+  static parseFromXHTMLAttribute(modifiers) {
+    if (!modifiers) {
+      return new KeyShortcutModifiers(false, false, false, false);
+    }
+
+    console.log(modifiers);
+
+    return new KeyShortcutModifiers(
+      modifiers.includes('control') || modifiers.includes('accel'),
+      modifiers.includes('alt'),
+      modifiers.includes('shift'),
+      modifiers.includes('meta')
+    );
   }
 
   toUserString() {
@@ -212,7 +232,7 @@ class KeyShortcutModifiers {
   toString() {
     let str = '';
     if (this.#ctrl) {
-      str += 'accel,';
+      str += 'control,';
     }
     if (this.#alt) {
       str += 'alt,';
@@ -286,7 +306,7 @@ class KeyShortcut {
       json['key'],
       json['keycode'],
       json['group'],
-      KeyShortcutModifiers.parseFromString(json['modifiers']),
+      KeyShortcutModifiers.parseFromJSON(json['modifiers']),
       json['action'],
       json['l10nId'],
       json['disabled'] == 'true',
@@ -301,7 +321,7 @@ class KeyShortcut {
       key.getAttribute('key'),
       key.getAttribute('keycode'),
       group,
-      KeyShortcutModifiers.parseFromString(key.getAttribute('modifiers')),
+      KeyShortcutModifiers.parseFromXHTMLAttribute(key.getAttribute('modifiers')),
       key.getAttribute('command'),
       key.getAttribute('data-l10n-id'),
       key.getAttribute('disabled') == 'true',
@@ -359,6 +379,10 @@ class KeyShortcut {
     return this.#group;
   }
 
+  getModifiers() {
+    return this.#modifiers;
+  }
+
   setModifiers(modifiers) {
     if ((!modifiers) instanceof KeyShortcutModifiers) {
       throw new Error('Only KeyShortcutModifiers allowed');
@@ -383,12 +407,11 @@ class KeyShortcut {
 
   toUserString() {
     let str = this.#modifiers.toUserString();
+
     if (this.#key) {
       str += this.#key;
     } else if (this.#keycode) {
       str += this.#keycode;
-    } else if (this.#id) {
-      str += this.#id;
     } else {
       return '';
     }
@@ -396,7 +419,13 @@ class KeyShortcut {
   }
 
   isUserEditable() {
-    if (!this.#id || !this.#action || this.#action == '' || this.#internal || this.#reserved) {
+    if (
+      !this.#id ||
+      !this.#action ||
+      this.#internal ||
+      this.#reserved ||
+      (this.#group == FIREFOX_SHORTCUTS_GROUP && this.#disabled)
+    ) {
       return false;
     }
     return true;
@@ -405,7 +434,18 @@ class KeyShortcut {
   clearKeybind() {
     this.#key = '';
     this.#keycode = '';
-    this.#modifiers = null;
+    this.#modifiers = new KeyShortcutModifiers(false, false, false, false);
+  }
+
+  setNewBinding(shortcut) {
+    for (let keycode of Object.entries(KEYCODE_MAP)) {
+      if (KEYCODE_MAP[keycode] == shortcut) {
+        this.#keycode = shortcut;
+        return;
+      }
+    }
+
+    this.#key = shortcut;
   }
 }
 
@@ -414,8 +454,13 @@ var gZenKeyboardShortcutsManager = {
     if (window.location.href == 'chrome://browser/content/browser.xhtml') {
       console.info('Zen CKS: Initializing shortcuts');
 
+      this._currentShortcutList = [];
+      this._saveShortcuts([]); // TODO Remove on release
+
       this._currentShortcutList = this._loadSaved();
-      this._applyShortcuts();
+
+      Services.prefs.addObserver(SHORTCUTS_STORAGE_KEY, this._applyShortcuts.bind(this));
+
       this._saveShortcuts();
 
       console.info('Zen CKS: Initialized');
@@ -437,10 +482,11 @@ var gZenKeyboardShortcutsManager = {
   },
 
   _loadDefaults() {
+    let keySet = document.getElementById('mainKeyset');
     let newShortcutList = [];
 
     // Firefox's standard keyset
-    for (let key of _mainKeyset.children) {
+    for (let key of keySet.children) {
       let parsed = KeyShortcut.parseFromXHTML(key, FIREFOX_SHORTCUTS_GROUP);
       newShortcutList.push(parsed);
     }
@@ -451,24 +497,28 @@ var gZenKeyboardShortcutsManager = {
   },
 
   _applyShortcuts() {
-    console.debug(window.location.href);
-    let keySet = document.getElementById('mainKeyset');
-    if (!keySet) {
+    console.debug('Applying shortcuts...');
+
+    let mainKeyset = document.getElementById('mainKeyset');
+    if (!mainKeyset) {
       throw new Error('Main keyset not found');
     }
 
-    let parent = keySet.parentElement;
+    let parent = mainKeyset.parentElement;
 
-    keySet.remove();
-    keySet.innerHTML = '';
+    parent.removeChild(mainKeyset);
+    mainKeyset.innerHTML = [];
+    if (mainKeyset.children.length > 0) {
+      throw new Error('Child list not empty');
+    }
 
     for (let key of this._currentShortcutList) {
       let child = key.toXHTMLElement();
-      keySet.appendChild(child);
+      mainKeyset.appendChild(child);
     }
 
-    parent.prepend(keySet);
-    console.debug(document.getElementById('mainKeyset'));
+    parent.prepend(mainKeyset);
+    console.debug('Shortcuts applied...');
   },
 
   _saveShortcuts() {
@@ -480,31 +530,34 @@ var gZenKeyboardShortcutsManager = {
     Services.prefs.setStringPref(SHORTCUTS_STORAGE_KEY, JSON.stringify(json));
   },
 
-  setShortcut(action, newShortcut, modifiers) {
+  setShortcut(action, shortcut, modifiers) {
     if (!action) {
       throw new Error('Action cannot be null');
     }
 
     // Unsetting shortcut
-    let targetShortcut = this._currentShortcutList.filter((key) => key.getAction() == action)[0];
-    if (!targetShortcut) {
+    let filteredShortcuts = this._currentShortcutList.filter((key) => key.getAction() == action);
+    if (!filteredShortcuts) {
       throw new Error('Shortcut for action ' + action + ' not found');
     }
 
-    console.debug(targetShortcut.toJSONForm());
-
-    if (!newShortcut && !modifiers) {
-      targetShortcut.clearKeybind();
-    } else {
-      targetShortcut.setModifiers(modifiers);
+    for (let targetShortcut of filteredShortcuts) {
+      if (!shortcut && !modifiers) {
+        targetShortcut.clearKeybind();
+      } else {
+        targetShortcut.setNewBinding(shortcut);
+        targetShortcut.setModifiers(modifiers);
+      }
     }
 
-    this._applyShortcuts();
+    console.debug(this._currentShortcutList);
+
     this._saveShortcuts();
   },
 
   getModifiableShortcuts() {
     let rv = [];
+
     if (!this._currentShortcutList) {
       this._currentShortcutList = this._loadSaved();
     }
