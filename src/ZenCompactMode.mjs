@@ -5,11 +5,11 @@ var gZenCompactModeManager = {
   init() {
     Services.prefs.addObserver('zen.view.compact', this._updateEvent.bind(this));
     Services.prefs.addObserver('zen.view.compact.toolbar-flash-popup.duration', this._updatedSidebarFlashDuration.bind(this));
+    Services.prefs.addObserver('zen.tabs.vertical.right-side', this._updateSidebarIsOnRight.bind(this));
 
     gZenUIManager.addPopupTrackingAttribute(this.sidebar);
     gZenUIManager.addPopupTrackingAttribute(document.getElementById('zen-appcontent-navbar-container'));
 
-    Services.prefs.addObserver('zen.tabs.vertical.right-side', this._updateSidebarIsOnRight.bind(this));
     this.addMouseActions();
   },
 
@@ -101,7 +101,7 @@ var gZenCompactModeManager = {
     if (this._flashTimeouts[id]) {
       clearTimeout(this._flashTimeouts[id]);
     } else {
-      requestAnimationFrame(() => element.setAttribute(attrName, ''));
+      requestAnimationFrame(() => element.setAttribute(attrName, 'true'));
     }
     this._flashTimeouts[id] = setTimeout(() => {
       window.requestAnimationFrame(() => {
@@ -118,49 +118,45 @@ var gZenCompactModeManager = {
 
   addMouseActions() {
     for (let i = 0; i < this.hoverableElements.length; i++) {
-      this.hoverableElements[i].addEventListener('mouseenter', (event) => {
-        let target = this.hoverableElements[i];
+      let target = this.hoverableElements[i].element;
+      target.addEventListener('mouseenter', (event) => {
+        this.clearFlashTimeout('has-hover' + target.id);
         target.setAttribute('zen-has-hover', 'true');
       });
 
-      if (this.hoverableElements[i].keepHoverDuration) {
-        target.addEventListener('mouseleave', (event) => {
-          this.flashElement(target, keepHoverDuration, target.id, 'hover-timeout');
-        });
-      }
+      target.addEventListener('mouseleave', (event) => {
+        if (this.hoverableElements[i].keepHoverDuration) {
+          this.flashElement(target, keepHoverDuration, "has-hover" + target.id, 'zen-has-hover');
+        } else {
+          target.removeAttribute('zen-has-hover');
+        }
+      });
     }
 
-    document.body.addEventListener('mouseleave', (event) => {
+    document.documentElement.addEventListener('mouseleave', (event) => {
       for (let entry of this.hoverableElements) {
-        if (!entry.screenEdge) return;
+        if (!entry.screenEdge) continue;
         const target = entry.element;
-        const notAxis = (edge === "left" || edge === "right" ? "y" : "x");
-        if (this._getNearestEdge(document.body, event.pageX, event.pageY) !== entry.screenEdge
-              || this._positionInBounds(notAxis, target, event.pageX, event.pageY, 7)) {
-          return;
+        const boundAxis = (entry.screenEdge === "right" || entry.screenEdge === "left" ? "y" : "x");
+        if (!this._crossedEdge(entry.screenEdge, event.pageX, event.pageY) || !this._positionInBounds(boundAxis, target, event.pageX, event.pageY, 7)) {
+          continue;
         }
-        this.flashElement(target, this.hideAfterHoverDuration, target.id);
+        this.flashElement(target, this.hideAfterHoverDuration, "has-hover" + target.id, 'zen-has-hover');
         document.addEventListener('mousemove', () => {
-          target.removeAttribute('flash-popup');
-          this.clearFlashTimeout(target.id);
+          if (target.matches(':hover')) return;
+          target.removeAttribute('zen-has-hover');
+          this.clearFlashTimeout('has-hover' + target.id);
         }, {once: true});
       }
     });
   },
 
-  _getNearestEdge(element, posX, posY) {
+  _crossedEdge(edge, posX, posY, element = document.documentElement, maxDistance = 10) {
+    posX = Math.max(0, posX);
+    posY = Math.max(0, posY);
     const targetBox = element.getBoundingClientRect();
-    let smallestDistance = Infinity;
-    let closestEdge = "";
-    const edges =  ["top", "bottom", "left", "right"];
-    for (let i = 0; i < edges.length; i++) {
-      const distance = Math.abs( (i < 2 ? posY : posX) - targetBox[edges[i]]);
-      if (smallestDistance > distance) {
-        smallestDistance = distance;
-        closestEdge = edges[i];
-      }
-    }
-    return closestEdge;
+    const distance = Math.abs( ((edge === "right" || edge === "left") ? posX : posY) - targetBox[edge]);
+    return distance <= maxDistance;
   },
 
   _positionInBounds(axis = "x", element, x, y, error = 0) {
