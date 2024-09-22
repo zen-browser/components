@@ -290,6 +290,9 @@ var gZenBrowserManagerSidebar = {
   _handleDragOver(event) {},
 
   _handleDragEnter(event) {
+    if (typeof this.__dragingElement === 'undefined') {
+      return;
+    }
     const target = event.target;
     const elIndex = Array.prototype.indexOf.call(target.parentNode.children, target);
     if (elIndex < this.__dragingIndex) {

@@ -823,11 +823,13 @@ var ZenWorkspaces = {
   },
 
   getContextIdIfNeeded(userContextId) {
-    if (typeof userContextId !== 'undefined' || !this.workspaceEnabled) {
+    const activeWorkspace = this.getActiveWorkspaceFromCache();
+    const activeWorkspaceUserContextId = activeWorkspace?.containerTabId;
+    if ((typeof userContextId !== 'undefined' && userContextId !== activeWorkspaceUserContextId)
+        || !this.workspaceEnabled) {
       return [userContextId, false];
     }
-    const activeWorkspace = this.getActiveWorkspaceFromCache();
-    return [activeWorkspace?.containerTabId, true];
+    return [activeWorkspaceUserContextId, true];
   },
 };
 
