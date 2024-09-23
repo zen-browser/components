@@ -463,6 +463,7 @@ var gZenKeyboardShortcutsStorage = new class {
 var gZenKeyboardShortcutsManager = {
   async init() {
     if (window.location.href == 'chrome://browser/content/browser.xhtml') {
+      await SessionStore.promiseInitialized;
       console.info('Zen CKS: Initializing shortcuts');
 
       this._currentShortcutList = await this._loadSaved();

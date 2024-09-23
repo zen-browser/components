@@ -365,19 +365,15 @@ var ZenWorkspaces = {
       button.removeAttribute('hidden');
       return;
     }
-    const nextSibling = document.getElementById('zen-sidepanel-button');
-    const wrapper = document.createXULElement('toolbarbutton');
-    wrapper.id = 'zen-workspaces-button';
-    nextSibling.after(wrapper);
     await this._expandWorkspacesStrip();
   },
 
   async _expandWorkspacesStrip() {
     let workspaces = await this._workspaces();
     let workspaceList = document.getElementById('zen-workspaces-button');
-    const newWorkspacesButton = document.createXULElement(this.shouldShowIconStrip ? 'hbox' : 'toolbarbutton');
+    const newWorkspacesButton = document.createXULElement('toolbarbutton');
     newWorkspacesButton.id = 'zen-workspaces-button';
-    newWorkspacesButton.setAttribute('removable', 'false');
+    newWorkspacesButton.setAttribute('removable', 'true');
     newWorkspacesButton.setAttribute('showInPrivateBrowsing', 'false');
     newWorkspacesButton.setAttribute('tooltiptext', 'Workspaces');
 
