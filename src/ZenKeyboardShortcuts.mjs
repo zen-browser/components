@@ -85,12 +85,13 @@ const fixedL10nIds = {
 const ZEN_COMPACT_MODE_SHORTCUTS_GROUP = 'zen-compact-mode';
 const ZEN_WORKSPACE_SHORTCUTS_GROUP = 'zen-workspace';
 const ZEN_OTHER_SHORTCUTS_GROUP = 'zen-other';
+const ZEN_SPLIT_VIEW_SHORTCUTS_GROUP = 'zen-split-view';
 const FIREFOX_SHORTCUTS_GROUP = 'zen-kbs-invalid';
 const VALID_SHORTCUT_GROUPS = [
   ZEN_COMPACT_MODE_SHORTCUTS_GROUP, 
   ZEN_WORKSPACE_SHORTCUTS_GROUP, 
-  ZEN_OTHER_SHORTCUTS_GROUP,
-  'other', ...Object.keys(defaultKeyboardGroups)
+  ZEN_SPLIT_VIEW_SHORTCUTS_GROUP,
+  ...Object.keys(defaultKeyboardGroups), ZEN_OTHER_SHORTCUTS_GROUP, 'other'
 ];
 
 class KeyShortcutModifiers {
@@ -595,6 +596,52 @@ var gZenKeyboardShortcutsManager = {
         KeyShortcutModifiers.fromObject({alt: true}),
         'code:gZenVerticalTabsManager.toggleExpand()',
         'zen-sidebar-shortcut-toggle'
+      )
+    );
+
+    // Split view
+    newShortcutList.push(
+      new KeyShortcut(
+        'zen-split-view-grid',
+        'G',
+        '',
+        ZEN_SPLIT_VIEW_SHORTCUTS_GROUP,
+        KeyShortcutModifiers.fromObject({ctrl: true, alt: true}),
+        'code:gZenViewSplitter.toggleShortcut(\'grid\')',
+        'zen-split-view-shortcut-grid'
+      )
+    );
+    newShortcutList.push(
+      new KeyShortcut(
+        'zen-split-view-vertical',
+        'V',
+        '',
+        ZEN_SPLIT_VIEW_SHORTCUTS_GROUP,
+        KeyShortcutModifiers.fromObject({ctrl: true, alt: true}),
+        'code:gZenViewSplitter.toggleShortcut(\'vsep\')',
+        'zen-split-view-shortcut-vertical'
+      )
+    );
+    newShortcutList.push(
+      new KeyShortcut(
+        'zen-split-view-horizontal',
+        'H',
+        '',
+        ZEN_SPLIT_VIEW_SHORTCUTS_GROUP,
+        KeyShortcutModifiers.fromObject({ctrl: true, alt: true}),
+        'code:gZenViewSplitter.toggleShortcut(\'hsep\')',
+        'zen-split-view-shortcut-horizontal'
+      )
+    );
+    newShortcutList.push(
+      new KeyShortcut(
+        'zen-split-view-unsplit',
+        'U',
+        '',
+        ZEN_SPLIT_VIEW_SHORTCUTS_GROUP,
+        KeyShortcutModifiers.fromObject({ctrl: true, alt: true}),
+        'code:gZenViewSplitter.toggleShortcut(\'unsplit\')',
+        'zen-split-view-shortcut-unsplit'
       )
     );
 
