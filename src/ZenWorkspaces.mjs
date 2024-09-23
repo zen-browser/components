@@ -833,5 +833,12 @@ var ZenWorkspaces = {
     }
     return [activeWorkspaceUserContextId, true];
   },
+
+  async shortcutSwitchTo(index) {
+    const workspaces = await this._workspaces();
+    // The index may be out of bounds, so we need to wrap it around
+    const workspaceToSwitch = workspaces.workspaces[(index + workspaces.workspaces.length) % workspaces.workspaces.length];
+    await this.changeWorkspace(workspaceToSwitch);
+  }
 };
 
