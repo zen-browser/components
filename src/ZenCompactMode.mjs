@@ -48,60 +48,34 @@ var gZenCompactModeManager = {
   },
 
   addContextMenu() {
-    const compactModeActive = Services.prefs.getBoolPref('zen.view.compact');
-    const compactModeSidebar = Services.prefs.getBoolPref('zen.view.compact.hide-tabbar');
-    const compactModeToolbar = Services.prefs.getBoolPref('zen.view.compact.hide-toolbar');
-    const compactModeBoth = compactModeSidebar && compactModeToolbar;
     const fragment = window.MozXULElement.parseXULToFragment(`
       <menu id="zen-context-menu-compact-mode" data-l10n-id="zen-toolbar-context-compact-mode">
         <menupopup>
-          <menuitem checked="${compactModeActive}" id="zen-context-menu-compact-mode-toggle" data-l10n-id="zen-toolbar-context-compact-mode-enable" type="checkbox" oncommand="gZenCompactModeManager.contextMenuToggle();"/>
+          <menuitem id="zen-context-menu-compact-mode-toggle" data-l10n-id="zen-toolbar-context-compact-mode-enable" type="checkbox" oncommand="gZenCompactModeManager.toggle();"/>
           <menuseparator/>
-          <menuitem checked="${!compactModeBoth && compactModeSidebar}" id="zen-context-menu-compact-mode-hide-sidebar" data-l10n-id="zen-toolbar-context-compact-mode-just-tabs" type="radio" oncommand="gZenCompactModeManager.contextMenuHideSidebar();"/>
-          <menuitem checked="${!compactModeBoth && compactModeToolbar}" id="zen-context-menu-compact-mode-hide-toolbar" data-l10n-id="zen-toolbar-context-compact-mode-just-toolbar" type="radio" oncommand="gZenCompactModeManager.contextMenuHideToolbar();"/>
-          <menuitem checked="${compactModeBoth}" id="zen-context-menu-compact-mode-hide-both" data-l10n-id="zen-toolbar-context-compact-mode-hide-both" type="radio" oncommand="gZenCompactModeManager.contextMenuHideBoth();"/>
+          <menuitem id="zen-context-menu-compact-mode-hide-sidebar" data-l10n-id="zen-toolbar-context-compact-mode-just-tabs" type="radio" oncommand="gZenCompactModeManager.hideSidebar();"/>
+          <menuitem id="zen-context-menu-compact-mode-hide-toolbar" data-l10n-id="zen-toolbar-context-compact-mode-just-toolbar" type="radio" oncommand="gZenCompactModeManager.hideToolbar();"/>
+          <menuitem id="zen-context-menu-compact-mode-hide-both" data-l10n-id="zen-toolbar-context-compact-mode-hide-both" type="radio" oncommand="gZenCompactModeManager.hideBoth();"/>
         </menupopup>
       </menu>
     `);
     document.getElementById('viewToolbarsMenuSeparator').before(fragment);
+    this.updateContextMenu();
   },
 
-  contextMenuToggle() {
-    document.getElementById('zen-context-menu-compact-mode-toggle')
-      .setAttribute('checked', this.toggle());
-  },
-
-  contextMenuHideSidebar() {
+  hideSidebar() {
     Services.prefs.setBoolPref('zen.view.compact.hide-tabbar', true);
     Services.prefs.setBoolPref('zen.view.compact.hide-toolbar', false);
-    document.getElementById('zen-context-menu-compact-mode-hide-sidebar')
-      .setAttribute('checked', true);
-    document.getElementById('zen-context-menu-compact-mode-hide-toolbar')
-      .setAttribute('checked', false);
-    document.getElementById('zen-context-menu-compact-mode-hide-both')
-      .setAttribute('checked', false);
   },
 
-  contextMenuHideToolbar() {
+  hideToolbar() {
     Services.prefs.setBoolPref('zen.view.compact.hide-toolbar', true);
     Services.prefs.setBoolPref('zen.view.compact.hide-tabbar', false);
-    document.getElementById('zen-context-menu-compact-mode-hide-sidebar')
-      .setAttribute('checked', false);
-    document.getElementById('zen-context-menu-compact-mode-hide-toolbar')
-      .setAttribute('checked', true);
-    document.getElementById('zen-context-menu-compact-mode-hide-both')
-      .setAttribute('checked', false);
   },
 
-  contextMenuHideBoth() {
+  hideBoth() {
     Services.prefs.setBoolPref('zen.view.compact.hide-tabbar', true);
     Services.prefs.setBoolPref('zen.view.compact.hide-toolbar', true);
-    document.getElementById('zen-context-menu-compact-mode-hide-sidebar')
-      .setAttribute('checked', false);
-    document.getElementById('zen-context-menu-compact-mode-hide-toolbar')
-      .setAttribute('checked', false);
-    document.getElementById('zen-context-menu-compact-mode-hide-both')
-      .setAttribute('checked', true);
   },
 
   addEventListener(callback) {
@@ -111,6 +85,21 @@ var gZenCompactModeManager = {
   _updateEvent() {
     this._evenListeners.forEach((callback) => callback());
     this._disableTabsOnHoverIfConflict();
+    this.updateContextMenu();
+  },
+
+  updateContextMenu() {
+    document.getElementById('zen-context-menu-compact-mode-toggle')
+        .setAttribute('checked', Services.prefs.getBoolPref('zen.view.compact'));
+
+    const hideTabBar = Services.prefs.getBoolPref('zen.view.compact.hide-tabbar');
+    const hideToolbar = Services.prefs.getBoolPref('zen.view.compact.hide-toolbar');
+    const hideBoth = hideTabBar && hideToolbar;
+
+    const idName = 'zen-context-menu-compact-mode-hide-';
+    document.getElementById(idName + 'sidebar').setAttribute('checked', !hideBoth && hideTabBar);
+    document.getElementById(idName + 'toolbar').setAttribute('checked', !hideBoth && hideToolbar);
+    document.getElementById(idName + 'both').setAttribute('checked', hideBoth);
   },
 
   _disableTabsOnHoverIfConflict() {
@@ -219,9 +208,9 @@ var gZenCompactModeManager = {
   },
 
   _getCrossedEdge(posX, posY, element = document.documentElement, maxDistance = 10) {
-    posX = Math.max(0, posX);
-    posY = Math.max(0, posY);
     const targetBox = element.getBoundingClientRect();
+    posX = Math.max(targetBox.left, Math.min(posX, targetBox.right));
+    posY = Math.max(targetBox.top, Math.min(posY, targetBox.bottom));
     return ["top", "bottom", "left", "right"].find((edge, i) => {
       const distance = Math.abs((i < 2 ? posY : posX) - targetBox[edge]);
       return distance <= maxDistance;
