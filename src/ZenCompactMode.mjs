@@ -220,8 +220,8 @@ var gZenCompactModeManager = {
 
   _getCrossedEdge(posX, posY, element = document.documentElement, maxDistance = 10) {
     const targetBox = element.getBoundingClientRect();
-    posX = Math.max(0, Math.min(posX, targetBox["right"]));
-    posY = Math.max(0, Math.min(posY, targetBox["bottom"]));
+    posX = Math.max(targetBox.left, Math.min(posX, targetBox.right));
+    posY = Math.max(targetBox.top, Math.min(posY, targetBox.bottom));
     return ["top", "bottom", "left", "right"].find((edge, i) => {
       const distance = Math.abs((i < 2 ? posY : posX) - targetBox[edge]);
       return distance <= maxDistance;
