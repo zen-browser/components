@@ -832,8 +832,11 @@ var ZenWorkspaces = {
 
   async shortcutSwitchTo(index) {
     const workspaces = await this._workspaces();
-    // The index may be out of bounds, so we need to wrap it around
-    const workspaceToSwitch = workspaces.workspaces[(index + workspaces.workspaces.length) % workspaces.workspaces.length];
+    // The index may be out of bounds, if it doesnt exist, don't do anything
+    if (index >= workspaces.workspaces.length || index < 0) {
+      return;
+    }
+    const workspaceToSwitch = workspaces.workspaces[index];
     await this.changeWorkspace(workspaceToSwitch);
   }
 };
