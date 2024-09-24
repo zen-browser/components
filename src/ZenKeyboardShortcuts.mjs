@@ -348,10 +348,12 @@ class KeyShortcut {
     //  identify the default keybinds.
     key.setAttribute('data-l10n-id', this.#l10nId);
     key.setAttribute('modifiers', this.#modifiers.toString());
-    if (this.#action?.startsWith('code:')) {
-      key.setAttribute('oncommand', this.#action.substring(5));
-    } else {
-      key.setAttribute('command', this.#action);
+    if (this.#action) {
+      if (this.#action?.startsWith('code:')) {
+        key.setAttribute('oncommand', this.#action.substring(5));
+      } else {
+        key.setAttribute('command', this.#action);
+      }
     }
     key.setAttribute('disabled', this.#disabled);
     key.setAttribute('reserved', this.#reserved);
