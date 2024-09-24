@@ -31,6 +31,8 @@ const defaultKeyboardGroups = {
     "zen-key-enter-full-screen",
     "zen-key-exit-full-screen",
     "zen-quit-app-shortcut",
+    "zen-close-tab-shortcut",
+    "zen-close-shortcut",
     "id:key_selectTab1",
     "id:key_selectTab2",
     "id:key_selectTab3",
@@ -48,6 +50,8 @@ const defaultKeyboardGroups = {
     "zen-nav-reload-shortcut-skip-cache",
     "zen-nav-reload-shortcut",
     "zen-key-stop",
+    "zen-window-new-shortcut",
+    "zen-private-browsing-shortcut",
     "id:goHome",
     "id:key_gotoHistory",
     "id:goBackKb",
@@ -82,7 +86,6 @@ const defaultKeyboardGroups = {
     "zen-full-zoom-enlarge-shortcut",
     "zen-full-zoom-reset-shortcut",
     "zen-bidi-switch-direction-shortcut",
-    "zen-private-browsing-shortcut",
     "zen-screenshot-shortcut"
   ],
 };
