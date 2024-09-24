@@ -55,19 +55,28 @@ var gZenBrowserManagerSidebar = {
     const maxSize = parseInt(computedStyle.getPropertyValue(`max-${direction}`).match(/(\d+)px/)?.[1]) || Infinity;
     const minSize = parseInt(computedStyle.getPropertyValue(`min-${direction}`).match(/(\d+)px/)?.[1]) || 0;
 
-    const sidebarSize = this.sidebar.getBoundingClientRect()[direction];
+    const sidebarSizeStart = this.sidebar.getBoundingClientRect()[direction];
 
     const startPos = mouseDownEvent[`screen${axis}`];
 
+    const toAdjust = isHorizontal ? "top" : "left";
+    const sidebarPosStart = parseInt(this.sidebar.style[toAdjust].match(/\d+/));
+
     let mouseMove = function (e) {
-      let moved = e[`screen${axis}`] - startPos;
-      if (reverse) moved *= -1;
-      let newSize = sidebarSize + moved;
-      let currentMax = maxSize;
-      if (maxSize === Infinity) {
-        currentMax = this.sidebarWrapper.getBoundingClientRect()[direction];
+      let mouseMoved = e[`screen${axis}`] - startPos;
+      if (reverse) {
+        mouseMoved *= -1;
       }
-      newSize = Math.max(minSize, Math.min(currentMax, newSize));
+      let newSize = sidebarSizeStart + mouseMoved;
+      let currentMax = maxSize;
+      const wrapperBox = this.sidebarWrapper.getBoundingClientRect();
+      const maxWrapperSize = reverse ? (sidebarPosStart + sidebarSizeStart) : (wrapperBox[direction] - sidebarPosStart);
+      newSize = Math.max(minSize, Math.min(currentMax, maxWrapperSize,newSize));
+
+      if (reverse) {
+        const actualMoved = newSize - sidebarSizeStart;
+        this.sidebar.style[toAdjust] = (sidebarPosStart - actualMoved) + "px";
+      }
       this.sidebar.style[direction] = `${newSize}px`;
     }.bind(this);
 
