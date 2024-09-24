@@ -108,8 +108,43 @@ var gZenBrowserManagerSidebar = {
         }
       }.bind(this)
     );
-
+    this.panelHeader.addEventListener('mousedown', this.handleDragPanel.bind(this));
     this.handleEvent();
+  },
+
+  handleDragPanel(mouseDownEvent) {
+    if (mouseDownEvent.target !== this.panelHeader) return;
+    this._isDragging = true;
+    const sidebar = document.getElementById('zen-sidebar-web-panel');
+    const wrapper = document.getElementById('zen-sidebar-web-panel-wrapper');
+    const startTop = sidebar.style.top?.match(/\d+/)?.[0] || 0;
+    const startLeft = sidebar.style.left?.match(/\d+/)?.[0] || 0;
+
+
+    const sidebarBBox = sidebar.getBoundingClientRect();
+    const sideBarHeight = sidebarBBox.height;
+    const sideBarWidth = sidebarBBox.width;
+
+    const topMouseOffset = startTop - mouseDownEvent.screenY;
+    const leftMouseOffset = startLeft - mouseDownEvent.screenX;
+    const moveListener = (mouseMoveEvent) => {
+      let top = mouseMoveEvent.screenY + topMouseOffset;
+      let left = mouseMoveEvent.screenX + leftMouseOffset;
+
+      const wrapperBounds = wrapper.getBoundingClientRect();
+      top = Math.max(0, Math.min(top, wrapperBounds.height - sideBarHeight));
+      left = Math.max(0, Math.min(left, wrapperBounds.width - sideBarWidth));
+
+      sidebar.style.top = top + "px";
+      sidebar.style.left = left + "px";
+    };
+
+
+    document.addEventListener('mousemove', moveListener);
+    document.addEventListener('mouseup', () => {
+      document.removeEventListener('mousemove', moveListener);
+      this._isDragging = false;
+      }, {once: true});
   },
 
   get isFloating() {
@@ -506,6 +541,13 @@ var gZenBrowserManagerSidebar = {
       this._hSplitterElement = document.getElementById('zen-sidebar-web-panel-hsplitter');
     }
     return this._hSplitterElement;
+  },
+
+  get panelHeader() {
+    if (!this._header) {
+      return document.getElementById('zen-sidebar-web-header');
+    }
+    return this._header;
   },
 
   // Context menu
