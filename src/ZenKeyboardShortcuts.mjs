@@ -163,7 +163,7 @@ class KeyShortcutModifiers {
 
   toUserString() {
     let str = '';
-    if (this.#control) {
+    if (this.#control && !this.#accel) {
       str += 'Ctrl+';
     }
     if (this.#alt) {
