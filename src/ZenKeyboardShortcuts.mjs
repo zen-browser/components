@@ -470,7 +470,7 @@ class KeyShortcut {
 
   setNewBinding(shortcut) {
     for (let keycode of Object.entries(KEYCODE_MAP)) {
-      if (KEYCODE_MAP[keycode] == shortcut) {
+      if (KEYCODE_MAP[keycode] == shortcut.toUpperCase()) {
         this.#keycode = shortcut;
         return;
       }
