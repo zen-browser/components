@@ -37,16 +37,17 @@ var gZenBrowserManagerSidebar = {
     Services.prefs.addObserver('zen.sidebar.enabled', this.handleEvent.bind(this));
 
     document.querySelectorAll('.zen-sidebar-web-panel-splitter')
-      .forEach(s => s.addEventListener('mousedown', this.handleSplitter.bind(this)));
+      .forEach(s => s.addEventListener('mousedown', this.handleSplitterMouseDown.bind(this)));
     this.sidebarHeader.addEventListener('mousedown', this.handleDragPanel.bind(this));
     this.handleEvent();
   },
 
-  handleSplitter(mouseDownEvent) {
+  handleSplitterMouseDown(mouseDownEvent) {
     if (this._isDragging) return
     this._isDragging = true;
 
     const isHorizontal = mouseDownEvent.target.getAttribute('orient') === 'horizontal';
+    setCursor(isHorizontal ? 'n-resize' : 'ew-resize');
     const reverse = ['left', 'top'].includes(mouseDownEvent.target.getAttribute('side'));
     const direction = isHorizontal ? "height" : "width";
     const axis = isHorizontal ? "Y" : "X";
@@ -84,6 +85,7 @@ var gZenBrowserManagerSidebar = {
     document.addEventListener('mouseup', () => {
       document.removeEventListener('mousemove', mouseMove);
       this._isDragging = false;
+      setCursor('auto');
     }, {once: true});
   },
 
@@ -92,7 +94,6 @@ var gZenBrowserManagerSidebar = {
       return;
     }
     this._isDragging = true;
-    const wrapper = document.getElementById('zen-sidebar-web-panel-wrapper');
     const startTop = this.sidebar.style.top?.match(/\d+/)?.[0] || 0;
     const startLeft = this.sidebar.style.left?.match(/\d+/)?.[0] || 0;
 
@@ -106,7 +107,7 @@ var gZenBrowserManagerSidebar = {
       let top = mouseMoveEvent.screenY + topMouseOffset;
       let left = mouseMoveEvent.screenX + leftMouseOffset;
 
-      const wrapperBounds = wrapper.getBoundingClientRect();
+      const wrapperBounds = this.sidebarWrapper.getBoundingClientRect();
       top = Math.max(0, Math.min(top, wrapperBounds.height - sideBarHeight));
       left = Math.max(0, Math.min(left, wrapperBounds.width - sideBarWidth));
 
