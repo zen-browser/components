@@ -30,17 +30,28 @@ const defaultKeyboardGroups = {
     "zen-tab-new-shortcut",
     "zen-key-enter-full-screen",
     "zen-key-exit-full-screen",
-    "zen-quit-app-shortcut"
+    "zen-quit-app-shortcut",
+    "id:key_selectTab1",
+    "id:key_selectTab2",
+    "id:key_selectTab3",
+    "id:key_selectTab4",
+    "id:key_selectTab5",
+    "id:key_selectTab6",
+    "id:key_selectTab7",
+    "id:key_selectTab8",
+    "id:key_selectLastTab",
   ],
   navigation: [
-    "zen-key-go-back",
-    "zen-key-go-forward",
     "zen-nav-back-shortcut-alt",
     "zen-nav-fwd-shortcut-alt",
     "zen-nav-reload-shortcut-2",
     "zen-nav-reload-shortcut-skip-cache",
     "zen-nav-reload-shortcut",
-    "zen-key-stop"
+    "zen-key-stop",
+    "id:goHome",
+    "id:key_gotoHistory",
+    "id:goBackKb",
+    "id:goForwardKb",
   ],
   searchAndFind: [
     "zen-search-focus-shortcut",
@@ -263,11 +274,13 @@ class KeyShortcut {
     return rv;
   }
 
-  static getGroupFromL10nId(l10nId) {
+  static getGroupFromL10nId(l10nId, id) {
     // Find inside defaultKeyboardGroups
     for (let group of Object.keys(defaultKeyboardGroups)) {
-      if (defaultKeyboardGroups[group].includes(l10nId)) {
-        return group;
+      for (let shortcut of defaultKeyboardGroups[group]) {
+        if (shortcut == l10nId || shortcut == "id:" + id) {
+          return group;
+        }
       }
     }
     return 'other';
@@ -293,7 +306,7 @@ class KeyShortcut {
       key.getAttribute('id'),
       key.getAttribute('key'),
       key.getAttribute('keycode'),
-      KeyShortcut.getGroupFromL10nId(KeyShortcut.sanitizeL10nId(key.getAttribute('data-l10n-id'))),
+      KeyShortcut.getGroupFromL10nId(KeyShortcut.sanitizeL10nId(key.getAttribute('data-l10n-id')), key.getAttribute('id')),
       KeyShortcutModifiers.parseFromXHTMLAttribute(key.getAttribute('modifiers')),
       key.getAttribute('command'),
       key.getAttribute('data-l10n-id'),
@@ -433,7 +446,6 @@ class KeyShortcut {
   isUserEditable() {
     if (
       !this.#id ||
-      !this.#action ||
       this.#internal ||
       this.#reserved ||
       (this.#group == FIREFOX_SHORTCUTS_GROUP && this.#disabled)
@@ -462,10 +474,9 @@ class KeyShortcut {
 }
 
 class ZenKeyboardShortcutsLoader {
-  #shortcutsDirtyCache = {};
+  #shortcutsDirtyCache = undefined;
 
   constructor() {
-    this.#shortcutsDirtyCache = {};
   }
 
   get shortcutsFile() {
@@ -477,8 +488,8 @@ class ZenKeyboardShortcutsLoader {
     this.#shortcutsDirtyCache = data;
   }
 
-  async loadObject(withoutCache = false) {
-    if (this.#shortcutsDirtyCache && !withoutCache) {
+  async loadObject() {
+    if (this.#shortcutsDirtyCache) {
       return this.#shortcutsDirtyCache;
     }
     try {
@@ -490,8 +501,8 @@ class ZenKeyboardShortcutsLoader {
     }
   }
 
-  async load(withoutCache = false) {
-    return (await this.loadObject(withoutCache))?.shortcuts;
+  async load() {
+    return (await this.loadObject())?.shortcuts;
   }
 
   async remove() {
@@ -508,8 +519,9 @@ function zenGetDefaultShortcuts() {
   let keySet = document.getElementById('mainKeyset');
   let newShortcutList = [];
 
-  // Firefox's standard keyset
-  for (let key of keySet.children) {
+  // Firefox's standard keyset. Reverse order to keep the order of the keys
+  for (let i = keySet.children.length - 1; i >= 0; i--) {
+    let key = keySet.children[i];
     let parsed = KeyShortcut.parseFromXHTML(key);
     newShortcutList.push(parsed);
   }
@@ -713,7 +725,6 @@ var gZenKeyboardShortcutsManager = {
   loader: new ZenKeyboardShortcutsLoader(),
   async init() {
     if (window.location.href == 'chrome://browser/content/browser.xhtml') {
-      await SessionStore.promiseInitialized;
       console.info('Zen CKS: Initializing shortcuts');
 
       const loadedShortcuts = await this._loadSaved();
@@ -727,9 +738,9 @@ var gZenKeyboardShortcutsManager = {
     }
   },
 
-  async _loadSaved(withoutCache = false) {
+  async _loadSaved() {
     var innerLoad = async() => {
-      let data = await this.loader.load(withoutCache);
+      let data = await this.loader.load();
       if (!data || data.length == 0) {
         return zenGetDefaultShortcuts();
       }
@@ -824,7 +835,7 @@ var gZenKeyboardShortcutsManager = {
     let rv = [];
 
     if (!this._currentShortcutList) {
-      this._currentShortcutList = await this._loadSaved(true);
+      this._currentShortcutList = await this._loadSaved();
     }
 
     for (let shortcut of this._currentShortcutList) {
