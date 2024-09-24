@@ -38,7 +38,7 @@ var gZenBrowserManagerSidebar = {
 
     document.querySelectorAll('.zen-sidebar-web-panel-splitter')
       .forEach(s => s.addEventListener('mousedown', this.handleSplitter.bind(this)));
-    this.panelHeader.addEventListener('mousedown', this.handleDragPanel.bind(this));
+    this.sidebarHeader.addEventListener('mousedown', this.handleDragPanel.bind(this));
     this.handleEvent();
   },
 
@@ -88,7 +88,9 @@ var gZenBrowserManagerSidebar = {
   },
 
   handleDragPanel(mouseDownEvent) {
-    if (mouseDownEvent.target !== this.panelHeader) return;
+    if (this.sidebarHeaderButtons.find(b => b.contains(mouseDownEvent.target))) {
+      return;
+    }
     this._isDragging = true;
     const wrapper = document.getElementById('zen-sidebar-web-panel-wrapper');
     const startTop = this.sidebar.style.top?.match(/\d+/)?.[0] || 0;
@@ -516,11 +518,11 @@ var gZenBrowserManagerSidebar = {
     return this._hSplitterElement;
   },
 
-  get panelHeader() {
-    if (!this._header) {
-      this._header = document.getElementById('zen-sidebar-web-header');
+  get sidebarHeader() {
+    if (!this._sidebarHeader) {
+      this._sidebarHeader = document.getElementById('zen-sidebar-web-header');
     }
-    return this._header;
+    return this._sidebarHeader;
   },
 
   get sidebar() {
@@ -535,6 +537,13 @@ var gZenBrowserManagerSidebar = {
       this._sideBarWrapper =  document.getElementById('zen-sidebar-web-panel-wrapper');
     }
     return this._sideBarWrapper;
+  },
+
+  get sidebarHeaderButtons() {
+    if (!this._sidebarHeaderButtons) {
+      this._sidebarHeaderButtons = [...this.sidebarHeader.querySelectorAll('.toolbarbutton-1')];
+    }
+    return this._sidebarHeaderButtons;
   },
 
   // Context menu
