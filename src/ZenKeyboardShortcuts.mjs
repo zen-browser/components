@@ -173,7 +173,7 @@ class KeyShortcutModifiers {
       str += 'Shift+';
     }
     if (this.#meta) {
-      str += AppConstants.platform == 'macosx' ? 'Cmd+' : 'Win+';
+      str += AppConstants.platform == 'macosx' ? 'Meta+' : 'Win+';
     }
     if (this.#accel) {
       if (AppConstants.platform == 'macosx') {
@@ -346,7 +346,9 @@ class KeyShortcut {
     // shortcuts in mind, it will siply just override the shortcuts with whatever the default is.
     //  note that this l10n id is not used for actually translating the key's label, but rather to
     //  identify the default keybinds.
-    key.setAttribute('data-l10n-id', this.#l10nId);
+    if (this.#l10nId) {
+      key.setAttribute('data-l10n-id', this.#l10nId);
+    }
     key.setAttribute('modifiers', this.#modifiers.toString());
     if (this.#action) {
       if (this.#action?.startsWith('code:')) {
