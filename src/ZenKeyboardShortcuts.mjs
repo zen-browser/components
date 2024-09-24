@@ -493,6 +493,10 @@ class ZenKeyboardShortcutsLoader {
   async load(withoutCache = false) {
     return (await this.loadObject(withoutCache))?.shortcuts;
   }
+
+  async remove() {
+    await IOUtils.remove(this.shortcutsFile);
+  }
 }
 
 function zenGetDefaultShortcuts() {
@@ -775,6 +779,10 @@ var gZenKeyboardShortcutsManager = {
       parent.prepend(mainKeyset);
       console.debug('Shortcuts applied...');
     }
+  },
+
+  async resetAllShortcuts() {
+    await this.loader.remove();
   },
 
   async _saveShortcuts() {
