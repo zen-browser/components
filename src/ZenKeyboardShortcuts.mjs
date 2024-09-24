@@ -823,7 +823,7 @@ var gZenKeyboardShortcutsManager = {
 
     // Unsetting shortcut
     for (let targetShortcut of this._currentShortcutList) {
-      if (targetShortcut.getAction() != action) {
+      if (targetShortcut.getID() != action) {
         continue;
       }
       if (!shortcut && !modifiers) {
@@ -854,10 +854,9 @@ var gZenKeyboardShortcutsManager = {
     return rv;
   },
 
-  checkForConflicts(shortcut, modifiers, id, action) {
+  checkForConflicts(shortcut, modifiers, id) {
     for (let targetShortcut of this._currentShortcutList) {
-      if ((targetShortcut.getID() == id)
-        || (action == targetShortcut.getAction())) {
+      if (targetShortcut.getID() == id) {
         continue;
       }
 
