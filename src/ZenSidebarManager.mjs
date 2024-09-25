@@ -71,7 +71,10 @@ var gZenBrowserManagerSidebar = {
       let newSize = sidebarSizeStart + mouseMoved;
       let currentMax = maxSize;
       const wrapperBox = this.sidebarWrapper.getBoundingClientRect();
-      const maxWrapperSize = reverse ? (sidebarPosStart + sidebarSizeStart) : (wrapperBox[direction] - sidebarPosStart);
+      let maxWrapperSize = Infinity;
+      if (this.isFloating) {
+        maxWrapperSize = reverse ? (sidebarPosStart + sidebarSizeStart) : (wrapperBox[direction] - sidebarPosStart);
+      }
       newSize = Math.max(minSize, Math.min(currentMax, maxWrapperSize,newSize));
 
       if (reverse) {
