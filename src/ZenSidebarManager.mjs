@@ -18,6 +18,7 @@ var gZenBrowserManagerSidebar = {
     this.close(); // avoid caching
     this.listenForPrefChanges();
     this.insertIntoContextMenu();
+    this.addPositioningListeners();
   },
 
   get sidebarData() {
@@ -36,10 +37,14 @@ var gZenBrowserManagerSidebar = {
     Services.prefs.addObserver('zen.sidebar.data', this.handleEvent.bind(this));
     Services.prefs.addObserver('zen.sidebar.enabled', this.handleEvent.bind(this));
 
-    document.querySelectorAll('.zen-sidebar-web-panel-splitter')
+    this.handleEvent();
+  },
+
+  addPositioningListeners() {
+    this.sidebar.querySelectorAll('.zen-sidebar-web-panel-splitter')
       .forEach(s => s.addEventListener('mousedown', this.handleSplitterMouseDown.bind(this)));
     this.sidebarHeader.addEventListener('mousedown', this.handleDragPanel.bind(this));
-    this.handleEvent();
+    window.addEventListener('resize', this.onWindowResize.bind(this));
   },
 
   handleSplitterMouseDown(mouseDownEvent) {
@@ -79,7 +84,7 @@ var gZenBrowserManagerSidebar = {
 
       if (reverse) {
         const actualMoved = newSize - sidebarSizeStart;
-        this.sidebar.style[toAdjust] = (sidebarPosStart - actualMoved) + "px";
+        this.sidebar.style[toAdjust] = (sidebarPosStart - actualMoved) + 'px';
       }
       this.sidebar.style[direction] = `${newSize}px`;
     }.bind(this);
@@ -114,8 +119,8 @@ var gZenBrowserManagerSidebar = {
       top = Math.max(0, Math.min(top, wrapperBounds.height - sideBarHeight));
       left = Math.max(0, Math.min(left, wrapperBounds.width - sideBarWidth));
 
-      this.sidebar.style.top = top + "px";
-      this.sidebar.style.left = left + "px";
+      this.sidebar.style.top = top + 'px';
+      this.sidebar.style.left = left + 'px';
     };
 
 
@@ -124,6 +129,21 @@ var gZenBrowserManagerSidebar = {
       document.removeEventListener('mousemove', moveListener);
       this._isDragging = false;
       }, {once: true});
+  },
+
+  onWindowResize() {
+    if (!this.isFloating) return;
+    const top = parseInt(this.sidebar.style.top?.match(/\d+/)?.[0] || 0);
+    const left = parseInt(this.sidebar.style.left?.match(/\d+/)?.[0] || 0);
+    const wrapperRect = this.sidebarWrapper.getBoundingClientRect();
+    const sidebarRect = this.sidebar.getBoundingClientRect();
+
+    if (sidebarRect.height < wrapperRect.height && top + sidebarRect.height > wrapperRect.height) {
+      this.sidebar.style.top = (wrapperRect.height - sidebarRect.height) + 'px';
+    }
+    if (sidebarRect.width < wrapperRect.width && left + sidebarRect.width > wrapperRect.width) {
+      this.sidebar.style.left = (wrapperRect.width - sidebarRect.width) + 'px';
+    }
   },
 
   get isFloating() {
