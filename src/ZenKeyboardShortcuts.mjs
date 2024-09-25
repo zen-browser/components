@@ -115,13 +115,14 @@ class KeyShortcutModifiers {
   #meta = false;
   #accel = false;
 
-  constructor(ctrl, alt, shift, meta, accel) {
+  constructor(ctrl, alt, shift, meta, accel, fromXHTML = false) {
     this.#control = ctrl;
     this.#alt = alt;
     this.#shift = shift;
     this.#meta = meta;
     this.#accel = accel;
-    if (AppConstants.platform != 'macosx') {
+
+    if (AppConstants.platform != 'macosx' || !fromXHTML) {
       // Replace control with accel, to make it more consistent
       this.#accel = ctrl || accel;
       this.#control = false;
@@ -152,7 +153,8 @@ class KeyShortcutModifiers {
       modifiers.includes('alt'),
       modifiers.includes('shift'),
       modifiers.includes('meta'),
-      modifiers.includes('accel')
+      modifiers.includes('accel'),
+      true
     );
   }
 
