@@ -11,6 +11,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
 var gZenCompactModeManager = {
   _flashTimeouts: {},
   _evenListeners: [],
+  _removeHoverFrames: {},
 
   init() {
     Services.prefs.addObserver('zen.view.compact', this._updateEvent.bind(this));
@@ -175,14 +176,14 @@ var gZenCompactModeManager = {
       let target = this.hoverableElements[i].element;
       target.addEventListener('mouseenter', (event) => {
         this.clearFlashTimeout('has-hover' + target.id);
-        target.setAttribute('zen-has-hover', 'true');
+        window.requestAnimationFrame(() => target.setAttribute('zen-has-hover', 'true'));
       });
 
       target.addEventListener('mouseleave', (event) => {
         if (this.hoverableElements[i].keepHoverDuration) {
           this.flashElement(target, keepHoverDuration, "has-hover" + target.id, 'zen-has-hover');
         } else {
-          target.removeAttribute('zen-has-hover');
+          this._removeHoverFrames[target.id] = window.requestAnimationFrame(() => target.removeAttribute('zen-has-hover'));
         }
       });
     }
@@ -197,6 +198,8 @@ var gZenCompactModeManager = {
         if (!this._positionInBounds(boundAxis, target, event.pageX, event.pageY, 7)) {
           continue;
         }
+        window.cancelAnimationFrame(this._removeHoverFrames[target.id]);
+
         this.flashElement(target, this.hideAfterHoverDuration, "has-hover" + target.id, 'zen-has-hover');
         document.addEventListener('mousemove', () => {
           if (target.matches(':hover')) return;
