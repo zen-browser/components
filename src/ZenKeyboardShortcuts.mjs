@@ -157,8 +157,8 @@ class KeyShortcutModifiers {
   }
 
   // used to avoid any future changes to the object
-  static fromObject({ctrl = false, alt = false, shift = false, meta = false}) {
-    return new KeyShortcutModifiers(ctrl, alt, shift, meta);
+  static fromObject({ctrl = false, alt = false, shift = false, meta = false, accel = false}) {
+    return new KeyShortcutModifiers(ctrl, alt, shift, meta, accel);
   }
 
   toUserString() {
@@ -230,6 +230,26 @@ class KeyShortcutModifiers {
 
   areAnyActive() {
     return this.#control || this.#alt || this.#shift || this.#meta || this.#accel;
+  }
+
+  get control() {
+    return this.#control;
+  }
+
+  get alt() {
+    return this.#alt;
+  }
+
+  get shift() {
+    return this.#shift;
+  }
+
+  get meta() {
+    return this.#meta;
+  }
+
+  get accel() {
+    return this.#accel;
   }
 }
 
@@ -481,7 +501,6 @@ class KeyShortcut {
 }
 
 class ZenKeyboardShortcutsLoader {
-  #shortcutsDirtyCache = undefined;
 
   constructor() {
   }
@@ -492,16 +511,11 @@ class ZenKeyboardShortcutsLoader {
 
   async save(data) {
     await IOUtils.writeJSON(this.shortcutsFile, data);
-    this.#shortcutsDirtyCache = data;
   }
 
   async loadObject() {
-    if (this.#shortcutsDirtyCache) {
-      return this.#shortcutsDirtyCache;
-    }
     try {
-      this.#shortcutsDirtyCache = await IOUtils.readJSON(this.shortcutsFile);
-      return this.#shortcutsDirtyCache;
+      return await IOUtils.readJSON(this.shortcutsFile);
     } catch (e) {
       console.error('Error loading shortcuts file', e);
       return null;
@@ -540,7 +554,7 @@ function zenGetDefaultShortcuts() {
       'C',
       '',
       ZEN_COMPACT_MODE_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({ctrl: true, alt: true}),
+      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
       'code:gZenCompactModeManager.toggle()',
       'zen-compact-mode-shortcut-toggle'
     )
@@ -551,7 +565,7 @@ function zenGetDefaultShortcuts() {
       'S',
       '',
       ZEN_COMPACT_MODE_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({ctrl: true, alt: true}),
+      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
       'code:gZenCompactModeManager.toggleSidebar()',
       'zen-compact-mode-shortcut-show-sidebar'
     )
@@ -562,7 +576,7 @@ function zenGetDefaultShortcuts() {
       'T',
       '',
       ZEN_COMPACT_MODE_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({ctrl: true, alt: true}),
+      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
       'code:gZenCompactModeManager.toggleToolbar()',
       'zen-compact-mode-shortcut-show-toolbar'
     )
@@ -588,7 +602,7 @@ function zenGetDefaultShortcuts() {
       'E',
       '',
       ZEN_WORKSPACE_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({ctrl: true, alt: true}),
+      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
       'code:ZenWorkspaces.changeWorkspaceShortcut()',
       'zen-workspace-shortcut-forward'
     )
@@ -599,7 +613,7 @@ function zenGetDefaultShortcuts() {
       'Q',
       '',
       ZEN_WORKSPACE_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({ctrl: true, alt: true}),
+      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
       'code:ZenWorkspaces.changeWorkspaceShortcut(-1)',
       'zen-workspace-shortcut-backward'
     )
@@ -636,7 +650,7 @@ function zenGetDefaultShortcuts() {
       'G',
       '',
       ZEN_SPLIT_VIEW_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({ctrl: true, alt: true}),
+      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
       'code:gZenViewSplitter.toggleShortcut(\'grid\')',
       'zen-split-view-shortcut-grid'
     )
@@ -647,7 +661,7 @@ function zenGetDefaultShortcuts() {
       'V',
       '',
       ZEN_SPLIT_VIEW_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({ctrl: true, alt: true}),
+      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
       'code:gZenViewSplitter.toggleShortcut(\'vsep\')',
       'zen-split-view-shortcut-vertical'
     )
@@ -658,7 +672,7 @@ function zenGetDefaultShortcuts() {
       'H',
       '',
       ZEN_SPLIT_VIEW_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({ctrl: true, alt: true}),
+      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
       'code:gZenViewSplitter.toggleShortcut(\'hsep\')',
       'zen-split-view-shortcut-horizontal'
     )
@@ -669,7 +683,7 @@ function zenGetDefaultShortcuts() {
       'U',
       '',
       ZEN_SPLIT_VIEW_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({ctrl: true, alt: true}),
+      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
       'code:gZenViewSplitter.toggleShortcut(\'unsplit\')',
       'zen-split-view-shortcut-unsplit'
     )
@@ -679,27 +693,31 @@ function zenGetDefaultShortcuts() {
 }
 
 class ZenKeyboardShortcutsVersioner {
-  static LATEST_KBS_VERSION = 1.0;
+  static LATEST_KBS_VERSION = 1;
 
-  #loadedVersion = 0.0;
+  constructor() {
+  }
 
-  constructor(versionedData) {
-    this.#loadedVersion = versionedData.version ?? 0.0;
+  get version() {
+    return Services.prefs.getIntPref('zen.keyboard.shortcuts.version', 0);
+  }
+
+  set version(version) {
+    Services.prefs.setIntPref('zen.keyboard.shortcuts.version', version);
   }
 
   getVersionedData(data) {
     return {
-      version: this.#loadedVersion,
       shortcuts: data,
     };
   }
 
   isVersionUpToDate() {
-    return this.#loadedVersion == ZenKeyboardShortcutsVersioner.LATEST_KBS_VERSION;
+    return this.version == ZenKeyboardShortcutsVersioner.LATEST_KBS_VERSION;
   }
 
   isVersionOutdated() {
-    return this.#loadedVersion < ZenKeyboardShortcutsVersioner.LATEST_KBS_VERSION;
+    return this.version < ZenKeyboardShortcutsVersioner.LATEST_KBS_VERSION;
   }
 
   migrateIfNeeded(data) {
@@ -708,21 +726,22 @@ class ZenKeyboardShortcutsVersioner {
     }
 
     if (this.isVersionOutdated()) {
-      console.info('Zen CKS: Migrating shortcuts from version', this.#loadedVersion, 'to', ZenKeyboardShortcutsVersioner.LATEST_KBS_VERSION);
-      const newData = this.migrate(data);
-      this.#loadedVersion = ZenKeyboardShortcutsVersioner.LATEST_KBS_VERSION;
+      const version = this.version;
+      console.info('Zen CKS: Migrating shortcuts from version', version, 'to', ZenKeyboardShortcutsVersioner.LATEST_KBS_VERSION);
+      const newData = this.migrate(data, version);
+      this.version = ZenKeyboardShortcutsVersioner.LATEST_KBS_VERSION;
       return newData;
     }
 
     throw new Error('Unknown keyboar shortcuts version');
   }
 
-  migrate(data) {
-    if (this.#loadedVersion < 1.0) {
-      // Migrate from 0.0 to 1.0
+  migrate(data, version) {
+    if (version < 1) {
+      // Migrate from 0 to 1
       // Here, we do a complet reset of the shortcuts,
       // since nothing seems to work properly.
-      return zenGetDefaultShortcuts();
+      data = zenGetDefaultShortcuts();
     }
     return data;
   }
