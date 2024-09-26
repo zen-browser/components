@@ -233,10 +233,7 @@
       }
       const diff = currentTimestamp - lastActivity;
       // Check if the tab has been inactive for more than the timeout
-      if (diff < lazy.zenTabUnloaderTimeout * 60 * 1000) {
-        return false;
-      }
-      return true;
+      return diff > lazy.zenTabUnloaderTimeout * 60 * 1000;
     }
   }
   
