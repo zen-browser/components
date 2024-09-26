@@ -149,14 +149,12 @@
       "attention",
     ]
 
-    allTabs = [];
     constructor() {
       if (!lazy.zenTabUnloaderEnabled) {
         return;
       }
       this.observer = new ZenTabsObserver();
       this.intervalUnloader = new ZenTabsIntervalUnloader(this);
-      this.allTabs = gBrowser.tabs;
       this.observer.addTabsListener(this.onTabEvent.bind(this));
     }
 
@@ -195,17 +193,13 @@
     }
 
     handleTabClose(tab) {
-      this.allTabs = this.allTabs.filter(t => t !== tab);
+      // Nothing yet
     }
 
     handleTabOpen(tab) {
       if (!lazy.zenTabUnloaderEnabled) {
         return;
       }
-      if (this.allTabs.includes(tab)) {
-        return;
-      }
-      this.allTabs.push(tab);
       this.updateTabActivity(tab);
     }
 
@@ -224,7 +218,7 @@
     }
 
     get tabs() {
-      return this.allTabs;
+      return gBrowser.tabs;
     }
 
     canUnloadTab(tab, currentTimestamp, excludedUrls) {
