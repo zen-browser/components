@@ -133,7 +133,6 @@
       const excludedUrls = this.excludedUrls;
       for (const tab of this.unloader.tabs) {
         if (this.unloader.canUnloadTab(tab, currentTimestamp, excludedUrls)) {
-          console.debug("ZenTabUnloader: Discarding tab", tab);
           tab.ownerGlobal.gBrowser.discardBrowser(tab);
         }
       }
