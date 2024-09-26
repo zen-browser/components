@@ -251,6 +251,11 @@ var ZenWorkspaces = {
     return workspace.name[0].toUpperCase();
   },
 
+  get shouldShowContainers() {
+    return Services.prefs.getBoolPref('privacy.userContext.ui.enabled') && 
+      ContextualIdentityService.getPublicIdentities().length > 0;
+  },
+
   async _propagateWorkspaceData({
     ignoreStrip = false
   } = {}) {
@@ -720,6 +725,12 @@ var ZenWorkspaces = {
       openMenuItem.setAttribute('disabled', 'true');
     } else {
       openMenuItem.removeAttribute('disabled');
+    }
+    const openInContainerMenuItem = document.getElementById('context_zenWorkspacesOpenInContainerTab');
+    if (this.shouldShowContainers) {
+      openInContainerMenuItem.removeAttribute('hidden');
+    } else {
+      openInContainerMenuItem.setAttribute('hidden', 'true');
     }
   },
 
