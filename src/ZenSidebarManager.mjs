@@ -82,11 +82,13 @@ var gZenBrowserManagerSidebar = {
       }
       newSize = Math.max(minSize, Math.min(currentMax, maxWrapperSize,newSize));
 
-      if (reverse) {
-        const actualMoved = newSize - sidebarSizeStart;
-        this.sidebar.style[toAdjust] = (sidebarPosStart - actualMoved) + 'px';
-      }
-      this.sidebar.style[direction] = `${newSize}px`;
+      window.requestAnimationFrame(() => {
+        if (reverse) {
+          const actualMoved = newSize - sidebarSizeStart;
+          this.sidebar.style[toAdjust] = (sidebarPosStart - actualMoved) + 'px';
+        }
+        this.sidebar.style[direction] = `${newSize}px`;
+      });
     }.bind(this);
 
     document.addEventListener('mousemove', mouseMove);
@@ -112,15 +114,17 @@ var gZenBrowserManagerSidebar = {
     const topMouseOffset = startTop - mouseDownEvent.screenY;
     const leftMouseOffset = startLeft - mouseDownEvent.screenX;
     const moveListener = (mouseMoveEvent) => {
-      let top = mouseMoveEvent.screenY + topMouseOffset;
-      let left = mouseMoveEvent.screenX + leftMouseOffset;
+      window.requestAnimationFrame(() => {
+        let top = mouseMoveEvent.screenY + topMouseOffset;
+        let left = mouseMoveEvent.screenX + leftMouseOffset;
 
-      const wrapperBounds = this.sidebarWrapper.getBoundingClientRect();
-      top = Math.max(0, Math.min(top, wrapperBounds.height - sideBarHeight));
-      left = Math.max(0, Math.min(left, wrapperBounds.width - sideBarWidth));
+        const wrapperBounds = this.sidebarWrapper.getBoundingClientRect();
+        top = Math.max(0, Math.min(top, wrapperBounds.height - sideBarHeight));
+        left = Math.max(0, Math.min(left, wrapperBounds.width - sideBarWidth));
 
-      this.sidebar.style.top = top + 'px';
-      this.sidebar.style.left = left + 'px';
+        this.sidebar.style.top = top + 'px';
+        this.sidebar.style.left = left + 'px';
+      });
     };
 
 
