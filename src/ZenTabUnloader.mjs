@@ -220,7 +220,8 @@
     canUnloadTab(tab, currentTimestamp, excludedUrls) {
       if (tab.pinned || tab.selected || tab.multiselected
         || tab.hasAttribute("busy") || tab.hasAttribute("pending")
-        || !tab.linkedPanel || tab.splitView || tab.attention
+        || !tab.linkedPanel || tab.splitView || tab.attention || tab.soundPlaying
+        || tab.zenIgnoreUnload
         || excludedUrls.some(url => url.test(tab.linkedBrowser.currentURI.spec))) {
         return false;
       }
