@@ -1,8 +1,5 @@
 
 {
-  const ZEN_TAB_UNLOADER_PREF = "zen.tab-unloader.enabled";
-  const ZEN_TAB_UNLOADER_TIMEOUT_PREF = "zen.tab-unloader.timeout";
-
   const lazy = {};
 
   XPCOMUtils.defineLazyPreferenceGetter(
@@ -16,7 +13,7 @@
     lazy,
     "zenTabUnloaderTimeout",
     "zen.tab-unloader.timeout-minutes",
-    5
+    20
   );
 
   XPCOMUtils.defineLazyPreferenceGetter(
