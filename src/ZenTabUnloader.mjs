@@ -149,6 +149,7 @@
       if (!lazy.zenTabUnloaderEnabled) {
         return;
       }
+      this.insertIntoContextMenu();
       this.observer = new ZenTabsObserver();
       this.intervalUnloader = new ZenTabsIntervalUnloader(this);
       this.observer.addTabsListener(this.onTabEvent.bind(this));
@@ -215,6 +216,47 @@
 
     get tabs() {
       return gBrowser.tabs;
+    }
+
+    insertIntoContextMenu() {
+      const element = window.MozXULElement.parseXULToFragment(`
+        <menuseparator/>
+        <menuitem id="context_zenUnloadTab"
+                  data-lazy-l10n-id="tab-zen-unload"
+                  oncommand="gZenTabUnloader.unloadTab();"/>
+        <menu data-lazy-l10n-id="zen-tabs-unloader-tab-actions" id="context_zenTabActions">
+          <menupopup>
+            <menuitem id="context_zenPreventUnloadTab"
+                      data-lazy-l10n-id="tab-zen-prevent-unload"
+                      oncommand="gZenTabUnloader.preventUnloadTab();"/>
+            <menuitem id="context_zenIgnoreUnloadTab"
+                      data-lazy-l10n-id="tab-zen-ignore-unload"
+                      oncommand="gZenTabUnloader.ignoreUnloadTab();"/>
+          </menupopup>
+        </menu>
+      `);
+      document.getElementById('context_closeDuplicateTabs').parentNode.appendChild(element);
+    }
+
+    unloadTab() {
+      const tabs = TabContextMenu.contextTab.multiselected ? gBrowser.selectedTabs : [TabContextMenu.contextTab];
+      for (const tab of tabs) {
+        gBrowser.discardBrowser(tab);
+      }
+    }
+
+    preventUnloadTab() {
+      const tabs = TabContextMenu.contextTab.multiselected ? gBrowser.selectedTabs : [TabContextMenu.contextTab];
+      for (const tab of tabs) {
+        tab.zenIgnoreUnload = true;
+      }
+    }
+
+    ignoreUnloadTab() {
+      const tabs = TabContextMenu.contextTab.multiselected ? gBrowser.selectedTabs : [TabContextMenu.contextTab];
+      for (const tab of tabs) {
+        tab.zenIgnoreUnload = false;
+      }
     }
 
     canUnloadTab(tab, currentTimestamp, excludedUrls) {
