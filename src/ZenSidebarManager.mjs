@@ -41,7 +41,6 @@ var gZenBrowserManagerSidebar = {
   },
 
   listenForPrefChanges() {
-    Services.prefs.addObserver('zen.sidebar.data', this.handleEvent.bind(this));
     Services.prefs.addObserver('zen.sidebar.enabled', this.handleEvent.bind(this));
 
     this.handleEvent();
@@ -265,7 +264,7 @@ var gZenBrowserManagerSidebar = {
       button.setAttribute('flex', '1');
       button.setAttribute('zen-sidebar-id', site);
       button.setAttribute('context', 'zenWebPanelContextMenu');
-      this._setWebPanelIcon(panel, button);
+      this._setWebPanelIcon(panel.url, button);
       button.addEventListener('click', this._handleClick.bind(this));
       button.addEventListener('dragstart', this._handleDragStart.bind(this));
       button.addEventListener('dragover', this._handleDragOver.bind(this));
@@ -456,21 +455,11 @@ var gZenBrowserManagerSidebar = {
       'pagetitlechanged',
       function (event) {
         let browser = event.target;
-
-        let id = browser.getAttribute('zen-sidebar-id');
-        const sidebarData = this.sidebarData;
-        const panelData = sidebarData.data[id];
-
-        // if url became a redirect we can't use cached favicons
-        if (browser.currentURI.spec !== panelData.url && browser.currentURI.spec !== panelData.actualUrl) {
-          panelData.actualUrl = browser.currentURI.spec;
-          Services.prefs.setStringPref('zen.sidebar.data', JSON.stringify(sidebarData));
-        }
-
         let title = browser.contentTitle;
         if (!title) {
           return;
         }
+        let id = browser.getAttribute('zen-sidebar-id');
         if (id === this._currentPanel) {
           titleContainer.textContent = title;
         }
@@ -479,12 +468,13 @@ var gZenBrowserManagerSidebar = {
     return browser;
   },
 
-  _setWebPanelIcon(panel, element) {
-    if (this.defaultIcons[panel.url]) {
-      element.setAttribute('image', this.defaultIcons[panel.url]);
+  _setWebPanelIcon(url, element) {
+    if (element.hasAttribute('image')) return;
+    if (this.defaultIcons[url]) {
+      element.setAttribute('image', this.defaultIcons[url]);
       return;
     }
-    let { preferredURI } = Services.uriFixup.getFixupURIInfo(panel.actualUrl || panel.url);
+    let { preferredURI } = Services.uriFixup.getFixupURIInfo(url);
     element.setAttribute('image', `page-icon:${preferredURI.spec}`);
   },
 
@@ -495,6 +485,7 @@ var gZenBrowserManagerSidebar = {
     data.index.push(id);
     Services.prefs.setStringPref('zen.sidebar.data', JSON.stringify(data));
 
+    this._updateWebPanels();
     this._currentPanel = id;
     this._updateWebPanel();
   },
