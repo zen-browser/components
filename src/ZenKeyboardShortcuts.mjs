@@ -175,11 +175,11 @@ class KeyShortcutModifiers {
       str += 'Shift+';
     }
     if (this.#meta) {
-      str += AppConstants.platform == 'macosx' ? 'Meta+' : 'Win+';
+      str += AppConstants.platform == 'macosx' ? 'Cmd+' : 'Win+';
     }
     if (this.#accel) {
       if (AppConstants.platform == 'macosx') {
-        str += 'Cmd+';
+        str += 'Meta+';
       } else {
         str += 'Ctrl+';
       }

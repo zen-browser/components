@@ -461,16 +461,16 @@ var gZenBrowserManagerSidebar = {
   _getWebPanelIcon(url, element) {
     let { preferredURI } = Services.uriFixup.getFixupURIInfo(url);
     element.setAttribute('image', `page-icon:${preferredURI.spec}`);
-    //fetch(`https://s2.googleusercontent.com/s2/favicons?domain_url=${preferredURI.spec}`).then(async (response) => {
-    //  if (response.ok) {
-    //    let blob = await response.blob();
-    //    let reader = new FileReader();
-    //    reader.onload = function () {
-    //      element.setAttribute('image', reader.result);
-    //    };
-    //    reader.readAsDataURL(blob);
-    //  }
-    //});
+    fetch(`https://s2.googleusercontent.com/s2/favicons?domain_url=${preferredURI.spec}`).then(async (response) => {
+      if (response.ok) {
+        let blob = await response.blob();
+        let reader = new FileReader();
+        reader.onload = function () {
+          element.setAttribute('image', reader.result);
+        };
+        reader.readAsDataURL(blob);
+      }
+    });
   },
 
   _getBrowserById(id) {
