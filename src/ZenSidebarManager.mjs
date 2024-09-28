@@ -421,6 +421,7 @@ var gZenBrowserManagerSidebar = {
     browserContainers.appendChild(browser);
     if (data.ua) {
       browser.browsingContext.customUserAgent = this.DEFAULT_MOBILE_USER_AGENT;
+      browser.reload();
     }
     browser.docShellIsActive = true;
   },

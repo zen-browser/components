@@ -1,8 +1,5 @@
 
 {
-  const ZEN_TAB_UNLOADER_PREF = "zen.tab-unloader.enabled";
-  const ZEN_TAB_UNLOADER_TIMEOUT_PREF = "zen.tab-unloader.timeout";
-
   const lazy = {};
 
   XPCOMUtils.defineLazyPreferenceGetter(
@@ -16,7 +13,7 @@
     lazy,
     "zenTabUnloaderTimeout",
     "zen.tab-unloader.timeout-minutes",
-    5
+    20
   );
 
   XPCOMUtils.defineLazyPreferenceGetter(
@@ -152,6 +149,7 @@
       if (!lazy.zenTabUnloaderEnabled) {
         return;
       }
+      this.insertIntoContextMenu();
       this.observer = new ZenTabsObserver();
       this.intervalUnloader = new ZenTabsIntervalUnloader(this);
       this.observer.addTabsListener(this.onTabEvent.bind(this));
@@ -220,10 +218,52 @@
       return gBrowser.tabs;
     }
 
+    insertIntoContextMenu() {
+      const element = window.MozXULElement.parseXULToFragment(`
+        <menuseparator/>
+        <menuitem id="context_zenUnloadTab"
+                  data-lazy-l10n-id="tab-zen-unload"
+                  oncommand="gZenTabUnloader.unloadTab();"/>
+        <menu data-lazy-l10n-id="zen-tabs-unloader-tab-actions" id="context_zenTabActions">
+          <menupopup>
+            <menuitem id="context_zenPreventUnloadTab"
+                      data-lazy-l10n-id="tab-zen-prevent-unload"
+                      oncommand="gZenTabUnloader.preventUnloadTab();"/>
+            <menuitem id="context_zenIgnoreUnloadTab"
+                      data-lazy-l10n-id="tab-zen-ignore-unload"
+                      oncommand="gZenTabUnloader.ignoreUnloadTab();"/>
+          </menupopup>
+        </menu>
+      `);
+      document.getElementById('context_closeDuplicateTabs').parentNode.appendChild(element);
+    }
+
+    unloadTab() {
+      const tabs = TabContextMenu.contextTab.multiselected ? gBrowser.selectedTabs : [TabContextMenu.contextTab];
+      for (const tab of tabs) {
+        gBrowser.discardBrowser(tab);
+      }
+    }
+
+    preventUnloadTab() {
+      const tabs = TabContextMenu.contextTab.multiselected ? gBrowser.selectedTabs : [TabContextMenu.contextTab];
+      for (const tab of tabs) {
+        tab.zenIgnoreUnload = true;
+      }
+    }
+
+    ignoreUnloadTab() {
+      const tabs = TabContextMenu.contextTab.multiselected ? gBrowser.selectedTabs : [TabContextMenu.contextTab];
+      for (const tab of tabs) {
+        tab.zenIgnoreUnload = false;
+      }
+    }
+
     canUnloadTab(tab, currentTimestamp, excludedUrls) {
       if (tab.pinned || tab.selected || tab.multiselected
         || tab.hasAttribute("busy") || tab.hasAttribute("pending")
-        || !tab.linkedPanel || tab.splitView || tab.attention
+        || !tab.linkedPanel || tab.splitView || tab.attention || tab.soundPlaying
+        || tab.zenIgnoreUnload
         || excludedUrls.some(url => url.test(tab.linkedBrowser.currentURI.spec))) {
         return false;
       }
