@@ -1,4 +1,4 @@
-var gZenViewSplitter = new (class {
+var gZenViewSplitter = new class {
   constructor() {
     this._data = [];
     this.currentView = -1;
@@ -22,6 +22,17 @@ var gZenViewSplitter = new (class {
     sibling.insertAdjacentElement('afterend', document.createXULElement('menuseparator'));
     sibling.insertAdjacentElement('afterend', menuitem);
     sibling.insertAdjacentElement('afterend', document.createXULElement('menuseparator'));
+  }
+
+  get canChangeTabOnHover() {
+    delete this.canChangeTabOnHover;
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "canChangeTabOnHover",
+      "zen.splitView.change-on-hover",
+      false
+    );
+    return this.canChangeTabOnHover;
   }
 
   /**
@@ -292,6 +303,7 @@ var gZenViewSplitter = new (class {
       const container = tab.linkedBrowser.closest('.browserSidebarContainer');
       this.resetContainerStyle(container);
       container.removeEventListener('click', this.handleTabClick);
+      container.removeEventListener('mouseover', this.handleTabClick);
     }
     this.tabBrowserPanel.removeAttribute('zen-split-view');
     this.tabBrowserPanel.style.gridTemplateAreas = '';
@@ -468,6 +480,7 @@ var gZenViewSplitter = new (class {
     }
     container.setAttribute('zen-split-anim', 'true');
     container.addEventListener('click', this.handleTabClick);
+    container.addEventListener('mouseover', this.handleTabClick);
 
     container.style.gridArea = `tab${index + 1}`;
   }
@@ -727,4 +740,4 @@ var gZenViewSplitter = new (class {
       : [gBrowser.selectedTab, tabs[nextTabIndex]];
     this.splitTabs(selected_tabs, gridType);
   }
-})();
+};

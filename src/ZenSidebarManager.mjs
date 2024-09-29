@@ -435,6 +435,9 @@ var gZenBrowserManagerSidebar = {
     const titleContainer = document.getElementById('zen-sidebar-web-panel-title');
     titleContainer.textContent = 'Loading...';
     let browser = gBrowser.createBrowser({});
+    const tab = this.sidebar.querySelector(`[zen-sidebar-id='${data.id}']`);
+    gBrowser._tabForBrowser.set(browser, tab);
+    tab.linkedBrowser = browser;
     browser.setAttribute('disablefullscreen', 'true');
     browser.setAttribute('src', data.url);
     browser.setAttribute('zen-sidebar-id', data.id);
