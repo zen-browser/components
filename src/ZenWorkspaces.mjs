@@ -786,7 +786,14 @@ var ZenWorkspaces = {
     let activeWorkspace = workspaces.workspaces.find((workspace) => workspace.used);
     let workspaceIndex = workspaces.workspaces.indexOf(activeWorkspace);
     // note: offset can be negative
-    let nextWorkspace = workspaces.workspaces[(workspaceIndex + offset + workspaces.workspaces.length) % workspaces.workspaces.length];
+    if (workspaceIndex + offset >= workspaces.workspaces.length) {
+      workspaceIndex = 0;
+    } else if (workspaceIndex + offset < 0) {
+      workspaceIndex = workspaces.workspaces.length - 1;
+    } else {
+      workspaceIndex += offset;
+    }
+    let nextWorkspace = workspaces.workspaces[workspaceIndex];
     this.changeWorkspace(nextWorkspace);
   },
 
