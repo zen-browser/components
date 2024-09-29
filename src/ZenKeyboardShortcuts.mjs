@@ -165,7 +165,7 @@ class KeyShortcutModifiers {
 
   toUserString() {
     let str = '';
-    if (this.#control || this.#accel) {
+    if (this.#control && !this.#accel) {
       str += 'Ctrl+';
     }
     if (this.#alt) {
@@ -176,6 +176,9 @@ class KeyShortcutModifiers {
     }
     if (this.#meta) {
       str += AppConstants.platform == 'macosx' ? 'Cmd+' : 'Win+';
+    }
+    if (this.#accel) {
+      str += AppConstants.platform == 'macosx' ? 'Cmd+' : 'Ctrl+';
     }
     return str;
   }
