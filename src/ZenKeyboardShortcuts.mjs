@@ -94,6 +94,7 @@ const fixedL10nIds = {
   cmd_findPrevious: 'zen-search-find-again-shortcut-prev',
   "Browser:ReloadSkipCache": "zen-nav-reload-shortcut-skip-cache",
   cmd_close: "zen-close-tab-shortcut",
+  "History:RestoreLastClosedTabOrWindowOrSession": "zen-restore-last-closed-tab-shortcut",
 };
 
 const ZEN_COMPACT_MODE_SHORTCUTS_GROUP = 'zen-compact-mode';
