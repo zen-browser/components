@@ -187,12 +187,15 @@ class KeyShortcutModifiers {
     if (!other) {
       return false;
     }
+    // If we are on macos, we can have accel and meta at the same time
     return (
       this.#alt == other.#alt &&
       this.#shift == other.#shift &&
-      this.#meta == other.#meta &&
-      this.#accel == other.#accel &&
-      this.#control == other.#control
+      this.#control == other.#control &&
+      (AppConstants.platform == 'macosx' ? 
+        (this.#meta || this.#accel) == (other.#meta || other.#accel) :
+        (this.#meta == other.#meta && this.#accel == other.#accel)
+      )
     );
   }
 
