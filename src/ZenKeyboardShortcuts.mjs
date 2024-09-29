@@ -116,14 +116,14 @@ class KeyShortcutModifiers {
   #meta = false;
   #accel = false;
 
-  constructor(ctrl, alt, shift, meta, accel, fromXHTML = false) {
+  constructor(ctrl, alt, shift, meta, accel) {
     this.#control = ctrl;
     this.#alt = alt;
     this.#shift = shift;
     this.#meta = meta;
     this.#accel = accel;
 
-    if (AppConstants.platform != 'macosx' || !fromXHTML) {
+    if (AppConstants.platform != 'macosx') {
       // Replace control with accel, to make it more consistent
       this.#accel = ctrl || accel;
       this.#control = false;
@@ -154,8 +154,7 @@ class KeyShortcutModifiers {
       modifiers.includes('alt'),
       modifiers.includes('shift'),
       modifiers.includes('meta'),
-      modifiers.includes('accel'),
-      true
+      modifiers.includes('accel')
     );
   }
 
@@ -166,7 +165,7 @@ class KeyShortcutModifiers {
 
   toUserString() {
     let str = '';
-    if (this.#control && !this.#accel) {
+    if (this.#control || this.#accel) {
       str += 'Ctrl+';
     }
     if (this.#alt) {
@@ -177,13 +176,6 @@ class KeyShortcutModifiers {
     }
     if (this.#meta) {
       str += AppConstants.platform == 'macosx' ? 'Cmd+' : 'Win+';
-    }
-    if (this.#accel) {
-      if (AppConstants.platform == 'macosx') {
-        str += 'Meta+';
-      } else {
-        str += 'Ctrl+';
-      }
     }
     return str;
   }
