@@ -127,7 +127,9 @@ var ZenWorkspaces = {
     }
   },
 
-  _kIcons: JSON.parse(Services.prefs.getStringPref("zen.workspaces.icons")).map((icon) => Array.from(icon)[0]),
+  _kIcons: JSON.parse(Services.prefs.getStringPref("zen.workspaces.icons")).map((icon) => (
+    (typeof Intl.Segmenter !== 'undefined') ? new Intl.Segmenter().segment(icon).containing().segment : Array.from(icon)[0]
+  )),
 
   _initializeWorkspaceCreationIcons() {
     let container = document.getElementById('PanelUI-zen-workspaces-create-icons-container');
@@ -247,6 +249,9 @@ var ZenWorkspaces = {
   getWorkspaceIcon(workspace) {
     if (this.workspaceHasIcon(workspace)) {
       return workspace.icon;
+    }
+    if (typeof Intl.Segmenter !== 'undefined') {
+      return new Intl.Segmenter().segment(workspace.name).containing().segment.toUpperCase();
     }
     return Array.from(workspace.name)[0].toUpperCase();
   },
