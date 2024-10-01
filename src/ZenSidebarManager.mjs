@@ -8,17 +8,56 @@ var gZenBrowserManagerSidebar = {
   _hasRegisteredPinnedClickOutside: false,
   _isDragging: false,
   contextTab: null,
+  sidebar: null,
+  forwardButton: null,
+  backButton: null,
+  progressListener: null,
 
   DEFAULT_MOBILE_USER_AGENT: 'Mozilla/5.0 (Android 12; Mobile; rv:129.0) Gecko/20100101 Firefox/130.0',
   MAX_SIDEBAR_PANELS: 9, // +1 for the add panel button
   MAX_RUNS: 3,
 
   init() {
+    XPCOMUtils.defineLazyGetter(this, 'sidebar', () => document.getElementById('zen-sidebar-web-panel'));
+    XPCOMUtils.defineLazyGetter(this, 'forwardButton', () => document.getElementById('zen-sidebar-web-panel-forward'));
+    XPCOMUtils.defineLazyGetter(this, 'backButton', () => document.getElementById('zen-sidebar-web-panel-back'));
+
+    this.initProgressListener();
     this.update();
     this.close(); // avoid caching
     this.listenForPrefChanges();
     this.insertIntoContextMenu();
     this.addPositioningListeners();
+  },
+
+  initProgressListener() {
+    this.progressListener  = {
+      QueryInterface: ChromeUtils.generateQI([
+        "nsIWebProgressListener",
+        "nsISupportsWeakReference",
+      ]),
+      onLocationChange: function(aWebProgress, aRequest, aLocation, aFlags) {
+        const browser = this._getCurrentBrowser();
+        if (!browser) return;
+        const forwardDisabled = this.forwardButton.hasAttribute('disabled');
+        const backDisabled = this.backButton.hasAttribute('disabled');
+
+        if (browser.canGoForward === forwardDisabled) {
+          if (browser.canGoForward) {
+            this.forwardButton.removeAttribute('disabled');
+          } else {
+            this.forwardButton.setAttribute('disabled', true);
+          }
+        }
+        if (browser.canGoBack === backDisabled) {
+          if (browser.canGoBack) {
+            this.backButton.removeAttribute('disabled');
+          } else {
+            this.backButton.setAttribute('disabled', true);
+          }
+        }
+      }.bind(gZenBrowserManagerSidebar),
+    }
   },
 
   get sidebarData() {
@@ -398,6 +437,8 @@ var gZenBrowserManagerSidebar = {
     this._hideAllWebPanels();
     if (!this._currentPanel) {
       this.introductionPanel.removeAttribute('hidden');
+      this.forwardButton.setAttribute('disabled', true);
+      this.backButton.setAttribute('disabled', true);
       return;
     }
     this.introductionPanel.setAttribute('hidden', 'true');
@@ -412,6 +453,7 @@ var gZenBrowserManagerSidebar = {
     let browser = this._createWebPanelBrowser(data);
     let browserContainers = document.getElementById('zen-sidebar-web-panel-browser-containers');
     browserContainers.appendChild(browser);
+    browser.addProgressListener(this.progressListener, Ci.nsIWebProgress.NOTIFY_LOCATION);
     if (data.ua) {
       browser.browsingContext.customUserAgent = this.DEFAULT_MOBILE_USER_AGENT;
       browser.reload();
@@ -555,13 +597,6 @@ var gZenBrowserManagerSidebar = {
       this._sidebarHeader = document.getElementById('zen-sidebar-web-header');
     }
     return this._sidebarHeader;
-  },
-
-  get sidebar() {
-    if (!this._sidebar) {
-      this._sidebar = document.getElementById('zen-sidebar-web-panel');
-    }
-    return this._sidebar;
   },
 
   get sidebarWrapper() {
