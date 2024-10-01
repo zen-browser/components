@@ -7,6 +7,13 @@
 
   XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenTabUnloaderExcludedUrls', 'zen.tab-unloader.excluded-urls', '');
 
+  XPCOMUtils.defineLazyPreferenceGetter(
+      lazy,
+      "zenPinnedTabResetOnCloseShortcutEnabled",
+      "zen.tab-unloader.reset-pinned-tab-on-close-shortcut",
+      false
+  );
+
   const ZEN_TAB_UNLOADER_DEFAULT_EXCLUDED_URLS = [
     '^about:',
     '^chrome:',
@@ -128,20 +135,114 @@
         return;
       }
       this.insertIntoContextMenu();
+
+      this.insertResetTabIntoContextMenu();
+      this.initClosePinnedTabShortcut();
       this.observer = new ZenTabsObserver();
       this.intervalUnloader = new ZenTabsIntervalUnloader(this);
       this.observer.addTabsListener(this.onTabEvent.bind(this));
     }
 
+    onCloseTabShortcut(event) {
+      if (
+          event &&
+          (event.ctrlKey || event.metaKey || event.altKey) &&
+          gBrowser.selectedTab.pinned
+      ) {
+        const selectedTab = gBrowser.selectedTab;
+        const url = selectedTab.getAttribute("zen-pinned-url");
+        const title = selectedTab.getAttribute("zen-pinned-title");
+
+        let nextTab = gBrowser.tabContainer.findNextTab(selectedTab, {
+          direction: 1,
+          filter: tab => !tab.hidden && !tab.pinned,
+        });
+
+        if (!nextTab) {
+          // If there's no next tab, try to find the previous one
+          nextTab = gBrowser.tabContainer.findNextTab(selectedTab, {
+            direction: -1,
+            filter: tab => !tab.hidden && !tab.pinned,
+          });
+        }
+
+        if (selectedTab) {
+          // Switch to the next tab
+          gBrowser.selectedTab = nextTab;
+
+          if (url && this.zenPinnedTabResetOnCloseShortcutEnabled) {
+            const tabState = SessionStore.getTabState(selectedTab);
+            const state = JSON.parse(tabState);
+            let activeIndex = (state.index || state.entries.length) - 1;
+            // Ensure the index is in bounds.
+            activeIndex = Math.min(activeIndex, state.entries.length - 1);
+            activeIndex = Math.max(activeIndex, 0);
+            state.entries[activeIndex].url = url;
+            state.entries[activeIndex].title = title;
+            SessionStore.setTabState(selectedTab, state);
+          }
+
+          gBrowser.discardBrowser(selectedTab);
+
+          event.stopPropagation();
+          event.preventDefault();
+        }
+      }
+    }
+
+    initClosePinnedTabShortcut() {
+      let cmdClose = document.getElementById('cmd_close');
+
+      if (cmdClose) {
+        cmdClose.addEventListener('command', this.onCloseTabShortcut.bind(lazy));
+      }
+    }
+
+    ResetPinnedTab(){
+      const selectedTab = TabContextMenu.contextTab;
+
+      const url = selectedTab.getAttribute("zen-pinned-url");
+      const title = selectedTab.getAttribute("zen-pinned-title");
+
+      if (url) {
+        const tabState = SessionStore.getTabState(selectedTab);
+        const state = JSON.parse(tabState);
+
+        let activeIndex = (state.index || state.entries.length) - 1;
+        // Ensure the index is in bounds.
+        activeIndex = Math.min(activeIndex, state.entries.length - 1);
+        activeIndex = Math.max(activeIndex, 0);
+        state.entries[activeIndex].url = url;
+        state.entries[activeIndex].title = title;
+        SessionStore.setTabState(selectedTab, state);
+      }
+    }
+
+    insertResetTabIntoContextMenu() {
+      const element = window.MozXULElement.parseXULToFragment(`
+        <menuitem id="context_zen-reset-pinned-tab"
+                  data-lazy-l10n-id="tab-context-zen-reset-pinned-tab"
+                  hidden="true"
+                  oncommand="gZenTabUnloader.ResetPinnedTab();"/>
+      `);
+      document.getElementById('context_zenUnloadTab').before(element);
+    }
+
     onTabEvent(action, event) {
       const tab = event.target;
       switch (action) {
-        case 'TabPinned':
-        case 'TabUnpinned':
-        case 'TabBrowserInserted':
-        case 'TabBrowserDiscarded':
-        case 'TabShow':
-        case 'TabHide':
+        case "TabPinned":
+          tab.setAttribute("zen-pinned-url", tab.linkedBrowser.currentURI.spec);
+          tab.setAttribute("zen-pinned-title", tab.getAttribute("label"));
+          break;
+        case "TabUnpinned":
+          tab.removeAttribute("zen-pinned-url");
+          tab.removeAttribute("zen-pinned-title");
+          break;
+        case "TabBrowserInserted":
+        case "TabBrowserDiscarded":
+        case "TabShow":
+        case "TabHide":
           break;
         case 'TabAttrModified':
           this.handleTabAttrModified(tab, event);
