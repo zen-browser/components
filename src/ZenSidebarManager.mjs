@@ -18,9 +18,9 @@ var gZenBrowserManagerSidebar = {
   MAX_RUNS: 3,
 
   init() {
-    XPCOMUtils.defineLazyGetter(this, 'sidebar', () => document.getElementById('zen-sidebar-web-panel'));
-    XPCOMUtils.defineLazyGetter(this, 'forwardButton', () => document.getElementById('zen-sidebar-web-panel-forward'));
-    XPCOMUtils.defineLazyGetter(this, 'backButton', () => document.getElementById('zen-sidebar-web-panel-back'));
+    ChromeUtils.defineLazyGetter(this, 'sidebar', () => document.getElementById('zen-sidebar-web-panel'));
+    ChromeUtils.defineLazyGetter(this, 'forwardButton', () => document.getElementById('zen-sidebar-web-panel-forward'));
+    ChromeUtils.defineLazyGetter(this, 'backButton', () => document.getElementById('zen-sidebar-web-panel-back'));
 
     this.initProgressListener();
     this.update();
