@@ -5,6 +5,14 @@ var gZenViewSplitter = new class {
     this._tabBrowserPanel = null;
     this.__modifierElement = null;
     this.__hasSetMenuListener = false;
+    this.canChangeTabOnHover = null;
+
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "canChangeTabOnHover",
+      "zen.splitView.change-on-hover",
+      false
+    );
 
     window.addEventListener('TabClose', this.handleTabClose.bind(this));
     this.initializeContextMenu();
@@ -22,17 +30,6 @@ var gZenViewSplitter = new class {
     sibling.insertAdjacentElement('afterend', document.createXULElement('menuseparator'));
     sibling.insertAdjacentElement('afterend', menuitem);
     sibling.insertAdjacentElement('afterend', document.createXULElement('menuseparator'));
-  }
-
-  get canChangeTabOnHover() {
-    delete this.canChangeTabOnHover;
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "canChangeTabOnHover",
-      "zen.splitView.change-on-hover",
-      false
-    );
-    return this.canChangeTabOnHover;
   }
 
   /**
@@ -302,8 +299,8 @@ var gZenViewSplitter = new class {
     for (const tab of this._data[this.currentView].tabs) {
       const container = tab.linkedBrowser.closest('.browserSidebarContainer');
       this.resetContainerStyle(container);
-      container.removeEventListener('click', this.handleTabClick);
-      container.removeEventListener('mouseover', this.handleTabClick);
+      container.removeEventListener('click', this.handleTabEvent);
+      container.removeEventListener('mouseover', this.handleTabEvent);
     }
     this.tabBrowserPanel.removeAttribute('zen-split-view');
     this.tabBrowserPanel.style.gridTemplateAreas = '';
@@ -479,18 +476,21 @@ var gZenViewSplitter = new class {
       container.setAttribute('zen-split-active', 'true');
     }
     container.setAttribute('zen-split-anim', 'true');
-    container.addEventListener('click', this.handleTabClick);
-    container.addEventListener('mouseover', this.handleTabClick);
+    container.addEventListener('click', this.handleTabEvent);
+    container.addEventListener('mouseover', this.handleTabEvent);
 
     container.style.gridArea = `tab${index + 1}`;
   }
 
   /**
-   * Handles the tab click event.
+   * Handles tab events.
    *
-   * @param {Event} event - The click event.
+   * @param {Event} event - The event.
    */
-  handleTabClick = (event) => {
+  handleTabEvent = (event) => {
+    if (event.type === 'mouseover' && !this.canChangeTabOnHover) {
+      return;
+    }
     const container = event.currentTarget;
     const tab = window.gBrowser.tabs.find((t) => t.linkedBrowser.closest('.browserSidebarContainer') === container);
     if (tab) {
