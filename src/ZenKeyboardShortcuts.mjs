@@ -788,7 +788,7 @@ var gZenKeyboardShortcutsManager = {
   },
 
   _applyShortcuts() {
-    for (const browser of ZenThemesCommon.browsers) {
+    for (const browser of ZenMultiWindowFeature.browsers) {
       let mainKeyset = browser.document.getElementById('mainKeyset');
       if (!mainKeyset) {
         throw new Error('Main keyset not found');

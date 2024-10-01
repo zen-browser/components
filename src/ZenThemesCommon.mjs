@@ -1,16 +1,5 @@
 var ZenThemesCommon = {
-  kZenOSToSmallName: {
-    WINNT: 'windows',
-    Darwin: 'macos',
-    Linux: 'linux',
-  },
-
   kZenColors: ['#aac7ff', '#74d7cb', '#a0d490', '#dec663', '#ffb787', '#dec1b1', '#ffb1c0', '#ddbfc3', '#f6b0ea', '#d4bbff'],
-
-  get currentOperatingSystem() {
-    let os = Services.appinfo.OS;
-    return this.kZenOSToSmallName[os];
-  },
 
   get browsers() {
     return Services.wm.getEnumerator('navigator:browser');
@@ -63,8 +52,8 @@ var ZenThemesCommon = {
         const isNegation = negation === '!';
 
         if (
-          (isNegation && os === this.currentOperatingSystem) ||
-          (os !== '' && os !== this.currentOperatingSystem && !isNegation)
+          (isNegation && os === gZenOperatingSystemCommonUtils.currentOperatingSystem) ||
+          (os !== '' && os !== gZenOperatingSystemCommonUtils.currentOperatingSystem && !isNegation)
         ) {
           continue;
         }
@@ -80,7 +69,7 @@ var ZenThemesCommon = {
       return newThemePreferences;
     }
 
-    return preferences.filter(({ disabledOn = [] }) => !disabledOn.includes(this.currentOperatingSystem));
+    return preferences.filter(({ disabledOn = [] }) => !disabledOn.includes(gZenOperatingSystemCommonUtils.currentOperatingSystem));
   },
 
   throttle(mainFunction, delay) {

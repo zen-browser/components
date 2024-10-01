@@ -177,7 +177,7 @@ var gZenThemeImporter = new (class {
   }
 
   writeToDom(themesWithPreferences) {
-    for (const browser of ZenThemesCommon.browsers) {
+    for (const browser of ZenMultiWindowFeature.browsers) {
       for (const { enabled, preferences, name } of themesWithPreferences) {
         const sanitizedName = `theme-${name?.replaceAll(/\s/g, '-')?.replaceAll(/[^A-z_-]+/g, '')}`;
 
