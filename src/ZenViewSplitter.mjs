@@ -53,6 +53,8 @@ var gZenViewSplitter = new class {
    * @param {boolean} forUnsplit - Indicates if the tab is being removed for unsplitting.
    */
   removeTabFromGroup(tab, groupIndex, forUnsplit) {
+    this.disableTabSwitchView();
+
     const group = this._data[groupIndex];
     const tabIndex = group.tabs.indexOf(tab);
     group.tabs.splice(tabIndex, 1);
@@ -64,6 +66,149 @@ var gZenViewSplitter = new class {
     } else {
       this.updateSplitView(group.tabs[group.tabs.length - 1]);
     }
+  }
+
+  enableTabSwitchView() {
+    if (!this.splitViewActive) return;
+    this.switchViewEnabled = true;
+
+    const browsers = this._data[this.currentView].tabs.map(t => t.linkedBrowser);
+    browsers.forEach(b => {
+      b.style.pointerEvents = 'none';
+      b.style.opacity = '.7';
+    });
+
+    if (!this._thumnailCanvas) {
+      this._thumnailCanvas = document.createElement("canvas");
+      this._thumnailCanvas.width = 280 * devicePixelRatio;
+      this._thumnailCanvas.height = 140 * devicePixelRatio;
+    }
+
+    browsers.forEach(b => {
+      const container = b.closest('.browserContainer');
+
+    });
+    this.tabBrowserPanel.addEventListener('dragstart', this.onBrowserDragStart);
+    this.tabBrowserPanel.addEventListener('dragover', this.onBrowserDragOver);
+    this.tabBrowserPanel.addEventListener('drop', this.onBrowserDrop);
+    this.tabBrowserPanel.addEventListener('click', this.disableTabSwitchView, {once: true});
+  }
+
+  disableTabSwitchView = () => {
+    if (!this.switchViewEnabled) return;
+    this.switchViewEnabled = false;
+
+    this.tabBrowserPanel.removeEventListener('dragstart', this.onBrowserDragStart);
+    this.tabBrowserPanel.removeEventListener('dragover', this.onBrowserDragOver);
+    this.tabBrowserPanel.removeEventListener('drop', this.onBrowserDrop);
+    const browsers = this._data[this.currentView].tabs.map(t => t.linkedBrowser);
+    browsers.forEach(b => {
+      b.style.pointerEvents = '';
+      b.style.opacity = '';
+    });
+  }
+
+  onBrowserDragStart = (event) => {
+    let browser = event.target.querySelector('browser');
+    if (!browser) {
+      return;
+    }
+    const browserContainer = browser.closest('.browserSidebarContainer');
+    event.dataTransfer.setData('text/plain', browserContainer.id);
+
+    let dt = event.dataTransfer;
+    let scale = window.devicePixelRatio;
+    let canvas = this._dndCanvas;
+    if (!canvas) {
+      this._dndCanvas = canvas = document.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "canvas"
+      );
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+    }
+
+    canvas.width = 160 * scale;
+    canvas.height = 90 * scale;
+    let toDrag = canvas;
+    let dragImageOffset = -16;
+    if (gMultiProcessBrowser) {
+      var context = canvas.getContext("2d");
+      context.fillStyle = "white";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      let captureListener;
+      let platform = AppConstants.platform;
+      // On Windows and Mac we can update the drag image during a drag
+      // using updateDragImage. On Linux, we can use a panel.
+      if (platform === "win" || platform === "macosx") {
+        captureListener = function () {
+          dt.updateDragImage(canvas, dragImageOffset, dragImageOffset);
+        };
+      } else {
+        // Create a panel to use it in setDragImage
+        // which will tell xul to render a panel that follows
+        // the pointer while a dnd session is on.
+        if (!this._dndPanel) {
+          this._dndCanvas = canvas;
+          this._dndPanel = document.createXULElement("panel");
+          this._dndPanel.className = "dragfeedback-tab";
+          this._dndPanel.setAttribute("type", "drag");
+          let wrapper = document.createElementNS(
+            "http://www.w3.org/1999/xhtml",
+            "div"
+          );
+          wrapper.style.width = "160px";
+          wrapper.style.height = "90px";
+          wrapper.appendChild(canvas);
+          this._dndPanel.appendChild(wrapper);
+          document.documentElement.appendChild(this._dndPanel);
+        }
+        toDrag = this._dndPanel;
+      }
+      // PageThumb is async with e10s but that's fine
+      // since we can update the image during the dnd.
+      PageThumbs.captureToCanvas(browser, canvas)
+        .then(captureListener)
+        .catch(e => console.error(e));
+    } else {
+      // For the non e10s case we can just use PageThumbs
+      // sync, so let's use the canvas for setDragImage.
+      PageThumbs.captureToCanvas(browser, canvas).catch(e =>
+        console.error(e)
+      );
+      dragImageOffset = dragImageOffset * scale;
+    }
+    dt.setDragImage(toDrag, dragImageOffset, dragImageOffset);
+    return true;
+  }
+
+  onBrowserDragOver = (event) => {
+    event.preventDefault();
+  }
+
+  onBrowserDrop = (event) => {
+    console.log(event);
+    const containerId = event.dataTransfer.getData('text/plain');
+
+    const startTab = gBrowser.getTabForBrowser(
+      document.getElementById(containerId).querySelector('browser')
+    );
+    const endTab = gBrowser.getTabForBrowser(
+      event.target.querySelector('browser')
+    );
+    if (!startTab || !endTab) {
+      return;
+    }
+
+    const currentData = this._data[this.currentView];
+
+    const startIdx = currentData.tabs.indexOf(startTab);
+    const endIdx = currentData.tabs.indexOf(endTab);
+
+    currentData.tabs[startIdx] = endTab;
+    currentData.tabs[endIdx] = startTab;
+    this.applyGridToTabs(currentData.tabs, currentData.gridType, gBrowser.selectedTab);
   }
 
   /**
@@ -186,6 +331,10 @@ var gZenViewSplitter = new class {
 
   get minResizeWidth() {
     return Services.prefs.getIntPref('zen.splitView.min-resize-width');
+  }
+
+  get splitViewActive() {
+    return this.currentView >= 0;
   }
 
   /**
@@ -531,7 +680,7 @@ var gZenViewSplitter = new class {
    * @param {Event} event - The event.
    */
   handleTabEvent = (event) => {
-    if (event.type === 'mouseover' && !this.canChangeTabOnHover) {
+    if (this.switchViewEnabled || (event.type === 'mouseover' && !this.canChangeTabOnHover)) {
       return;
     }
     const container = event.currentTarget;
