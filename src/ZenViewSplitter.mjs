@@ -1,3 +1,19 @@
+
+class SplitNode {
+  constructor(direction, widthInParent = 100, heightInParent = 100) {
+    this.direction = direction; // row or column
+    this.children = [];
+    this.widthInParent = widthInParent;
+    this.heightInParent = heightInParent;
+  }
+}
+class SplitLeafNode {
+  constructor(tabContainerId,widthInParent = 100, heightInParent = 100) {
+    this.id = tabContainerId;
+    this.widthInParent = widthInParent;
+    this.heightInParent = heightInParent;
+  }
+}
 var gZenViewSplitter = new class {
   constructor() {
     this._data = [];
@@ -53,8 +69,6 @@ var gZenViewSplitter = new class {
    * @param {boolean} forUnsplit - Indicates if the tab is being removed for unsplitting.
    */
   removeTabFromGroup(tab, groupIndex, forUnsplit) {
-    this.disableTabSwitchView();
-
     const group = this._data[groupIndex];
     const tabIndex = group.tabs.indexOf(tab);
     group.tabs.splice(tabIndex, 1);
@@ -69,33 +83,18 @@ var gZenViewSplitter = new class {
   }
 
   enableTabSwitchView() {
-    if (!this.splitViewActive) return;
-    this.switchViewEnabled = true;
-
-    const browsers = this._data[this.currentView].tabs.map(t => t.linkedBrowser);
-    browsers.forEach(b => {
-      b.style.pointerEvents = 'none';
-      b.style.opacity = '.7';
-    });
-
     if (!this._thumnailCanvas) {
       this._thumnailCanvas = document.createElement("canvas");
       this._thumnailCanvas.width = 280 * devicePixelRatio;
       this._thumnailCanvas.height = 140 * devicePixelRatio;
     }
 
-    browsers.forEach(b => {
-      const container = b.closest('.browserContainer');
-
-    });
     this.tabBrowserPanel.addEventListener('dragstart', this.onBrowserDragStart);
     this.tabBrowserPanel.addEventListener('dragover', this.onBrowserDragOver);
     this.tabBrowserPanel.addEventListener('drop', this.onBrowserDrop);
-    this.tabBrowserPanel.addEventListener('click', this.disableTabSwitchView, {once: true});
   }
 
   disableTabSwitchView = () => {
-    if (!this.switchViewEnabled) return;
     this.switchViewEnabled = false;
 
     this.tabBrowserPanel.removeEventListener('dragstart', this.onBrowserDragStart);
@@ -109,6 +108,7 @@ var gZenViewSplitter = new class {
   }
 
   onBrowserDragStart = (event) => {
+    if (!this.splitViewActive) return;
     let browser = event.target.querySelector('browser');
     if (!browser) {
       return;
@@ -184,10 +184,12 @@ var gZenViewSplitter = new class {
   }
 
   onBrowserDragOver = (event) => {
+    if (!this.splitViewActive) return;
     event.preventDefault();
   }
 
   onBrowserDrop = (event) => {
+    if (!this.splitViewActive) return;
     console.log(event);
     const containerId = event.dataTransfer.getData('text/plain');
 
@@ -474,107 +476,68 @@ var gZenViewSplitter = new class {
     this.setTabsDocShellState(splitData.tabs, true);
     this.updateSplitViewButton(false);
 
-    this.applyGridToTabs(splitData.tabs, gridType, activeTab);
-    const gridAreas = this.calculateGridAreas(splitData.tabs, gridType);
-    this.applyGridLayout(gridAreas);
+    this.applyGridToTabs(splitData.tabs, activeTab);
+
+    const layout = this.calculateLayoutTree(splitData.tabs, gridType);
+    splitData.layoutTree = layout;
+    this.applyGridLayout(layout);
+  }
+
+  calculateLayoutTree(tabs, gridType) {
+    const containerIds = tabs.map(t => t.linkedBrowser.closest('.browserSidebarContainer').id);
+    let rootNode;
+    if (gridType === 'vsep') {
+      rootNode = new SplitNode('row');
+      rootNode.children = containerIds.map(id => new SplitLeafNode(id, 100 / tabs.length, 100));
+    } else if (gridType === 'hsep') {
+      rootNode = new SplitNode('column');
+      rootNode.children = containerIds.map(id => new SplitLeafNode(id, 100, 100 / tabs.length));
+    }
+
+    return rootNode;
   }
 
   /**
    * Applies the grid layout to the tabs.
    *
    * @param {Tab[]} tabs - The tabs to apply the grid layout to.
-   * @param {string} gridType - The type of grid layout.
    * @param {Tab} activeTab - The active tab.
    */
-  applyGridToTabs(tabs, gridType, activeTab) {
+  applyGridToTabs(tabs,activeTab) {
     tabs.forEach((tab, index) => {
       tab.splitView = true;
       const container = tab.linkedBrowser.closest('.browserSidebarContainer');
-      this.styleContainer(container, tab === activeTab, index, gridType);
+      this.styleContainer(container, tab === activeTab, index);
     });
   }
 
   /**
    * Apply grid layout to tabBrowserPanel
    *
-   * @param gridTemplateAreas
+   * @param {SplitNode} splitNode SplitNode
+   * @param {{top, bottom, left, right}} nodeRootPosition position of node relative to root of split
    */
-  applyGridLayout(gridTemplateAreas) {
-    const finalLayout = this.calculateLayoutWithSplitters(gridTemplateAreas);
+  applyGridLayout(splitNode, nodeRootPosition = {top: 0, bottom: 100, left: 0, right: 100}) {
+    const rootToNodeWidthRatio = (nodeRootPosition.right - nodeRootPosition.left) / 100;
+    const rootToNodeHeightRatio = (nodeRootPosition.bottom - nodeRootPosition.top) / 100;
 
-    this.tabBrowserPanel.style.gridTemplateAreas = finalLayout.templateAreas;
-    this.removeSplitters();
-    finalLayout.splitters.forEach(s => this.insertSplitter(s.nr, s.orient, s.gridIdx));
-
-    this.updateGridDimensions(this._data[this.currentView], finalLayout.nrOfRows, finalLayout.nrOfColumns);
-    this.applyGridSizes();
-  }
-
-
-  /**
-   * Takes a gridLayout and returns a new one with splitters.
-   *
-   * @param girdTemplateAreas
-   * @returns {{splitters: *[], templateAreas: string, nrOfColumns: number, nrOfRows: number}}
-   */
-  calculateLayoutWithSplitters(girdTemplateAreas) {
-    const rows = girdTemplateAreas.split(/['"]\s+['"]/).map(r => r.replaceAll(/['"]/g, '').split(/\s+/));
-
-    let finalTemplateAreas = '';
-    const splitters = [];
-
-    let vSplitterCount = 0;
-    let hSplitterCount = 0;
-    for (let i = 0; i < rows.length; i++) {
-      let nextRow = '';
-      finalTemplateAreas += `'`;
-      for (let j = 0; j < rows[i].length; j++) {
-        const current = rows[i][j];
-        const rightNeighbor = rows[i][j + 1];
-        finalTemplateAreas += " " + current;
-        if (rightNeighbor) {
-          if (rightNeighbor !== current) {
-            finalTemplateAreas += ` vSplitter${vSplitterCount + 1}`;
-            vSplitterCount++;
-            splitters.push({nr: vSplitterCount, orient: 'vertical', gridIdx: j + 1, panels: current + 1});
-          } else {
-            finalTemplateAreas += " " + current;
-          }
-        }
-
-        if (!rows[i + 1]) {
-          continue;
-        }
-        const underNeighbor = rows[i + 1][j];
-        if (underNeighbor !== current) {
-          nextRow += ` hSplitter${hSplitterCount + 1}`;
-          hSplitterCount++;
-          let panels = 1;
-          while (rows[i][j - panels] === current) {
-            panels++;
-          }
-          splitters.push({nr: hSplitterCount, orient: 'horizontal', gridIdx: i + 1, panels: panels});
-        } else {
-          nextRow += ' ' + current;
-        }
-        if (j === rows[i].length - 1) {
-          continue;
-        }
-        const rightNeighborJoinedWithUnderNeighbor = rightNeighbor === rows[i + 1][j + 1];
-        if (rightNeighborJoinedWithUnderNeighbor && (underNeighbor === current)) {
-          if (current === rightNeighbor) nextRow += ' ' + current; // square
-          else nextRow += ` vSplitter${vSplitterCount}`;
-        } else {
-          nextRow += ` hSplitter${hSplitterCount + 1}`;
-        }
+    let leftOffset = nodeRootPosition.left;
+    let topOffset = nodeRootPosition.top;
+    splitNode.children.forEach((childNode) => {
+      const childRootPosition = {top: topOffset, right: 100 - (leftOffset + childNode.widthInParent * rootToNodeWidthRatio), bottom: 100 - (topOffset + childNode.heightInParent * rootToNodeHeightRatio), left: leftOffset};
+      if (!childNode.children) {
+        const browserContainer = document.getElementById(childNode.id);
+        browserContainer.style.inset = `${childRootPosition.top}% ${childRootPosition.right}% ${childRootPosition.bottom}% ${childRootPosition.left}%`;
+      } else {
+        this.applyGridLayout(childNode, childRootPosition);
       }
-      finalTemplateAreas += `'`;
-      if (nextRow) {
-        finalTemplateAreas += `'${nextRow}'`;
-      }
-    }
 
-    return {templateAreas: finalTemplateAreas, splitters: splitters, nrOfRows: rows.length, nrOfColumns: rows[0]?.length || 0};
+      if (splitNode.direction === 'column') {
+        topOffset += childNode.heightInParent * rootToNodeWidthRatio;
+      } else {
+        leftOffset += childNode.widthInParent * rootToNodeHeightRatio;
+      }
+    });
   }
 
   insertSplitter(nr, orient, gridIdx) {
@@ -587,71 +550,10 @@ var gZenViewSplitter = new class {
     this.tabBrowserPanel.insertAdjacentElement("afterbegin", splitter);
   }
 
-  /**
-   * Initialize splitData with default widths and heights if dimensions of grid don't match
-   *
-   * @param splitData the splits data
-   * @param nrOfRows number of rows in the grid (excluding splitters)
-   * @param nrOfColumns number of columns in the grid (excluding splitters)
-   */
-  updateGridDimensions(splitData, nrOfRows, nrOfColumns) {
-    if (splitData.widths?.length !== nrOfColumns || splitData.heights?.length !== nrOfRows) {
-      splitData.widths = Array( nrOfColumns).fill(100 / nrOfColumns);
-      splitData.heights = Array(nrOfRows).fill(100 / nrOfRows);
-    }
-  }
-
   removeSplitters() {
     [...gZenViewSplitter.tabBrowserPanel.children]
       .filter(e => e.classList.contains('zen-split-view-splitter'))
       .forEach(s => s.remove());
-  }
-
-  /**
-   * Calculates the grid areas for the tabs.
-   *
-   * @param {Tab[]} tabs - The tabs.
-   * @param {string} gridType - The type of grid layout.
-   * @returns {string} The calculated grid areas.
-   */
-  calculateGridAreas(tabs, gridType) {
-    if (gridType === 'grid') {
-      return this.calculateGridAreasForGrid(tabs);
-    }
-    if (gridType === 'vsep') {
-      return `'${tabs.map((_, j) => `tab${j + 1}`).join(' ')}'`;
-    }
-    if (gridType === 'hsep') {
-      return tabs.map((_, j) => `'tab${j + 1}'`).join(' ');
-    }
-    return '';
-  }
-
-  /**
-   * Calculates the grid areas for the tabs in a grid layout.
-   *
-   * @param {Tab[]} tabs - The tabs.
-   * @returns {string} The calculated grid areas.
-   */
-  calculateGridAreasForGrid(tabs) {
-    const rows = ['', ''];
-    tabs.forEach((_, i) => {
-      if (i % 2 === 0) {
-        rows[0] += ` tab${i + 1}`;
-      } else {
-        rows[1] += ` tab${i + 1}`;
-      }
-    });
-
-    if (tabs.length === 2) {
-      return "'tab1 tab2'";
-    }
-
-    if (tabs.length % 2 !== 0) {
-      rows[1] += ` tab${tabs.length}`;
-    }
-
-    return `'${rows[0].trim()}' '${rows[1].trim()}'`;
   }
 
   /**
@@ -660,9 +562,8 @@ var gZenViewSplitter = new class {
    * @param {Element} container - The container element.
    * @param {boolean} isActive - Indicates if the tab is active.
    * @param {number} index - The index of the tab.
-   * @param {string} gridType - The type of grid layout.
    */
-  styleContainer(container, isActive, index, gridType) {
+  styleContainer(container, isActive, index) {
     container.removeAttribute('zen-split-active');
     if (isActive) {
       container.setAttribute('zen-split-active', 'true');
@@ -671,7 +572,8 @@ var gZenViewSplitter = new class {
     container.addEventListener('click', this.handleTabEvent);
     container.addEventListener('mouseover', this.handleTabEvent);
 
-    container.style.gridArea = `tab${index + 1}`;
+    container.style.position = 'absolute';
+    container.setAttribute('zen-split-id', index);
   }
 
   /**
