@@ -51,11 +51,6 @@ var ZenWorkspaces = new class extends ZenMultiWindowFeature {
     }
   }
 
-  // Wrorkspaces saving/loading
-  get _storeFile() {
-    return PathUtils.join(PathUtils.profileDir, 'zen-workspaces', 'Workspaces.json');
-  }
-
   async _workspaces() {
     if (!this._workspaceCache) {
       this._workspaceCache = { workspaces: await ZenWorkspacesStorage.getWorkspaces() };
@@ -77,10 +72,7 @@ var ZenWorkspaces = new class extends ZenMultiWindowFeature {
 
   async initializeWorkspaces() {
     Services.prefs.addObserver('zen.workspaces.enabled', this.onWorkspacesEnabledChanged.bind(this));
-    let file = new FileUtils.File(this._storeFile);
-    if (!file.exists()) {
-      await IOUtils.writeJSON(this._storeFile, {});
-    }
+
     await this.initializeWorkspacesButton();
     if (this.workspaceEnabled) {
       this._initializeWorkspaceCreationIcons();
@@ -175,8 +167,9 @@ var ZenWorkspaces = new class extends ZenMultiWindowFeature {
   }
 
   async removeWorkspace(windowID) {
+    let workspacesData = await this._workspaces();
     console.info('ZenWorkspaces: Removing workspace', windowID);
-    await this.changeWorkspace(json.workspaces.find((workspace) => workspace.uuid !== windowID));
+    await this.changeWorkspace(workspacesData.workspaces.find((workspace) => workspace.uuid !== windowID));
     this._deleteAllTabsInWorkspace(windowID);
     delete this._lastSelectedWorkspaceTabs[windowID];
     await ZenWorkspacesStorage.removeWorkspace(windowID);
