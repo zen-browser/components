@@ -7,7 +7,7 @@ var ZenWorkspacesStorage = {
   async _ensureTable() {
     await PlacesUtils.withConnectionWrapper("ZenWorkspacesStorage._ensureTable", async db => {
       await db.execute(`
-        CREATE TABLE IF NOT EXISTS moz_workspaces (
+        CREATE TABLE IF NOT EXISTS zen_workspaces (
           id INTEGER PRIMARY KEY,
           uuid TEXT UNIQUE NOT NULL,
           name TEXT NOT NULL,
@@ -26,11 +26,11 @@ var ZenWorkspacesStorage = {
     await PlacesUtils.withConnectionWrapper("ZenWorkspacesStorage.saveWorkspace", async db => {
       const now = Date.now();
       await db.executeCached(`
-        INSERT OR REPLACE INTO moz_workspaces (
+        INSERT OR REPLACE INTO zen_workspaces (
           uuid, name, icon, is_default, is_active, container_id, created_at, updated_at
         ) VALUES (
           :uuid, :name, :icon, :is_default, :is_active, :container_id, 
-          COALESCE((SELECT created_at FROM moz_workspaces WHERE uuid = :uuid), :now),
+          COALESCE((SELECT created_at FROM zen_workspaces WHERE uuid = :uuid), :now),
           :now
         )
       `, {
@@ -48,7 +48,7 @@ var ZenWorkspacesStorage = {
   async getWorkspaces() {
     const db = await PlacesUtils.promiseDBConnection();
     const rows = await db.execute(`
-      SELECT * FROM moz_workspaces ORDER BY created_at ASC
+      SELECT * FROM zen_workspaces ORDER BY created_at ASC
     `);
 
     return rows.map(row => ({
@@ -64,7 +64,7 @@ var ZenWorkspacesStorage = {
   async removeWorkspace(uuid) {
     await PlacesUtils.withConnectionWrapper("ZenWorkspacesStorage.removeWorkspace", async db => {
       await db.execute(`
-        DELETE FROM moz_workspaces WHERE uuid = :uuid
+        DELETE FROM zen_workspaces WHERE uuid = :uuid
       `, { uuid });
     });
   },
@@ -72,8 +72,8 @@ var ZenWorkspacesStorage = {
   async setActiveWorkspace(uuid) {
     await PlacesUtils.withConnectionWrapper("ZenWorkspacesStorage.setActiveWorkspace", async db => {
       await db.executeTransaction(async function() {
-        await db.execute(`UPDATE moz_workspaces SET is_active = 0`);
-        await db.execute(`UPDATE moz_workspaces SET is_active = 1 WHERE uuid = :uuid`, { uuid });
+        await db.execute(`UPDATE zen_workspaces SET is_active = 0`);
+        await db.execute(`UPDATE zen_workspaces SET is_active = 1 WHERE uuid = :uuid`, { uuid });
       });
     });
   },
@@ -81,8 +81,8 @@ var ZenWorkspacesStorage = {
   async setDefaultWorkspace(uuid) {
     await PlacesUtils.withConnectionWrapper("ZenWorkspacesStorage.setDefaultWorkspace", async db => {
       await db.executeTransaction(async function() {
-        await db.execute(`UPDATE moz_workspaces SET is_default = 0`);
-        await db.execute(`UPDATE moz_workspaces SET is_default = 1 WHERE uuid = :uuid`, { uuid });
+        await db.execute(`UPDATE zen_workspaces SET is_default = 0`);
+        await db.execute(`UPDATE zen_workspaces SET is_default = 1 WHERE uuid = :uuid`, { uuid });
       });
     });
   }
