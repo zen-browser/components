@@ -228,8 +228,6 @@ var gZenViewSplitter = new class {
 
     if (!forUnsplit) {
       tab.linkedBrowser.docShellIsActive = false;
-    } else {
-      container.style.gridArea = '1 / 1';
     }
   }
 
@@ -489,9 +487,20 @@ var gZenViewSplitter = new class {
     if (gridType === 'vsep') {
       rootNode = new SplitNode('row');
       rootNode.children = containerIds.map(id => new SplitLeafNode(id, 100 / tabs.length, 100));
-    } else if (gridType === 'hsep') {
+    } else if (gridType === 'hsep' || (tabs.length === 2 && gridType === 'grid')) {
       rootNode = new SplitNode('column');
       rootNode.children = containerIds.map(id => new SplitLeafNode(id, 100, 100 / tabs.length));
+    } else if (gridType === 'grid') {
+      rootNode = new SplitNode('row');
+      const rowWidth = 100 / Math.ceil(tabs.length / 2);
+      for (let i = 0; i < tabs.length - 1; i += 2) {
+        const columnNode = new SplitNode('column', rowWidth, 100);
+        columnNode.children = [new SplitLeafNode(containerIds[i], 100, 50), new SplitLeafNode(containerIds[i + 1], 100, 50)];
+        rootNode.children.push(columnNode);
+      }
+      if (tabs.length % 2 !== 0) {
+        rootNode.children.push(new SplitLeafNode(containerIds[tabs.length - 1], rowWidth, 100));
+      }
     }
 
     return rootNode;
@@ -517,25 +526,26 @@ var gZenViewSplitter = new class {
    * @param {SplitNode} splitNode SplitNode
    * @param {{top, bottom, left, right}} nodeRootPosition position of node relative to root of split
    */
-  applyGridLayout(splitNode, nodeRootPosition = {top: 0, bottom: 100, left: 0, right: 100}) {
-    const rootToNodeWidthRatio = (nodeRootPosition.right - nodeRootPosition.left) / 100;
-    const rootToNodeHeightRatio = (nodeRootPosition.bottom - nodeRootPosition.top) / 100;
+  applyGridLayout(splitNode, nodeRootPosition = {top: 0, bottom: 0, left: 0, right: 0}) {
+    if (!splitNode.children) {
+      const browserContainer = document.getElementById(splitNode.id);
+      browserContainer.style.inset = `${nodeRootPosition.top}% ${nodeRootPosition.right}% ${nodeRootPosition.bottom}% ${nodeRootPosition.left}%`;
+      return;
+    }
+
+    const rootToNodeWidthRatio = ((100 - nodeRootPosition.right) - nodeRootPosition.left) / 100;
+    const rootToNodeHeightRatio = ((100 - nodeRootPosition.bottom) - nodeRootPosition.top) / 100;
 
     let leftOffset = nodeRootPosition.left;
     let topOffset = nodeRootPosition.top;
     splitNode.children.forEach((childNode) => {
       const childRootPosition = {top: topOffset, right: 100 - (leftOffset + childNode.widthInParent * rootToNodeWidthRatio), bottom: 100 - (topOffset + childNode.heightInParent * rootToNodeHeightRatio), left: leftOffset};
-      if (!childNode.children) {
-        const browserContainer = document.getElementById(childNode.id);
-        browserContainer.style.inset = `${childRootPosition.top}% ${childRootPosition.right}% ${childRootPosition.bottom}% ${childRootPosition.left}%`;
-      } else {
-        this.applyGridLayout(childNode, childRootPosition);
-      }
+      this.applyGridLayout(childNode, childRootPosition);
 
       if (splitNode.direction === 'column') {
-        topOffset += childNode.heightInParent * rootToNodeWidthRatio;
+        topOffset += childNode.heightInParent * rootToNodeHeightRatio;
       } else {
-        leftOffset += childNode.widthInParent * rootToNodeHeightRatio;
+        leftOffset += childNode.widthInParent * rootToNodeWidthRatio;
       }
     });
   }
@@ -571,9 +581,6 @@ var gZenViewSplitter = new class {
     container.setAttribute('zen-split-anim', 'true');
     container.addEventListener('click', this.handleTabEvent);
     container.addEventListener('mouseover', this.handleTabEvent);
-
-    container.style.position = 'absolute';
-    container.setAttribute('zen-split-id', index);
   }
 
   /**
