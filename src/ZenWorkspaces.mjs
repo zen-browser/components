@@ -19,6 +19,7 @@ var ZenWorkspaces = new class extends ZenMultiWindowFeature {
       this._expandWorkspacesStrip.bind(this)
     );
     ChromeUtils.defineLazyGetter(this, 'tabContainer', () => document.getElementById('tabbrowser-tabs'));
+    await ZenWorkspacesStorage.init();
     await this.initializeWorkspaces();
     console.info('ZenWorkspaces: ZenWorkspaces initialized');
   }
@@ -57,10 +58,7 @@ var ZenWorkspaces = new class extends ZenMultiWindowFeature {
 
   async _workspaces() {
     if (!this._workspaceCache) {
-      this._workspaceCache = await IOUtils.readJSON(this._storeFile);
-      if (!this._workspaceCache.workspaces) {
-        this._workspaceCache.workspaces = [];
-      }
+      this._workspaceCache = { workspaces: await ZenWorkspacesStorage.getWorkspaces() };
     }
     return this._workspaceCache;
   }
@@ -171,42 +169,34 @@ var ZenWorkspaces = new class extends ZenMultiWindowFeature {
   }
 
   async saveWorkspace(workspaceData) {
-    let json = await IOUtils.readJSON(this._storeFile);
-    if (typeof json.workspaces === 'undefined') {
-      json.workspaces = [];
-    }
-    let existing = json.workspaces.findIndex((workspace) => workspace.uuid === workspaceData.uuid);
-    if (existing >= 0) {
-      json.workspaces[existing] = workspaceData;
-    } else {
-      json.workspaces.push(workspaceData);
-    }
-    console.info('ZenWorkspaces: Saving workspace', workspaceData);
-    await IOUtils.writeJSON(this._storeFile, json);
+    await ZenWorkspacesStorage.saveWorkspace(workspaceData);
     this._workspaceCache = null;
-
     await this._updateWorkspacesChangeContextMenu();
   }
 
   async removeWorkspace(windowID) {
-    let json = await this._workspaces();
     console.info('ZenWorkspaces: Removing workspace', windowID);
     await this.changeWorkspace(json.workspaces.find((workspace) => workspace.uuid !== windowID));
     this._deleteAllTabsInWorkspace(windowID);
     delete this._lastSelectedWorkspaceTabs[windowID];
-    json.workspaces = json.workspaces.filter((workspace) => workspace.uuid !== windowID);
-    await this.unsafeSaveWorkspaces(json);
+    await ZenWorkspacesStorage.removeWorkspace(windowID);
+    this._workspaceCache = null;
     await this._propagateWorkspaceData();
     await this._updateWorkspacesChangeContextMenu();
   }
 
   async saveWorkspaces() {
-    await IOUtils.writeJSON(this._storeFile, await this._workspaces());
+    const workspaces = await this._workspaces();
+    for (const workspace of workspaces.workspaces) {
+      await ZenWorkspacesStorage.saveWorkspace(workspace);
+    }
     this._workspaceCache = null;
   }
 
   async unsafeSaveWorkspaces(workspaces) {
-    await IOUtils.writeJSON(this._storeFile, workspaces);
+    for (const workspace of workspaces.workspaces) {
+      await ZenWorkspacesStorage.saveWorkspace(workspace);
+    }
     this._workspaceCache = workspaces;
   }
 
@@ -624,6 +614,8 @@ var ZenWorkspaces = new class extends ZenMultiWindowFeature {
 
       browser.document.getElementById('tabbrowser-tabs')._positionPinnedTabs();
     });
+
+    await ZenWorkspacesStorage.setActiveWorkspace(window.uuid);
     await this.saveWorkspaces();
     await this._propagateWorkspaceData();
   }
@@ -748,7 +740,7 @@ var ZenWorkspaces = new class extends ZenMultiWindowFeature {
 
   onContextMenuClose() {
     let target = document.querySelector(
-      `#PanelUI-zen-workspaces [zen-workspace-id="${this._contextMenuId}"] .zen-workspace-actions`
+        `#PanelUI-zen-workspaces [zen-workspace-id="${this._contextMenuId}"] .zen-workspace-actions`
     );
     if (target) {
       target.removeAttribute('active');
@@ -757,11 +749,8 @@ var ZenWorkspaces = new class extends ZenMultiWindowFeature {
   }
 
   async setDefaultWorkspace() {
-    let workspaces = await this._workspaces();
-    for (let workspace of workspaces.workspaces) {
-      workspace.default = workspace.uuid === this._contextMenuId;
-    }
-    await this.unsafeSaveWorkspaces(workspaces);
+    await ZenWorkspacesStorage.setDefaultWorkspace(this._contextMenuId);
+    this._workspaceCache = null;
     await this._propagateWorkspaceData();
   }
 
