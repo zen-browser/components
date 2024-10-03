@@ -13,7 +13,6 @@ var ZenWorkspacesStorage = {
           name TEXT NOT NULL,
           icon TEXT,
           is_default INTEGER NOT NULL DEFAULT 0,
-          is_active INTEGER NOT NULL DEFAULT 0,
           container_id INTEGER,
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL
@@ -27,9 +26,9 @@ var ZenWorkspacesStorage = {
       const now = Date.now();
       await db.executeCached(`
         INSERT OR REPLACE INTO zen_workspaces (
-          uuid, name, icon, is_default, is_active, container_id, created_at, updated_at
+          uuid, name, icon, is_default, container_id, created_at, updated_at
         ) VALUES (
-          :uuid, :name, :icon, :is_default, :is_active, :container_id, 
+          :uuid, :name, :icon, :is_default, :container_id, 
           COALESCE((SELECT created_at FROM zen_workspaces WHERE uuid = :uuid), :now),
           :now
         )
@@ -38,7 +37,6 @@ var ZenWorkspacesStorage = {
         name: workspace.name,
         icon: workspace.icon || null,
         is_default: workspace.default ? 1 : 0,
-        is_active: workspace.used ? 1 : 0,
         container_id: workspace.containerTabId || null,
         now
       });
@@ -50,13 +48,11 @@ var ZenWorkspacesStorage = {
     const rows = await db.execute(`
       SELECT * FROM zen_workspaces ORDER BY created_at ASC
     `);
-
     return rows.map(row => ({
       uuid: row.getResultByName("uuid"),
       name: row.getResultByName("name"),
       icon: row.getResultByName("icon"),
       default: !!row.getResultByName("is_default"),
-      used: !!row.getResultByName("is_active"),
       containerTabId: row.getResultByName("container_id")
     }));
   },
@@ -66,15 +62,6 @@ var ZenWorkspacesStorage = {
       await db.execute(`
         DELETE FROM zen_workspaces WHERE uuid = :uuid
       `, { uuid });
-    });
-  },
-
-  async setActiveWorkspace(uuid) {
-    await PlacesUtils.withConnectionWrapper("ZenWorkspacesStorage.setActiveWorkspace", async db => {
-      await db.executeTransaction(async function() {
-        await db.execute(`UPDATE zen_workspaces SET is_active = 0`);
-        await db.execute(`UPDATE zen_workspaces SET is_active = 1 WHERE uuid = :uuid`, { uuid });
-      });
     });
   },
 
