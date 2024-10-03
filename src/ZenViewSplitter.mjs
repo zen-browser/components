@@ -673,6 +673,7 @@ var gZenViewSplitter = new class {
 
     const dragFunc = (dEvent) => {
       requestAnimationFrame(() => {
+        originalSizes.forEach((s, i) => splitNode.children[i][dimensionInParent] = s); // reset changes
 
         const movement = dEvent[clientAxis] - startPosition;
         let movementPercent = (movement / this.tabBrowserPanel.getBoundingClientRect()[dimension] * rootToNodeSize) * 100;
@@ -692,14 +693,13 @@ var gZenViewSplitter = new class {
         this.applyGridLayout(splitNode);
       });
     }
-    const stopListeners = () => {
-      removeEventListener('mousemove', dragFunc);
-      removeEventListener('mouseup', stopListeners);
-      setCursor('auto');
-    }
-    addEventListener('mousemove', dragFunc);
-    addEventListener('mouseup', stopListeners);
+
     setCursor(isVertical ? 'ew-resize' : 'n-resize');
+    document.addEventListener('mousemove', dragFunc);
+    document.addEventListener('mouseup', () => {
+      removeEventListener('mousemove', dragFunc);
+      setCursor('auto');
+    }, {once: true});
   }
 
   /**
