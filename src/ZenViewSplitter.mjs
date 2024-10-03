@@ -692,6 +692,7 @@ var gZenViewSplitter = new class {
       currentSplitters.push(
         this.createSplitter(parentNode.direction === 'column' ? 'horizontal' : 'vertical', parentNode, i)
       );
+      currentSplitters[i].parentSplitNode = parentNode;
     }
     if (currentSplitters.length > splittersNeeded) {
       currentSplitters.slice(splittersNeeded - currentSplitters.length).forEach(s => s.remove());
@@ -779,7 +780,7 @@ var gZenViewSplitter = new class {
     setCursor(isVertical ? 'ew-resize' : 'n-resize');
     document.addEventListener('mousemove', dragFunc);
     document.addEventListener('mouseup', () => {
-      removeEventListener('mousemove', dragFunc);
+      document.removeEventListener('mousemove', dragFunc);
       setCursor('auto');
     }, {once: true});
   }
