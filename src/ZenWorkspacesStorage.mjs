@@ -27,8 +27,10 @@ var ZenWorkspacesStorage = {
     if (await IOUtils.exists(oldWorkspacesPath)) {
       console.info('ZenWorkspacesStorage: Migrating workspaces from JSON...');
       const oldWorkspaces = await IOUtils.readJSON(oldWorkspacesPath);
-      for (const workspace of oldWorkspaces.workspaces) {
-        await this.saveWorkspace(workspace);
+      if (oldWorkspaces.workspaces) {
+        for (const workspace of oldWorkspaces.workspaces) {
+          await this.saveWorkspace(workspace);
+        }
       }
       await IOUtils.remove(oldWorkspacesPath);
     }
