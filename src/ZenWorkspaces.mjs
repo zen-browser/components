@@ -234,7 +234,7 @@ var ZenWorkspaces = new class extends ZenMultiWindowFeature {
   }
 
   workspaceHasIcon(workspace) {
-    return typeof workspace.icon !== 'undefined' && workspace.icon !== '';
+    return workspace.icon && workspace.icon !== '';
   }
 
   getWorkspaceIcon(workspace) {

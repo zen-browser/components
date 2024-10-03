@@ -19,6 +19,19 @@ var ZenWorkspacesStorage = {
         )
       `);
     });
+    await this._migrateWorkspacesFromJSON();
+  },
+
+  async _migrateWorkspacesFromJSON() {
+    const oldWorkspacesPath = PathUtils.join(PathUtils.profileDir, 'zen-workspaces', 'Workspaces.json');
+    if (await IOUtils.exists(oldWorkspacesPath)) {
+      console.info('ZenWorkspacesStorage: Migrating workspaces from JSON...');
+      const oldWorkspaces = await IOUtils.readJSON(oldWorkspacesPath);
+      for (const workspace of oldWorkspaces.workspaces) {
+        await this.saveWorkspace(workspace);
+      }
+      await IOUtils.remove(oldWorkspacesPath);
+    }
   },
 
   async saveWorkspace(workspace) {
