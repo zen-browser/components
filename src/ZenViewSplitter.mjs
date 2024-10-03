@@ -160,12 +160,13 @@ var gZenViewSplitter = new class {
       leftOverChild.parent = parent.parent;
       parent.parent.children[parent.parent.children.indexOf(parent)] = leftOverChild;
       this._removeNodeSplitters(parent, false);
+      this.applyGridLayout(parent.parent);
     } else {
-      const viewData = Object.entries(this._data).find(s => s.layoutTree === parent);
+      const viewData = Object.values(this._data).find(s => s.layoutTree === parent);
       viewData.layoutTree = parent;
       parent.positionToRoot = null;
+      this.applyGridLayout(parent);
     }
-    this.applyGridLayout(parent.parent, true);
   }
 
   /**
@@ -676,12 +677,6 @@ var gZenViewSplitter = new class {
     splitter.setAttribute('gridIdx', idx);
     this.splitterBox.insertAdjacentElement("afterbegin", splitter);
 
-    splitter.parentSplitNode = parentNode;
-    if (!this._splitNodeToSplitters.has(parentNode)) {
-      this._splitNodeToSplitters.set(parentNode, []);
-    }
-    this._splitNodeToSplitters.get(parentNode).push(splitter);
-
     splitter.addEventListener('mousedown', this.handleSplitterMouseDown);
     return splitter;
   }
@@ -699,14 +694,15 @@ var gZenViewSplitter = new class {
       );
     }
     if (currentSplitters.length > splittersNeeded) {
-      currentSplitters.slice(currentSplitters - splittersNeeded).forEach(s => s.remove());
+      currentSplitters.slice(splittersNeeded - currentSplitters.length).forEach(s => s.remove());
       currentSplitters = currentSplitters.slice(0, splittersNeeded);
     }
+    this._splitNodeToSplitters.set(parentNode, currentSplitters);
     return currentSplitters;
   }
 
   removeSplitters() {
-    Array.from(this._splitNodeToSplitters.values()).forEach(s => s.remove());
+    Array.from(this._splitNodeToSplitters.values())[0].forEach(e => e.remove());
     this._splitNodeToSplitters.clear();
   }
 
