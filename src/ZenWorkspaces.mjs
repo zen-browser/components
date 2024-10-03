@@ -62,11 +62,11 @@ var ZenWorkspaces = new class extends ZenMultiWindowFeature {
         const activeWorkspace = this._workspaceCache.workspaces.find(w => w.uuid === activeWorkspaceId);
         // Set the active workspace ID to the first one if the one with selected id doesn't exist
         if (!activeWorkspace) {
-          Services.prefs.setStringPref("zen.workspaces.active", this._workspaceCache.workspaces[0].uuid);
+          Services.prefs.setStringPref("zen.workspaces.active", this._workspaceCache.workspaces[0]?.uuid);
         }
       } else {
         // Set the active workspace ID to the first one if active workspace doesn't exist
-        Services.prefs.setStringPref("zen.workspaces.active", this._workspaceCache.workspaces[0].uuid);
+        Services.prefs.setStringPref("zen.workspaces.active", this._workspaceCache.workspaces[0]?.uuid);
       }
     }
     return this._workspaceCache;
