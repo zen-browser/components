@@ -6,6 +6,7 @@ class SplitNode {
     this.splitters = [];
     this.widthInParent = widthInParent;
     this.heightInParent = heightInParent;
+    this.positionToRoot = null; // position relative to root node
   }
 }
 class SplitLeafNode {
@@ -31,6 +32,13 @@ var gZenViewSplitter = new class {
       "canChangeTabOnHover",
       "zen.splitView.change-on-hover",
       false
+    );
+
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      'minResizeWidth',
+      'zen.splitView.min-resize-width',
+      7
     );
 
     ChromeUtils.defineLazyGetter(
@@ -338,10 +346,6 @@ var gZenViewSplitter = new class {
     return this._tabBrowserPanel;
   }
 
-  get minResizeWidth() {
-    return Services.prefs.getIntPref('zen.splitView.min-resize-width');
-  }
-
   get splitViewActive() {
     return this.currentView >= 0;
   }
@@ -541,9 +545,12 @@ var gZenViewSplitter = new class {
    * Apply grid layout to tabBrowserPanel
    *
    * @param {SplitNode} splitNode SplitNode
-   * @param {{top, bottom, left, right}} nodeRootPosition position of node relative to root of split
    */
-  applyGridLayout(splitNode,  nodeRootPosition = {top: 0, bottom: 0, left: 0, right: 0}) {
+  applyGridLayout(splitNode) {
+    if (!splitNode.positionToRoot) {
+      splitNode.positionToRoot = {top: 0, bottom: 0, left: 0, right: 0};
+    }
+    const nodeRootPosition = splitNode.positionToRoot;
     if (!splitNode.children) {
       const browserContainer = document.getElementById(splitNode.id);
       browserContainer.style.inset = `${nodeRootPosition.top}% ${nodeRootPosition.right}% ${nodeRootPosition.bottom}% ${nodeRootPosition.left}%`;
@@ -559,7 +566,8 @@ var gZenViewSplitter = new class {
     let topOffset = nodeRootPosition.top;
     splitNode.children.forEach((childNode, i) => {
       const childRootPosition = {top: topOffset, right: 100 - (leftOffset + childNode.widthInParent * rootToNodeWidthRatio), bottom: 100 - (topOffset + childNode.heightInParent * rootToNodeHeightRatio), left: leftOffset};
-      this.applyGridLayout(childNode, childRootPosition);
+      childNode.positionToRoot = childRootPosition;
+      this.applyGridLayout(childNode);
 
       if (splitNode.direction === 'column') {
         topOffset += childNode.heightInParent * rootToNodeHeightRatio;
@@ -572,7 +580,7 @@ var gZenViewSplitter = new class {
       if (!isLastNode) {
         let splitter = currentSplitters?.[i];
         if (!splitter) {
-          splitter = this.createSplitter(splitNode.direction === 'column' ? 'horizontal' : 'vertical', childNode, i);
+          splitter = this.createSplitter(splitNode.direction === 'column' ? 'horizontal' : 'vertical', splitNode, i);
         }
         if (splitNode.direction === 'column') {
           splitter.style.inset = `${100 - childRootPosition.bottom}% ${childRootPosition.right}% 0% ${childRootPosition.left}%`;
@@ -610,9 +618,10 @@ var gZenViewSplitter = new class {
   }
 
   removeSplitters() {
-    [...gZenViewSplitter.tabBrowserPanel.children]
-      .filter(e => e.classList.contains('zen-split-view-splitter'))
-      .forEach(s => s.remove());
+    Array.from(this._splitNodeToSplitters.values()).forEach(s => {
+      s.remove;
+    });
+    this._splitNodeToSplitters.clear();
   }
 
   /**
@@ -649,36 +658,38 @@ var gZenViewSplitter = new class {
   };
 
   handleSplitterMouseDown = (event) => {
-    const splitData = this._data[this.currentView];
-
     const isVertical = event.target.getAttribute('orient') === 'vertical';
-    const dimension = isVertical ? 'widths' : 'heights';
+    const dimension = isVertical ? 'width' : 'height';
+    const dimensionInParent = dimension + 'InParent';
     const clientAxis = isVertical ? 'screenX' : 'screenY';
 
-    const gridIdx = event.target.getAttribute('gridIdx');
-    let prevPosition = event[clientAxis];
+    const gridIdx = parseInt(event.target.getAttribute('gridIdx'));
+    const startPosition = event[clientAxis];
+    const splitNode = event.target.parentSplitNode;
+    let rootToNodeSize;
+    if (isVertical) rootToNodeSize = 100 / (100 - splitNode.positionToRoot.right - splitNode.positionToRoot.left);
+    else rootToNodeSize = 100 / (100 - splitNode.positionToRoot.bottom - splitNode.positionToRoot.top);
+    const originalSizes = splitNode.children.map(c => c[dimensionInParent]);
+
     const dragFunc = (dEvent) => {
       requestAnimationFrame(() => {
-        const movementX = dEvent[clientAxis] - prevPosition;
-        let percentageChange = (movementX / this.tabBrowserPanel.getBoundingClientRect()[isVertical ? 'width' : 'height']) * 100;
 
-        const currentSize = splitData[dimension][gridIdx - 1];
-        const neighborSize = splitData[dimension][gridIdx];
-        if (currentSize < this.minResizeWidth && neighborSize < this.minResizeWidth) {
-          return;
+        const movement = dEvent[clientAxis] - startPosition;
+        let movementPercent = (movement / this.tabBrowserPanel.getBoundingClientRect()[dimension] * rootToNodeSize) * 100;
+
+        let reducingMovement = Math.max(movementPercent, -movementPercent);
+        for (let i = gridIdx + (movementPercent < 0 ? 0 : 1); 0 <= i && i < originalSizes.length; i += movementPercent < 0 ? -1 : 1) {
+          const current = originalSizes[i];
+          const newSize = Math.max(this.minResizeWidth, current - reducingMovement);
+          splitNode.children[i][dimensionInParent] = newSize;
+          const amountReduced = current - newSize;
+          reducingMovement -= amountReduced;
+          if (reducingMovement <= 0) break;
         }
-        let max = false;
-        if (currentSize + percentageChange < this.minResizeWidth) {
-          percentageChange = this.minResizeWidth - currentSize;
-          max = true;
-        } else if (neighborSize - percentageChange < this.minResizeWidth) {
-          percentageChange = neighborSize - this.minResizeWidth;
-          max = true;
-        }
-        splitData[dimension][gridIdx - 1] += percentageChange;
-        splitData[dimension][gridIdx] -= percentageChange;
-        this.applyGridSizes();
-        if (!max) prevPosition = dEvent[clientAxis];
+        const increasingMovement = Math.max(movementPercent, - movementPercent) - reducingMovement;
+        const increaseIndex = gridIdx + (movementPercent < 0 ? 1 : 0);
+        splitNode.children[increaseIndex][dimensionInParent] = originalSizes[increaseIndex] + increasingMovement;
+        this.applyGridLayout(splitNode);
       });
     }
     const stopListeners = () => {
@@ -689,23 +700,6 @@ var gZenViewSplitter = new class {
     addEventListener('mousemove', dragFunc);
     addEventListener('mouseup', stopListeners);
     setCursor(isVertical ? 'ew-resize' : 'n-resize');
-  }
-
-  /**
-   * Applies the grid column and row sizes
-   */
-  applyGridSizes() {
-    const splitData = this._data[this.currentView];
-    const columnGap = 'var(--zen-split-column-gap)';
-    const rowGap = 'var(--zen-split-row-gap)';
-
-    this.tabBrowserPanel.style.gridTemplateColumns = splitData.widths.slice(0, -1).map(
-        (w) => `calc(${w}% - ${columnGap} * ${splitData.widths.length - 1}/${splitData.widths.length}) ${columnGap}`
-    ).join(' ');
-
-    this.tabBrowserPanel.style.gridTemplateRows = splitData.heights.slice(0, -1).map(
-        (h) => `calc(${h}% - ${rowGap} * ${splitData.heights.length - 1}/${splitData.heights.length}) ${rowGap}`
-    ).join(' ');
   }
 
   /**
