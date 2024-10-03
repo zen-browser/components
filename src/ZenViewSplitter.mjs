@@ -1,12 +1,46 @@
-
 class SplitNode {
+  /**
+   * @type {number}
+   * @type
+   */
+  splitters = [];
+  widthInParent ;
+  /**
+   * @type {number}
+   */
+  heightInParent ;
+  /**
+   * @type {Object}
+   */
+  positionToRoot; // position relative to root node
+  /**
+   * @type {SplitNode}
+   */
+  parent;
+  /**
+   * @type {string}
+   */
+  direction;
+
   constructor(direction, widthInParent = 100, heightInParent = 100) {
-    this.direction = direction; // row or column
-    this.children = [];
-    this.splitters = [];
     this.widthInParent = widthInParent;
     this.heightInParent = heightInParent;
-    this.positionToRoot = null; // position relative to root node
+    this.direction = direction; // row or column
+    this._children = [];
+  }
+
+  set children(children) {
+    if (children) children.forEach(c => c.parent = this);
+    this._children = children;
+  }
+
+  get children() {
+    return this._children;
+  }
+
+  addChild(child) {
+    child.parent = this;
+    this._children.push(child);
   }
 }
 class SplitLeafNode {
@@ -26,6 +60,7 @@ var gZenViewSplitter = new class {
     this.canChangeTabOnHover = null;
     this.splitterBox = null;
     this._splitNodeToSplitters = new Map();
+    this._containerToSplitNode = new Map();
 
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
@@ -95,8 +130,54 @@ var gZenViewSplitter = new class {
     if (group.tabs.length < 2) {
       this.removeGroup(groupIndex);
     } else {
-      this.updateSplitView(group.tabs[group.tabs.length - 1]);
+      const node = this._containerToSplitNode.get(tab.linkedBrowser.closest('.browserSidebarContainer'))
+      this.applyRemoveNode(node);
     }
+  }
+
+  /**
+   * Remove a SplitNode from its tree and the view
+   * @param {SplitNode} toRemove
+   */
+  applyRemoveNode(toRemove) {
+    this._removeNodeSplitters(toRemove, true);
+    const parent = toRemove.parent;
+    const childIndex = parent.children.indexOf(toRemove);
+    parent.children.splice(childIndex, 1);
+    if (parent.children.length !== 1) {
+      const nodeToResize = parent.children[Math.max(0, childIndex - 1)];
+      if (parent.direction === 'column') nodeToResize.heightInParent += toRemove.heightInParent;
+      else nodeToResize.widthInParent += toRemove.widthInParent;
+      this.applyGridLayout(parent);
+      return;
+    }
+    // node that is not a leaf cannot have less than 2 children, this makes for better resizing
+    // node takes place of parent
+    const leftOverChild = parent.children[0];
+    leftOverChild.widthInParent = parent.widthInParent;
+    leftOverChild.heightInParent = parent.heightInParent;
+    if (parent.parent) {
+      leftOverChild.parent = parent.parent;
+      parent.parent.children[parent.parent.children.indexOf(parent)] = leftOverChild;
+      this._removeNodeSplitters(parent, false);
+    } else {
+      const viewData = Object.entries(this._data).find(s => s.layoutTree === parent);
+      viewData.layoutTree = parent;
+      parent.positionToRoot = null;
+    }
+    this.applyGridLayout(parent.parent, true);
+  }
+
+  /**
+   * @param node
+   * @param {boolean} recursive
+   * @private
+   */
+  _removeNodeSplitters(node, recursive ) {
+    this.getSplitters(node)?.forEach(s => s.remove());
+    if (!recursive) return;
+    this._splitNodeToSplitters.delete(node);
+    if (node.children) node.children.forEach(c => this._removeNodeSplitters(c));
   }
 
   enableTabSwitchView() {
@@ -240,8 +321,7 @@ var gZenViewSplitter = new class {
     tab.splitView = false;
     tab.linkedBrowser.zenModeActive = false;
     const container = tab.linkedBrowser.closest('.browserSidebarContainer');
-    container.removeAttribute('zen-split');
-    container.removeAttribute('style');
+    this.resetContainerStyle(container);
 
     if (!forUnsplit) {
       tab.linkedBrowser.docShellIsActive = false;
@@ -255,7 +335,7 @@ var gZenViewSplitter = new class {
    */
   removeGroup(groupIndex) {
     if (this.currentView === groupIndex) {
-      this.resetSplitView(false);
+      this.resetSplitView();
     }
     for (const tab of this._data[groupIndex].tabs) {
       this.resetTabState(tab, true);
@@ -273,12 +353,9 @@ var gZenViewSplitter = new class {
       }
     }
     this.removeSplitters();
+    this.tabBrowserPanel.removeAttribute('zen-split-view');
 
     this.currentView = -1;
-    this.tabBrowserPanel.removeAttribute('zen-split-view');
-    this.tabBrowserPanel.style.gridTemplateAreas = '';
-    this.tabBrowserPanel.style.gridTemplateColumns = '';
-    this.tabBrowserPanel.style.gridTemplateRows = '';
   }
 
   /**
@@ -453,6 +530,7 @@ var gZenViewSplitter = new class {
       this.updateSplitViewButton(true);
       if (this.currentView >= 0) {
         this.deactivateSplitView();
+        return;
       }
       if (!splitData) {
         return;
@@ -473,9 +551,6 @@ var gZenViewSplitter = new class {
       container.removeEventListener('mouseover', this.handleTabEvent);
     }
     this.tabBrowserPanel.removeAttribute('zen-split-view');
-    this.tabBrowserPanel.style.gridTemplateAreas = '';
-    this.tabBrowserPanel.style.gridTemplateColumns = '';
-    this.tabBrowserPanel.style.gridTemplateRows = '';
     this.setTabsDocShellState(this._data[this.currentView].tabs, false);
     this.currentView = -1;
   }
@@ -517,10 +592,10 @@ var gZenViewSplitter = new class {
       for (let i = 0; i < tabs.length - 1; i += 2) {
         const columnNode = new SplitNode('column', rowWidth, 100);
         columnNode.children = [new SplitLeafNode(containerIds[i], 100, 50), new SplitLeafNode(containerIds[i + 1], 100, 50)];
-        rootNode.children.push(columnNode);
+        rootNode.addChild(columnNode);
       }
       if (tabs.length % 2 !== 0) {
-        rootNode.children.push(new SplitLeafNode(containerIds[tabs.length - 1], rowWidth, 100));
+        rootNode.addChild(new SplitLeafNode(containerIds[tabs.length - 1], rowWidth, 100));
       }
     }
 
@@ -554,13 +629,15 @@ var gZenViewSplitter = new class {
     if (!splitNode.children) {
       const browserContainer = document.getElementById(splitNode.id);
       browserContainer.style.inset = `${nodeRootPosition.top}% ${nodeRootPosition.right}% ${nodeRootPosition.bottom}% ${nodeRootPosition.left}%`;
+      this._containerToSplitNode.set(browserContainer, splitNode);
       return;
     }
 
     const rootToNodeWidthRatio = ((100 - nodeRootPosition.right) - nodeRootPosition.left) / 100;
     const rootToNodeHeightRatio = ((100 - nodeRootPosition.bottom) - nodeRootPosition.top) / 100;
 
-    const currentSplitters = this.getSplitters(splitNode);
+    const splittersNeeded = splitNode.children.length - 1;
+    const currentSplitters = this.getSplitters(splitNode, splittersNeeded);
 
     let leftOffset = nodeRootPosition.left;
     let topOffset = nodeRootPosition.top;
@@ -575,13 +652,8 @@ var gZenViewSplitter = new class {
         leftOffset += childNode.widthInParent * rootToNodeWidthRatio;
       }
 
-      // splitters get inserted by parent
-      const isLastNode = i === (splitNode.children.length - 1);
-      if (!isLastNode) {
-        let splitter = currentSplitters?.[i];
-        if (!splitter) {
-          splitter = this.createSplitter(splitNode.direction === 'column' ? 'horizontal' : 'vertical', splitNode, i);
-        }
+      if (i < splittersNeeded) {
+        const splitter = currentSplitters[i];
         if (splitNode.direction === 'column') {
           splitter.style.inset = `${100 - childRootPosition.bottom}% ${childRootPosition.right}% 0% ${childRootPosition.left}%`;
         } else {
@@ -613,14 +685,28 @@ var gZenViewSplitter = new class {
     splitter.addEventListener('mousedown', this.handleSplitterMouseDown);
     return splitter;
   }
-  getSplitters(parentNode) {
-    return this._splitNodeToSplitters.get(parentNode);
+
+  /**
+   * @param {SplitNode} parentNode
+   * @param {number|undefined} splittersNeeded if provided the amount of splitters for node will be adjusted to match
+   */
+  getSplitters(parentNode, splittersNeeded) {
+    let currentSplitters = this._splitNodeToSplitters.get(parentNode) || [];
+    if (!splittersNeeded || currentSplitters.length === splittersNeeded) return currentSplitters;
+    for (let i = currentSplitters?.length || 0; i < splittersNeeded; i++) {
+      currentSplitters.push(
+        this.createSplitter(parentNode.direction === 'column' ? 'horizontal' : 'vertical', parentNode, i)
+      );
+    }
+    if (currentSplitters.length > splittersNeeded) {
+      currentSplitters.slice(currentSplitters - splittersNeeded).forEach(s => s.remove());
+      currentSplitters = currentSplitters.slice(0, splittersNeeded);
+    }
+    return currentSplitters;
   }
 
   removeSplitters() {
-    Array.from(this._splitNodeToSplitters.values()).forEach(s => {
-      s.remove;
-    });
+    Array.from(this._splitNodeToSplitters.values()).forEach(s => s.remove());
     this._splitNodeToSplitters.clear();
   }
 
@@ -736,7 +822,7 @@ var gZenViewSplitter = new class {
   resetContainerStyle(container) {
     container.removeAttribute('zen-split-active');
     container.classList.remove('deck-selected');
-    container.style.gridArea = '';
+    container.style.inset = '';
   }
 
   /**
