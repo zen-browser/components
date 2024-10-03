@@ -22,12 +22,23 @@ var gZenBrowserManagerSidebar = {
     ChromeUtils.defineLazyGetter(this, 'forwardButton', () => document.getElementById('zen-sidebar-web-panel-forward'));
     ChromeUtils.defineLazyGetter(this, 'backButton', () => document.getElementById('zen-sidebar-web-panel-back'));
 
+    this.onlySafeWidthAndHeight();
+
     this.initProgressListener();
     this.update();
     this.close(); // avoid caching
     this.listenForPrefChanges();
     this.insertIntoContextMenu();
     this.addPositioningListeners();
+  },
+
+  onlySafeWidthAndHeight() {
+    const panel = document.getElementById('zen-sidebar-web-panel');
+    const width = panel.style.width;
+    const height = panel.style.height;
+    panel.setAttribute('style', "");
+    panel.style.width = width;
+    panel.style.height = height;
   },
 
   initProgressListener() {
