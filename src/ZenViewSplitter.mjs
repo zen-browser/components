@@ -43,8 +43,8 @@ class SplitNode {
   }
 }
 class SplitLeafNode {
-  constructor(tabContainerId,widthInParent = 100, heightInParent = 100) {
-    this.id = tabContainerId;
+  constructor(tab, widthInParent = 100, heightInParent = 100) {
+    this.tab = tab;
     this.widthInParent = widthInParent;
     this.heightInParent = heightInParent;
   }
@@ -59,7 +59,7 @@ var gZenViewSplitter = new class {
     this.canChangeTabOnHover = null;
     this.splitterBox = null;
     this._splitNodeToSplitters = new Map();
-    this._containerToSplitNode = new Map();
+    this._tabToSplitNode = new Map();
 
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
@@ -129,7 +129,7 @@ var gZenViewSplitter = new class {
     if (group.tabs.length < 2) {
       this.removeGroup(groupIndex);
     } else {
-      const node = this._containerToSplitNode.get(tab.linkedBrowser.closest('.browserSidebarContainer'))
+      const node = this._tabToSplitNode.get(tab);
       this.applyRemoveNode(node);
     }
   }
@@ -504,15 +504,14 @@ var gZenViewSplitter = new class {
   }
 
   addTabToSplit(tab, splitNode) {
-    const tabContainer = tab.linkedBrowser.closest('.browserSidebarContainer');
     if (splitNode.direction === 'row') {
       const reduce = splitNode.children.length / (splitNode.children.length + 1);
       splitNode.children.forEach(c => c.widthInParent *= reduce);
-      splitNode.addChild(new SplitLeafNode(tabContainer.id, (1 - reduce) * 100, 100));
+      splitNode.addChild(new SplitLeafNode(tab, (1 - reduce) * 100, 100));
     } else if (splitNode.direction === 'column') {
       const reduce = splitNode.children.length / (splitNode.children.length + 1);
       splitNode.children.forEach(c => c.heightInParent *= reduce);
-      splitNode.addChild(new SplitLeafNode(tabContainer.id, (1 - reduce) * 100, 100));
+      splitNode.addChild(new SplitLeafNode(tab, (1 - reduce) * 100, 100));
     }
   }
 
@@ -559,6 +558,11 @@ var gZenViewSplitter = new class {
     if (oldView >= 0 && oldView !== newView) this.deactivateCurrentSplitView();
     this.currentView = newView;
     if (reset) this.removeSplitters();
+    splitData.tabs.forEach((tab) => {
+      if (tab.hasAttribute('pending')) {
+        gBrowser.getBrowserForTab(tab).reload();
+      }
+    });
 
     this.tabBrowserPanel.setAttribute('zen-split-view', 'true');
 
@@ -569,24 +573,23 @@ var gZenViewSplitter = new class {
   }
 
   calculateLayoutTree(tabs, gridType) {
-    const containerIds = tabs.map(t => t.linkedBrowser.closest('.browserSidebarContainer').id);
     let rootNode;
     if (gridType === 'vsep') {
       rootNode = new SplitNode('row');
-      rootNode.children = containerIds.map(id => new SplitLeafNode(id, 100 / tabs.length, 100));
+      rootNode.children = tabs.map(tab => new SplitLeafNode(tab, 100 / tabs.length, 100));
     } else if (gridType === 'hsep' || (tabs.length === 2 && gridType === 'grid')) {
       rootNode = new SplitNode('column');
-      rootNode.children = containerIds.map(id => new SplitLeafNode(id, 100, 100 / tabs.length));
+      rootNode.children = tabs.map(tab => new SplitLeafNode(tab, 100, 100 / tabs.length));
     } else if (gridType === 'grid') {
       rootNode = new SplitNode('row');
       const rowWidth = 100 / Math.ceil(tabs.length / 2);
       for (let i = 0; i < tabs.length - 1; i += 2) {
         const columnNode = new SplitNode('column', rowWidth, 100);
-        columnNode.children = [new SplitLeafNode(containerIds[i], 100, 50), new SplitLeafNode(containerIds[i + 1], 100, 50)];
+        columnNode.children = [new SplitLeafNode(tabs[i], 100, 50), new SplitLeafNode(tabs[i + 1], 100, 50)];
         rootNode.addChild(columnNode);
       }
       if (tabs.length % 2 !== 0) {
-        rootNode.addChild(new SplitLeafNode(containerIds[tabs.length - 1], rowWidth, 100));
+        rootNode.addChild(new SplitLeafNode(tabs[tabs.length - 1], rowWidth, 100));
       }
     }
 
@@ -618,9 +621,9 @@ var gZenViewSplitter = new class {
     }
     const nodeRootPosition = splitNode.positionToRoot;
     if (!splitNode.children) {
-      const browserContainer = document.getElementById(splitNode.id);
+      const browserContainer = splitNode.tab.linkedBrowser.closest('.browserSidebarContainer');
       browserContainer.style.inset = `${nodeRootPosition.top}% ${nodeRootPosition.right}% ${nodeRootPosition.bottom}% ${nodeRootPosition.left}%`;
-      this._containerToSplitNode.set(browserContainer, splitNode);
+      this._tabToSplitNode.set(splitNode.tab, splitNode);
       return;
     }
 
