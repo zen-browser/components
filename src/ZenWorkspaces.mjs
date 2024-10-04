@@ -22,6 +22,20 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     Weave.Service.engineManager.register(ZenWorkspacesEngine);
     await this.initializeWorkspaces();
     console.info('ZenWorkspaces: ZenWorkspaces initialized');
+
+    // Add observer for sync completion
+    Services.obs.addObserver(this, "weave:engine:sync:finish");
+  }
+
+  observe(subject, topic, data) {
+    if (topic === "weave:engine:sync:finish" && data === "workspaces") {
+      this._workspaceCache = null; // Clear cache to fetch fresh data
+      this.updateWorkspaceStrip();
+    }
+  }
+
+  updateWorkspaceStrip() {
+    this._propagateWorkspaceData().catch(console.error);
   }
 
   get shouldHaveWorkspaces() {
