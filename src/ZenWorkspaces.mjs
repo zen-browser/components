@@ -557,7 +557,6 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     await this.saveWorkspace(workspaceData);
     Services.obs.notifyObservers(null, "zen-workspace-updated", workspaceData.uuid);
     await this._propagateWorkspaceData();
-    this.closeWorkspacesSubView();
   }
 
   onWorkspaceCreationNameChange(event) {
