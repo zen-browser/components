@@ -477,7 +477,11 @@ var gZenViewSplitter = new class {
     if (existingSplitTab) {
       const groupIndex = this._data.findIndex((group) => group.tabs.includes(existingSplitTab));
       const group = this._data[groupIndex];
-      if (group.gridType === gridType) {
+      if (group.gridType !== gridType || tabs.length !== tabs.length) {
+        // reset layout
+        group.gridType = gridType;
+        group.layoutTree = this.calculateLayoutTree([...new Set(group.tabs.concat(tabs))], gridType);
+      } else {
         // Add any tabs that are not already in the group
         for (const tab of tabs) {
           if (!group.tabs.includes(tab)) {
@@ -485,11 +489,8 @@ var gZenViewSplitter = new class {
             this.addTabToSplit(tab, group.layoutTree);
           }
         }
-      } else {
-        group.gridType = gridType;
-        group.layoutTree = this.calculateLayoutTree(tabs, gridType);
       }
-      this.activateSplitView(group);
+      this.activateSplitView(group, true);
       return;
     }
 
@@ -544,6 +545,7 @@ var gZenViewSplitter = new class {
     this.removeSplitters();
     this.tabBrowserPanel.removeAttribute('zen-split-view');
     this.setTabsDocShellState(this._data[this.currentView].tabs, false);
+    this.updateSplitViewButton(true);
     this.currentView = -1;
   }
 
@@ -574,10 +576,10 @@ var gZenViewSplitter = new class {
 
   calculateLayoutTree(tabs, gridType) {
     let rootNode;
-    if (gridType === 'vsep') {
+    if (gridType === 'vsep' || (tabs.length === 2 && gridType === 'grid')) {
       rootNode = new SplitNode('row');
       rootNode.children = tabs.map(tab => new SplitLeafNode(tab, 100 / tabs.length, 100));
-    } else if (gridType === 'hsep' || (tabs.length === 2 && gridType === 'grid')) {
+    } else if (gridType === 'hsep') {
       rootNode = new SplitNode('column');
       rootNode.children = tabs.map(tab => new SplitLeafNode(tab, 100, 100 / tabs.length));
     } else if (gridType === 'grid') {
@@ -696,7 +698,7 @@ var gZenViewSplitter = new class {
   }
 
   removeSplitters() {
-    Array.from(this._splitNodeToSplitters.values()).flatMap(v => v).forEach(e => e.remove());
+    [...this.splitterBox.children].forEach(s => s.remove());
     this._splitNodeToSplitters.clear();
   }
 
