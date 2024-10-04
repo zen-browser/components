@@ -49,24 +49,26 @@ class SplitLeafNode {
     this.heightInParent = heightInParent;
   }
 }
-var gZenViewSplitter = new class {
-  constructor() {
-    this._data = [];
-    this.currentView = -1;
-    this._tabBrowserPanel = null;
-    this.__modifierElement = null;
-    this.__hasSetMenuListener = false;
-    this.canChangeTabOnHover = null;
-    this.splitterBox = null;
-    this._splitNodeToSplitters = new Map();
-    this._tabToSplitNode = new Map();
 
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "canChangeTabOnHover",
-      "zen.splitView.change-on-hover",
-      false
-    );
+class ZenViewSplitter extends ZenDOMOperatedFeature {
+  currentView = -1;
+  canChangeTabOnHover = false;
+  _data = [];
+  _tabBrowserPanel = null;
+  __modifierElement = null;
+  __hasSetMenuListener = false;
+  _data = [];
+  currentView = -1;
+  _tabBrowserPanel = null;
+  __modifierElement = null;
+  __hasSetMenuListener = false;
+  canChangeTabOnHover = null;
+  splitterBox = null;
+  _splitNodeToSplitters = new Map();
+  _tabToSplitNode = new Map();
+
+  init() {
+    XPCOMUtils.defineLazyPreferenceGetter(this, 'canChangeTabOnHover', 'zen.splitView.change-on-hover', false);
 
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
@@ -952,4 +954,6 @@ var gZenViewSplitter = new class {
       : [gBrowser.selectedTab, tabs[nextTabIndex]];
     this.splitTabs(selected_tabs, gridType);
   }
-};
+}
+
+window.gZenViewSplitter = new ZenViewSplitter();
