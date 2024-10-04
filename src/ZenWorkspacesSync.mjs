@@ -105,6 +105,7 @@ ZenWorkspacesStore.prototype = {
                 record.icon = workspace.icon;
                 record.default = workspace.default;
                 record.containerTabId = workspace.containerTabId;
+                record.themeColor = workspace.themeColor;
                 record.deleted = false;
             } else {
                 record.deleted = true;
@@ -128,6 +129,7 @@ ZenWorkspacesStore.prototype = {
                 icon: record.icon,
                 default: record.default,
                 containerTabId: record.containerTabId,
+                themeColor: record.themeColor,
             };
             await ZenWorkspacesStorage.saveWorkspace(workspace);
         } catch (error) {
@@ -187,7 +189,16 @@ ZenWorkspacesStore.prototype = {
         if (record.containerTabId != null && typeof record.containerTabId !== "number") {
             throw new Error(`Invalid containerTabId for workspace ID ${record.id}`);
         }
+        // Validate themeColor
+        if (record.themeColor != null && typeof record.themeColor !== "string" && !this._validateHexColor(record.themeColor)) {
+            throw new Error(`Invalid themeColor for workspace ID ${record.id}`);
+        }
     },
+
+    _validateHexColor(hex) {
+        const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+        return hexRegex.test(hex);
+    }
 };
 
 function ZenWorkspacesEngine(service) {
@@ -218,4 +229,5 @@ Utils.deferGetSet(ZenWorkspaceRecord, "cleartext", [
     "icon",
     "default",
     "containerTabId",
+    "themeColor"
 ]);

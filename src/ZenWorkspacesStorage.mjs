@@ -14,6 +14,7 @@ var ZenWorkspacesStorage = {
           icon TEXT,
           is_default INTEGER NOT NULL DEFAULT 0,
           container_id INTEGER,
+          theme_color TEXT,
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL
         )
@@ -48,19 +49,20 @@ var ZenWorkspacesStorage = {
 
         // Then insert or replace the workspace
         await db.executeCached(`
-        INSERT OR REPLACE INTO zen_workspaces (
-          uuid, name, icon, is_default, container_id, created_at, updated_at
+          INSERT OR REPLACE INTO zen_workspaces (
+          uuid, name, icon, is_default, container_id, theme_color, created_at, updated_at
         ) VALUES (
-          :uuid, :name, :icon, :is_default, :container_id, 
+          :uuid, :name, :icon, :is_default, :container_id, :theme_color,
           COALESCE((SELECT created_at FROM zen_workspaces WHERE uuid = :uuid), :now),
           :now
         )
-      `, {
+        `, {
           uuid: workspace.uuid,
           name: workspace.name,
           icon: workspace.icon || null,
           is_default: workspace.default ? 1 : 0,
           container_id: workspace.containerTabId || null,
+          theme_color: workspace.themeColor || null,
           now
         });
       });
@@ -78,6 +80,7 @@ var ZenWorkspacesStorage = {
       icon: row.getResultByName('icon'),
       default: !!row.getResultByName('is_default'),
       containerTabId: row.getResultByName('container_id'),
+      themeColor: row.getResultByName('theme_color')
     }));
   },
 

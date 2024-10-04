@@ -223,6 +223,11 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
   openSaveDialog() {
     let parentPanel = document.getElementById('PanelUI-zen-workspaces-multiview');
     PanelUI.showSubView('PanelUI-zen-workspaces-create', parentPanel);
+
+    this.initializeZenColorPicker('PanelUI-zen-workspaces-create-color-picker', (color) => {
+      this._workspaceCreateColor = color;
+      this.onWorkspaceCreationNameChange();
+    });
   }
 
   async openEditDialog(workspaceUuid) {
@@ -232,8 +237,15 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     let workspaceData = workspaces.find((workspace) => workspace.uuid === workspaceUuid);
     this._workspaceEditInput.textContent = workspaceData.name;
     this._workspaceEditInput.value = workspaceData.name;
+    this._workspaceEditColor = workspaceData.themeColor;
     this._workspaceEditInput.setAttribute('data-initial-value', workspaceData.name);
+    this._workspaceEditColorPicker.setAttribute('data-initial-value', workspaceData.themeColor);
     this._workspaceEditIconsContainer.setAttribute('data-initial-value', workspaceData.icon);
+    this.initializeZenColorPicker('PanelUI-zen-workspaces-edit-color-picker', (color) => {
+      this._workspaceEditColor = color;
+      this.onWorkspaceEditChange();
+    }, workspaceData.themeColor);
+
     document.querySelectorAll('#PanelUI-zen-workspaces-edit-icons-container toolbarbutton').forEach((button) => {
       if (button.label === workspaceData.icon) {
         button.setAttribute('selected', 'true');
@@ -350,6 +362,13 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
       if (activeWorkspace) {
         let currentWorkspace = createWorkspaceElement(activeWorkspace);
         currentContainer.appendChild(currentWorkspace);
+
+        if (activeWorkspace.themeColor) {
+          this.generateZenColorsComplementary(activeWorkspace.themeColor);
+        } else {
+          // If no themeColor is set, reset to default colors
+          this.resetZenColors();
+        }
       }
       for (let workspace of workspaces.workspaces) {
         if (this.isWorkspaceActive(workspace)) {
@@ -492,6 +511,10 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     return document.getElementById('PanelUI-zen-workspaces-edit-input');
   }
 
+  get _workspaceEditColorPicker() {
+    return document.getElementById('PanelUI-zen-workspaces-edit-color-picker');
+  }
+
   get _workspaceEditIconsContainer() {
     return document.getElementById('PanelUI-zen-workspaces-edit-icons-container');
   }
@@ -532,10 +555,14 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     if (!workspaceName) {
       return;
     }
+
+    let themeColor = this._workspaceCreateColor || null;
+
     this._workspaceCreateInput.value = '';
+    this._workspaceCreateColor = null;
     let icon = document.querySelector('#PanelUI-zen-workspaces-create-icons-container [selected]');
     icon?.removeAttribute('selected');
-    await this.createAndSaveWorkspace(workspaceName, false, icon?.label);
+    await this.createAndSaveWorkspace(workspaceName, false, icon?.label, themeColor);
     document.getElementById('PanelUI-zen-workspaces').hidePopup(true);
     await this._updateWorkspacesButton();
     await this._propagateWorkspaceData();
@@ -547,6 +574,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     if (!workspaceName) {
       return;
     }
+    let themeColor = this._workspaceEditColor || null;
     this._workspaceEditInput.value = '';
     let icon = document.querySelector('#PanelUI-zen-workspaces-edit-icons-container [selected]');
     icon?.removeAttribute('selected');
@@ -554,6 +582,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     let workspaceData = workspaces.find((workspace) => workspace.uuid === workspaceUuid);
     workspaceData.name = workspaceName;
     workspaceData.icon = icon?.label;
+    workspaceData.themeColor = themeColor;
     await this.saveWorkspace(workspaceData);
     Services.obs.notifyObservers(null, "zen-workspace-updated", workspaceData.uuid);
     await this._propagateWorkspaceData();
@@ -572,9 +601,11 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     let button = document.getElementById('PanelUI-zen-workspaces-edit-save');
     let name = this._workspaceEditInput.value;
     let icon = document.querySelector('#PanelUI-zen-workspaces-edit-icons-container [selected]')?.label;
+    let themeColor = this._workspaceEditColor;
     if (
-      name === this._workspaceEditInput.getAttribute('data-initial-value') &&
-      icon === this._workspaceEditIconsContainer.getAttribute('data-initial-value')
+        name === this._workspaceEditInput.getAttribute('data-initial-value') &&
+        icon === this._workspaceEditIconsContainer.getAttribute('data-initial-value') &&
+        themeColor === this._workspaceEditColorPicker.getAttribute('data-initial-value')
     ) {
       button.setAttribute('disabled', 'true');
       return;
@@ -662,23 +693,25 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     }
   }
 
-  _createWorkspaceData(name, isDefault, icon) {
-    let window = {
+  _createWorkspaceData(name, isDefault, icon, themeColor) {
+    let workspace = {
       uuid: gZenUIManager.generateUuidv4(),
       default: isDefault,
       used: true,
       icon: icon,
       name: name,
+      themeColor: themeColor
     };
-    this._prepareNewWorkspace(window);
-    return window;
+    this._prepareNewWorkspace(workspace);
+    return workspace;
   }
 
-  async createAndSaveWorkspace(name = 'New Workspace', isDefault = false, icon = undefined) {
+
+  async createAndSaveWorkspace(name = 'New Workspace', isDefault = false, icon = undefined, themeColor = null) {
     if (!this.workspaceEnabled) {
       return;
     }
-    let workspaceData = this._createWorkspaceData(name, isDefault, icon);
+    let workspaceData = this._createWorkspaceData(name, isDefault, icon, themeColor);
     await this.saveWorkspace(workspaceData);
     Services.obs.notifyObservers(null, "zen-workspace-added", workspaceData.uuid);
     await this.changeWorkspace(workspaceData);
@@ -865,4 +898,199 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     const workspaceToSwitch = workspaces.workspaces[index];
     await this.changeWorkspace(workspaceToSwitch);
   }
+
+  // Utility functions for color conversion and manipulation
+  hexToHsl = (hex) => {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) {
+      hex = hex.split('').map((h) => h + h).join('');
+    }
+    const r = parseInt(hex.substring(0, 2), 16) / 255;
+    const g = parseInt(hex.substring(2, 4), 16) / 255;
+    const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+
+    if (max === min) {
+      h = s = 0; // achromatic
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)); break;
+        case g: h = ((b - r) / d + 2); break;
+        case b: h = ((r - g) / d + 4); break;
+      }
+      h *= 60;
+    }
+    return [h, s * 100, l * 100]; // [hue, saturation, lightness]
+  };
+
+  hslToHex = (h, s, l) => {
+    s /= 100;
+    l /= 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const hh = h / 60;
+    const x = c * (1 - Math.abs(hh % 2 - 1));
+    let r = 0, g = 0, b = 0;
+
+    if (0 <= hh && hh < 1) { r = c; g = x; b = 0; }
+    else if (1 <= hh && hh < 2) { r = x; g = c; b = 0; }
+    else if (2 <= hh && hh < 3) { r = 0; g = c; b = x; }
+    else if (3 <= hh && hh < 4) { r = 0; g = x; b = c; }
+    else if (4 <= hh && hh < 5) { r = x; g = 0; b = c; }
+    else if (5 <= hh && hh < 6) { r = c; g = 0; b = x; }
+
+    const m = l - c / 2;
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+
+    return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+  };
+
+  shiftHue = (h, shift) => (h + shift + 360) % 360; // Ensuring positive hue values
+
+  generateZenColorsComplementary(baseHex) {
+    const isDarkTheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    // Get HSL from base hex color
+    let [h, s, l] = this.hexToHsl(baseHex);
+
+    // Apply desaturation and adjust lightness for pastel effect
+    s = Math.min(s, 40); // Cap saturation at 40%
+
+    if (!isDarkTheme) {
+      l = Math.max(l, 70); // Ensure lightness is at least 70% in light mode
+    } else {
+      l = 30; // Set base lightness to 30% in dark mode
+    }
+    baseHex = this.hslToHex(h, s, l);
+
+    let colors = {};
+
+    if (s < 15) {
+      // Neutral color selected (e.g., grey shade)
+      // Generate a primary color that pops
+      const popHues = [0, 30, 60, 120, 180, 240, 300]; // Array of hues for vibrant colors
+      const popHue = popHues[Math.floor(Math.random() * popHues.length)]; // Randomly select a hue
+      const popSaturation = 80; // High saturation for popping color
+      const popLightness = isDarkTheme ? 40 : 50; // Adjusted lightness based on theme
+
+      const l_tertiary = isDarkTheme ? 15 : l; // Much darker in dark mode
+
+      colors = {
+        "--zen-colors-primary": this.hslToHex(popHue, popSaturation, popLightness), // Vibrant color
+        "--zen-colors-secondary": this.hslToHex(h, s, Math.min(l_tertiary + 10, 100)), // Slightly lighter neutral
+        "--zen-colors-tertiary": this.hslToHex(h, s, l_tertiary), // Darker neutral color (background)
+        "--zen-colors-border": this.hslToHex(h, s, Math.max(l_tertiary - 5, 0)), // Even darker neutral
+        "--zen-dialog-background": this.hslToHex(h, s, Math.min(l_tertiary + 5, 100)), // Slightly lighter neutral
+      };
+    } else {
+      // Non-neutral color selected
+      const primaryH = this.shiftHue(h, isDarkTheme ? 0 : -10); // No hue shift in dark mode
+      const secondaryH = this.shiftHue(h, isDarkTheme ? 0 : 10);
+
+      if (!isDarkTheme) {
+        // Light mode
+        colors = {
+          "--zen-colors-primary": this.hslToHex(primaryH, s, Math.max(l - 10, 0)), // Slightly darker shade with shifted hue
+          "--zen-colors-secondary": this.hslToHex(secondaryH, s, Math.min(l + 10, 100)), // Slightly lighter shade with shifted hue
+          "--zen-colors-tertiary": baseHex, // Base color (background)
+          "--zen-colors-border": this.hslToHex(h, s, Math.max(l - 20, 0)), // Darker version for border
+          "--zen-dialog-background": this.hslToHex(h, s, Math.min(l + 5, 100)), // Slightly lighter
+        };
+      } else {
+        // Dark mode
+        const l_tertiary = 15; // Much darker for tertiary color
+        const l_primary = 40;  // Lightness adjusted for white text
+
+        colors = {
+          "--zen-colors-primary": this.hslToHex(h, s, l_primary), // Similar to baseHex but dark enough for white text
+          "--zen-colors-secondary": this.hslToHex(h, s, Math.max(l_primary - 10, 0)), // Slightly darker than primary
+          "--zen-colors-tertiary": this.hslToHex(h, s, l_tertiary), // Much darker base color (background)
+          "--zen-colors-border": this.hslToHex(h, s, Math.max(l_tertiary - 5, 0)), // Even darker for border
+          "--zen-dialog-background": this.hslToHex(h, s, Math.min(l_tertiary + 5, 100)), // Slightly lighter
+        };
+      }
+    }
+
+    // Apply the colors to the document's root style
+    Object.keys(colors).forEach(key => {
+      document.documentElement.style.setProperty(key, colors[key]);
+    });
+
+    return colors;
+  }
+
+  resetZenColors() {
+    // Remove custom properties
+    const properties = [
+      "--zen-colors-primary",
+      "--zen-colors-secondary",
+      "--zen-colors-tertiary",
+      "--zen-colors-border",
+      "--zen-dialog-background"
+    ];
+    properties.forEach(prop => {
+      document.documentElement.style.removeProperty(prop);
+    });
+  }
+
+  zenColorOptions = [
+    null,
+    "#FFD1DC", // Pastel Pink
+    "#FFB347", // Pastel Orange
+    "#FFFF99", // Pastel Yellow
+    "#77DD77", // Pastel Green
+    "#AEC6CF", // Pastel Blue
+    "#D8BFD8", // Pastel Lilac
+    "#98FF98", // Pastel Mint
+    "#FFDAB9", // Pastel Peach
+    "#E6E6FA", // Pastel Lavender
+    "#F5F5DC", // Pastel Beige
+    "#F0E68C", // Khaki
+    "#E0FFFF", // Light Cyan
+    "#FFB6C1", // Light Pink
+    "#ADD8E6", // Light Blue
+    "#CD5C5C", // Darker Red
+    "#F08080", // Light Coral
+    "#AFEEEE", // Pale Turquoise
+    "#20B2AA", // Light Sea Green
+    "#8470FF", // Light Slate Blue
+    "#FFA07A", // Light Salmon
+    "#000000" // Black
+  ];
+
+// Function to initialize the color picker
+  initializeZenColorPicker(containerId, onColorSelected, initialColor = null) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+
+    this.zenColorOptions.forEach(color => {
+      const colorOption = document.createElement('div');
+      colorOption.className = 'zen-color-option';
+      colorOption.style.backgroundColor = color;
+      colorOption.setAttribute('data-color', color);
+
+      if (color === initialColor) {
+        colorOption.setAttribute('selected', 'true');
+      }
+
+      colorOption.addEventListener('click', () => {
+        container.querySelectorAll('.zen-color-option').forEach(option => {
+          option.removeAttribute('selected');
+        });
+
+        colorOption.setAttribute('selected', 'true');
+        onColorSelected(color);
+      });
+
+      container.appendChild(colorOption);
+    });
+  }
+
+
 })();
+
