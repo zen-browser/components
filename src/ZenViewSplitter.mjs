@@ -57,25 +57,13 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
   _tabBrowserPanel = null;
   __modifierElement = null;
   __hasSetMenuListener = false;
-  _data = [];
-  currentView = -1;
-  _tabBrowserPanel = null;
-  __modifierElement = null;
-  __hasSetMenuListener = false;
-  canChangeTabOnHover = null;
   splitterBox = null;
   _splitNodeToSplitters = new Map();
   _tabToSplitNode = new Map();
 
   init() {
     XPCOMUtils.defineLazyPreferenceGetter(this, 'canChangeTabOnHover', 'zen.splitView.change-on-hover', false);
-
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      'minResizeWidth',
-      'zen.splitView.min-resize-width',
-      7
-    );
+    XPCOMUtils.defineLazyPreferenceGetter(this, 'minResizeWidth', 'zen.splitView.min-resize-width', 7);
 
     ChromeUtils.defineLazyGetter(
       this,
