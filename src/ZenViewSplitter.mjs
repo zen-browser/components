@@ -309,7 +309,7 @@ var gZenViewSplitter = new class {
 
     currentData.tabs[startIdx] = endTab;
     currentData.tabs[endIdx] = startTab;
-    this.applyGridToTabs(currentData.tabs, currentData.gridType, gBrowser.selectedTab);
+    this.applyGridToTabs(currentData.tabs, currentData.gridType);
   }
 
   /**
@@ -323,7 +323,8 @@ var gZenViewSplitter = new class {
     tab.linkedBrowser.zenModeActive = false;
     const container = tab.linkedBrowser.closest('.browserSidebarContainer');
     this.resetContainerStyle(container);
-
+    container.removeEventListener('click', this.handleTabEvent);
+    container.removeEventListener('mouseover', this.handleTabEvent);
     if (!forUnsplit) {
       tab.linkedBrowser.docShellIsActive = false;
     }
@@ -336,27 +337,13 @@ var gZenViewSplitter = new class {
    */
   removeGroup(groupIndex) {
     if (this.currentView === groupIndex) {
-      this.resetSplitView();
+      this.deactivateCurrentSplitView();
+      gBrowser.selectedBrowser.closest('.browserSidebarContainer').classList.add('deck-selected');
     }
     for (const tab of this._data[groupIndex].tabs) {
       this.resetTabState(tab, true);
     }
     this._data.splice(groupIndex, 1);
-  }
-
-  /**
-   * Resets the split view.
-   */
-  resetSplitView(resetTabState = true) {
-    if (resetTabState) {
-      for (const tab of this._data[this.currentView].tabs) {
-        this.resetTabState(tab, true);
-      }
-    }
-    this.removeSplitters();
-    this.tabBrowserPanel.removeAttribute('zen-split-view');
-
-    this.currentView = -1;
   }
 
   /**
@@ -471,15 +458,8 @@ var gZenViewSplitter = new class {
   async onLocationChange(browser) {
     const tab = window.gBrowser.getTabForBrowser(browser);
     this.updateSplitViewButton(!tab?.splitView);
-    if (tab && this.splitViewActive) {
-      this._data[this.currentView].tabs.forEach(t => {
-        const container = t.linkedBrowser.closest('.browserSidebarContainer');
-        if (t === tab) {
-          container.setAttribute('zen-split-active', true);
-        } else if (container.hasAttribute('zen-split-active')) {
-          container.removeAttribute('zen-split-active');
-        }
-      });
+    if (tab) {
+      this.updateSplitView(tab);
       tab.linkedBrowser.docShellIsActive = true;
     }
   }
@@ -503,21 +483,36 @@ var gZenViewSplitter = new class {
         for (const tab of tabs) {
           if (!this._data[groupIndex].tabs.includes(tab)) {
             this._data[groupIndex].tabs.push(tab);
+            this.addTabToSplit(tab, this._data[groupIndex].layoutTree);
           }
         }
         this._data[groupIndex].gridType = gridType;
-        this.updateSplitView(existingSplitTab);
+        this.applyGridLayout(this._data[groupIndex].layoutTree);
         return;
       }
     }
 
     const splitData = {
       tabs,
-      gridType
+      gridType,
+      layoutTree: this.calculateLayoutTree(tabs, gridType),
     }
     this._data.push(splitData);
     window.gBrowser.selectedTab = tabs[0];
-    this.activateSplitView(splitData, tabs[0]);
+    this.activateSplitView(splitData);
+  }
+
+  addTabToSplit(tab, splitNode) {
+    const tabContainer = tab.linkedBrowser.closest('.browserSidebarContainer');
+    if (splitNode.direction === 'row') {
+      const reduce = splitNode.children.length / (splitNode.children.length + 1);
+      splitNode.children.forEach(c => c.widthInParent *= reduce);
+      splitNode.addChild(new SplitLeafNode(tabContainer.id, (1 - reduce) * 100, 100));
+    } else if (splitNode.direction === 'column') {
+      const reduce = splitNode.children.length / (splitNode.children.length + 1);
+      splitNode.children.forEach(c => c.heightInParent *= reduce);
+      splitNode.addChild(new SplitLeafNode(tabContainer.id, (1 - reduce) * 100, 100));
+    }
   }
 
   /**
@@ -526,31 +521,27 @@ var gZenViewSplitter = new class {
    * @param {Tab} tab - The tab to update the split view for.
    */
   updateSplitView(tab) {
-    const splitData = this._data.find((group) => group.tabs.includes(tab));
-    if (!splitData || (this.currentView >= 0 && !this._data[this.currentView].tabs.includes(tab))) {
-      this.updateSplitViewButton(true);
-      if (this.currentView >= 0) {
-        this.deactivateSplitView();
-        return;
-      }
-      if (!splitData) {
-        return;
-      }
-    }
+    const oldView = this.currentView;
+    const newView = this._data.findIndex((group) => group.tabs.includes(tab));
 
-    this.activateSplitView(splitData, tab);
+    if (oldView === newView) return;
+    if (newView < 0 && oldView >= 0) {
+      this.updateSplitViewButton(true);
+      this.deactivateCurrentSplitView();
+      return;
+    }
+    this.activateSplitView(this._data[newView]);
   }
 
   /**
    * Deactivates the split view.
    */
-  deactivateSplitView() {
+  deactivateCurrentSplitView() {
     for (const tab of this._data[this.currentView].tabs) {
       const container = tab.linkedBrowser.closest('.browserSidebarContainer');
       this.resetContainerStyle(container);
-      container.removeEventListener('click', this.handleTabEvent);
-      container.removeEventListener('mouseover', this.handleTabEvent);
     }
+    this.removeSplitters();
     this.tabBrowserPanel.removeAttribute('zen-split-view');
     this.setTabsDocShellState(this._data[this.currentView].tabs, false);
     this.currentView = -1;
@@ -560,22 +551,19 @@ var gZenViewSplitter = new class {
    * Activates the split view.
    *
    * @param {object} splitData - The split data.
-   * @param {Tab} activeTab - The active tab.
    */
-  activateSplitView(splitData, activeTab) {
-    this.tabBrowserPanel.setAttribute('zen-split-view', 'true');
-    this.currentView = this._data.indexOf(splitData);
+  activateSplitView(splitData) {
+    const oldView = this.currentView;
+    const newView = this._data.indexOf(splitData);
+    if (oldView >= 0 && oldView !== newView) this.deactivateCurrentSplitView();
+    this.currentView = newView;
 
-    const gridType = splitData.gridType || 'grid';
+    this.tabBrowserPanel.setAttribute('zen-split-view', 'true');
 
     this.setTabsDocShellState(splitData.tabs, true);
     this.updateSplitViewButton(false);
-
-    this.applyGridToTabs(splitData.tabs, activeTab);
-
-    const layout = this.calculateLayoutTree(splitData.tabs, gridType);
-    splitData.layoutTree = layout;
-    this.applyGridLayout(layout);
+    this.applyGridToTabs(splitData.tabs);
+    this.applyGridLayout(splitData.layoutTree);
   }
 
   calculateLayoutTree(tabs, gridType) {
@@ -609,11 +597,11 @@ var gZenViewSplitter = new class {
    * @param {Tab[]} tabs - The tabs to apply the grid layout to.
    * @param {Tab} activeTab - The active tab.
    */
-  applyGridToTabs(tabs,activeTab) {
+  applyGridToTabs(tabs) {
     tabs.forEach((tab, index) => {
       tab.splitView = true;
       const container = tab.linkedBrowser.closest('.browserSidebarContainer');
-      this.styleContainer(container, tab === activeTab, index);
+      this.styleContainer(container);
     });
   }
 
@@ -703,7 +691,7 @@ var gZenViewSplitter = new class {
   }
 
   removeSplitters() {
-    Array.from(this._splitNodeToSplitters.values())[0].forEach(e => e.remove());
+    Array.from(this._splitNodeToSplitters.values()).forEach(e => e[0].remove())
     this._splitNodeToSplitters.clear();
   }
 
@@ -711,14 +699,8 @@ var gZenViewSplitter = new class {
    * Styles the container for a tab.
    *
    * @param {Element} container - The container element.
-   * @param {boolean} isActive - Indicates if the tab is active.
-   * @param {number} index - The index of the tab.
    */
-  styleContainer(container, isActive, index) {
-    container.removeAttribute('zen-split-active');
-    if (isActive) {
-      container.setAttribute('zen-split-active', 'true');
-    }
+  styleContainer(container) {
     container.setAttribute('zen-split-anim', 'true');
     container.addEventListener('click', this.handleTabEvent);
     container.addEventListener('mouseover', this.handleTabEvent);
