@@ -19,6 +19,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     );
     ChromeUtils.defineLazyGetter(this, 'tabContainer', () => document.getElementById('tabbrowser-tabs'));
     await ZenWorkspacesStorage.init();
+    Weave.Service.engineManager.register(ZenWorkspacesEngine);
     await this.initializeWorkspaces();
     console.info('ZenWorkspaces: ZenWorkspaces initialized');
   }
@@ -190,6 +191,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     this._workspaceCache = null;
     await this._propagateWorkspaceData();
     await this._updateWorkspacesChangeContextMenu();
+    Services.obs.notifyObservers(null, "zen-workspace-removed", windowID);
   }
 
   isWorkspaceActive(workspace) {
@@ -539,6 +541,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     workspaceData.name = workspaceName;
     workspaceData.icon = icon?.label;
     await this.saveWorkspace(workspaceData);
+    Services.obs.notifyObservers(null, "zen-workspace-updated", workspaceData.uuid);
     await this._propagateWorkspaceData();
     this.closeWorkspacesSubView();
   }
@@ -664,6 +667,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     }
     let workspaceData = this._createWorkspaceData(name, isDefault, icon);
     await this.saveWorkspace(workspaceData);
+    Services.obs.notifyObservers(null, "zen-workspace-added", workspaceData.uuid);
     await this.changeWorkspace(workspaceData);
   }
 
@@ -740,6 +744,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     let userContextId = parseInt(event.target.getAttribute('data-usercontextid'));
     workspace.containerTabId = userContextId;
     await this.saveWorkspace(workspace);
+    Services.obs.notifyObservers(null, "zen-workspace-updated", workspaceData.uuid);
     await this._propagateWorkspaceData();
   }
 
