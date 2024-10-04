@@ -39,8 +39,15 @@ var ZenWorkspacesStorage = {
   async saveWorkspace(workspace) {
     await PlacesUtils.withConnectionWrapper('ZenWorkspacesStorage.saveWorkspace', async (db) => {
       const now = Date.now();
-      await db.executeCached(
-        `
+
+      await db.executeTransaction(async function() {
+        // If the workspace is set as default, unset is_default for all other workspaces
+        if (workspace.default) {
+          await db.execute(`UPDATE zen_workspaces SET is_default = 0 WHERE uuid != :uuid`, { uuid: workspace.uuid });
+        }
+
+        // Then insert or replace the workspace
+        await db.executeCached(`
         INSERT OR REPLACE INTO zen_workspaces (
           uuid, name, icon, is_default, container_id, created_at, updated_at
         ) VALUES (
@@ -48,16 +55,15 @@ var ZenWorkspacesStorage = {
           COALESCE((SELECT created_at FROM zen_workspaces WHERE uuid = :uuid), :now),
           :now
         )
-      `,
-        {
+      `, {
           uuid: workspace.uuid,
           name: workspace.name,
           icon: workspace.icon || null,
           is_default: workspace.default ? 1 : 0,
           container_id: workspace.containerTabId || null,
-          now,
-        }
-      );
+          now
+        });
+      });
     });
   },
 
