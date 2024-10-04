@@ -758,7 +758,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     let userContextId = parseInt(event.target.getAttribute('data-usercontextid'));
     workspace.containerTabId = userContextId;
     await this.saveWorkspace(workspace);
-    Services.obs.notifyObservers(null, "zen-workspace-updated", workspaceData.uuid);
+    Services.obs.notifyObservers(null, "zen-workspace-updated", workspace.uuid);
     await this._propagateWorkspaceData();
   }
 
