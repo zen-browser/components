@@ -745,7 +745,7 @@ class ZenKeyboardShortcutsVersioner {
   }
 }
 
-var ZenKeyboardShortcutsManager = {
+var gZenKeyboardShortcutsManager = {
   loader: new ZenKeyboardShortcutsLoader(),
   async init() {
     if (window.location.href == 'chrome://browser/content/browser.xhtml') {
