@@ -14,6 +14,7 @@ var ZenWorkspacesStorage = {
           icon TEXT,
           is_default INTEGER NOT NULL DEFAULT 0,
           container_id INTEGER,
+          theme_color TEXT,
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL
         )
@@ -39,25 +40,32 @@ var ZenWorkspacesStorage = {
   async saveWorkspace(workspace) {
     await PlacesUtils.withConnectionWrapper('ZenWorkspacesStorage.saveWorkspace', async (db) => {
       const now = Date.now();
-      await db.executeCached(
-        `
-        INSERT OR REPLACE INTO zen_workspaces (
-          uuid, name, icon, is_default, container_id, created_at, updated_at
+
+      await db.executeTransaction(async function() {
+        // If the workspace is set as default, unset is_default for all other workspaces
+        if (workspace.default) {
+          await db.execute(`UPDATE zen_workspaces SET is_default = 0 WHERE uuid != :uuid`, { uuid: workspace.uuid });
+        }
+
+        // Then insert or replace the workspace
+        await db.executeCached(`
+          INSERT OR REPLACE INTO zen_workspaces (
+          uuid, name, icon, is_default, container_id, theme_color, created_at, updated_at
         ) VALUES (
-          :uuid, :name, :icon, :is_default, :container_id, 
+          :uuid, :name, :icon, :is_default, :container_id, :theme_color,
           COALESCE((SELECT created_at FROM zen_workspaces WHERE uuid = :uuid), :now),
           :now
         )
-      `,
-        {
+        `, {
           uuid: workspace.uuid,
           name: workspace.name,
           icon: workspace.icon || null,
           is_default: workspace.default ? 1 : 0,
           container_id: workspace.containerTabId || null,
-          now,
-        }
-      );
+          theme_color: workspace.themeColor || null,
+          now
+        });
+      });
     });
   },
 
@@ -72,6 +80,7 @@ var ZenWorkspacesStorage = {
       icon: row.getResultByName('icon'),
       default: !!row.getResultByName('is_default'),
       containerTabId: row.getResultByName('container_id'),
+      themeColor: row.getResultByName('theme_color')
     }));
   },
 
