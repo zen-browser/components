@@ -1,21 +1,21 @@
-var gZenBrowserManagerSidebar = {
-  _sidebarElement: null,
-  _currentPanel: null,
-  _lastOpenedPanel: null,
-  _hasChangedConfig: true,
-  _splitterElement: null,
-  _hSplitterElement: null,
-  _hasRegisteredPinnedClickOutside: false,
-  _isDragging: false,
-  contextTab: null,
-  sidebar: null,
-  forwardButton: null,
-  backButton: null,
-  progressListener: null,
+class ZenBrowserManagerSidebar extends ZenDOMOperatedFeature {
+  _sidebarElement = null;
+  _currentPanel = null;
+  _lastOpenedPanel = null;
+  _hasChangedConfig = true;
+  _splitterElement = null;
+  _hSplitterElement = null;
+  _hasRegisteredPinnedClickOutside = false;
+  _isDragging = false;
+  contextTab = null;
+  sidebar = null;
+  forwardButton = null;
+  backButton = null;
+  progressListener = null;
 
-  DEFAULT_MOBILE_USER_AGENT: 'Mozilla/5.0 (Android 12; Mobile; rv:129.0) Gecko/20100101 Firefox/131.0',
-  MAX_SIDEBAR_PANELS: 9, // +1 for the add panel button
-  MAX_RUNS: 3,
+  DEFAULT_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android 12; Mobile; rv:129.0) Gecko/20100101 Firefox/131.0';
+  MAX_SIDEBAR_PANELS = 9; // +1 for the add panel button
+  MAX_RUNS = 3;
 
   init() {
     ChromeUtils.defineLazyGetter(this, 'sidebar', () => document.getElementById('zen-sidebar-web-panel'));
@@ -30,24 +30,21 @@ var gZenBrowserManagerSidebar = {
     this.listenForPrefChanges();
     this.insertIntoContextMenu();
     this.addPositioningListeners();
-  },
+  }
 
   onlySafeWidthAndHeight() {
     const panel = document.getElementById('zen-sidebar-web-panel');
     const width = panel.style.width;
     const height = panel.style.height;
-    panel.setAttribute('style', "");
+    panel.setAttribute('style', '');
     panel.style.width = width;
     panel.style.height = height;
-  },
+  }
 
   initProgressListener() {
-    this.progressListener  = {
-      QueryInterface: ChromeUtils.generateQI([
-        "nsIWebProgressListener",
-        "nsISupportsWeakReference",
-      ]),
-      onLocationChange: function(aWebProgress, aRequest, aLocation, aFlags) {
+    this.progressListener = {
+      QueryInterface: ChromeUtils.generateQI(['nsIWebProgressListener', 'nsISupportsWeakReference']),
+      onLocationChange: function (aWebProgress, aRequest, aLocation, aFlags) {
         const browser = this._getCurrentBrowser();
         if (!browser) return;
         const forwardDisabled = this.forwardButton.hasAttribute('disabled');
@@ -68,8 +65,8 @@ var gZenBrowserManagerSidebar = {
           }
         }
       }.bind(gZenBrowserManagerSidebar),
-    }
-  },
+    };
+  }
 
   get sidebarData() {
     let services = Services.prefs.getStringPref('zen.sidebar.data');
@@ -77,35 +74,36 @@ var gZenBrowserManagerSidebar = {
       return {};
     }
     return JSON.parse(services);
-  },
+  }
 
   get shouldCloseOnBlur() {
     return Services.prefs.getBoolPref('zen.sidebar.close-on-blur');
-  },
+  }
 
   listenForPrefChanges() {
     Services.prefs.addObserver('zen.sidebar.data', this.handleEvent.bind(this));
     Services.prefs.addObserver('zen.sidebar.enabled', this.handleEvent.bind(this));
 
     this.handleEvent();
-  },
+  }
 
   addPositioningListeners() {
-    this.sidebar.querySelectorAll('.zen-sidebar-web-panel-splitter')
-      .forEach(s => s.addEventListener('mousedown', this.handleSplitterMouseDown.bind(this)));
+    this.sidebar
+      .querySelectorAll('.zen-sidebar-web-panel-splitter')
+      .forEach((s) => s.addEventListener('mousedown', this.handleSplitterMouseDown.bind(this)));
     this.sidebarHeader.addEventListener('mousedown', this.handleDragPanel.bind(this));
     window.addEventListener('resize', this.onWindowResize.bind(this));
-  },
+  }
 
   handleSplitterMouseDown(mouseDownEvent) {
-    if (this._isDragging) return
+    if (this._isDragging) return;
     this._isDragging = true;
 
     const isHorizontal = mouseDownEvent.target.getAttribute('orient') === 'horizontal';
     setCursor(isHorizontal ? 'n-resize' : 'ew-resize');
     const reverse = ['left', 'top'].includes(mouseDownEvent.target.getAttribute('side'));
-    const direction = isHorizontal ? "height" : "width";
-    const axis = isHorizontal ? "Y" : "X";
+    const direction = isHorizontal ? 'height' : 'width';
+    const axis = isHorizontal ? 'Y' : 'X';
 
     const computedStyle = window.getComputedStyle(this.sidebar);
     const maxSize = parseInt(computedStyle.getPropertyValue(`max-${direction}`).match(/(\d+)px/)?.[1]) || Infinity;
@@ -115,7 +113,7 @@ var gZenBrowserManagerSidebar = {
 
     const startPos = mouseDownEvent[`screen${axis}`];
 
-    const toAdjust = isHorizontal ? "top" : "left";
+    const toAdjust = isHorizontal ? 'top' : 'left';
     const sidebarPosStart = parseInt(this.sidebar.style[toAdjust].match(/\d+/));
 
     let mouseMove = function (e) {
@@ -128,29 +126,33 @@ var gZenBrowserManagerSidebar = {
       const wrapperBox = this.sidebarWrapper.getBoundingClientRect();
       let maxWrapperSize = Infinity;
       if (this.isFloating) {
-        maxWrapperSize = reverse ? (sidebarPosStart + sidebarSizeStart) : (wrapperBox[direction] - sidebarPosStart);
+        maxWrapperSize = reverse ? sidebarPosStart + sidebarSizeStart : wrapperBox[direction] - sidebarPosStart;
       }
-      newSize = Math.max(minSize, Math.min(currentMax, maxWrapperSize,newSize));
+      newSize = Math.max(minSize, Math.min(currentMax, maxWrapperSize, newSize));
 
       window.requestAnimationFrame(() => {
         if (reverse) {
           const actualMoved = newSize - sidebarSizeStart;
-          this.sidebar.style[toAdjust] = (sidebarPosStart - actualMoved) + 'px';
+          this.sidebar.style[toAdjust] = sidebarPosStart - actualMoved + 'px';
         }
         this.sidebar.style[direction] = `${newSize}px`;
       });
     }.bind(this);
 
     document.addEventListener('mousemove', mouseMove);
-    document.addEventListener('mouseup', () => {
-      document.removeEventListener('mousemove', mouseMove);
-      this._isDragging = false;
-      setCursor('auto');
-    }, {once: true});
-  },
+    document.addEventListener(
+      'mouseup',
+      () => {
+        document.removeEventListener('mousemove', mouseMove);
+        this._isDragging = false;
+        setCursor('auto');
+      },
+      { once: true }
+    );
+  }
 
   handleDragPanel(mouseDownEvent) {
-    if (this.sidebarHeaderButtons.find(b => b.contains(mouseDownEvent.target))) {
+    if (this.sidebarHeaderButtons.find((b) => b.contains(mouseDownEvent.target))) {
       return;
     }
     this._isDragging = true;
@@ -177,13 +179,16 @@ var gZenBrowserManagerSidebar = {
       });
     };
 
-
     document.addEventListener('mousemove', moveListener);
-    document.addEventListener('mouseup', () => {
-      document.removeEventListener('mousemove', moveListener);
-      this._isDragging = false;
-      }, {once: true});
-  },
+    document.addEventListener(
+      'mouseup',
+      () => {
+        document.removeEventListener('mousemove', moveListener);
+        this._isDragging = false;
+      },
+      { once: true }
+    );
+  }
 
   onWindowResize() {
     if (!this.isFloating) return;
@@ -193,16 +198,16 @@ var gZenBrowserManagerSidebar = {
     const sidebarRect = this.sidebar.getBoundingClientRect();
 
     if (sidebarRect.height < wrapperRect.height && top + sidebarRect.height > wrapperRect.height) {
-      this.sidebar.style.top = (wrapperRect.height - sidebarRect.height) + 'px';
+      this.sidebar.style.top = wrapperRect.height - sidebarRect.height + 'px';
     }
     if (sidebarRect.width < wrapperRect.width && left + sidebarRect.width > wrapperRect.width) {
-      this.sidebar.style.left = (wrapperRect.width - sidebarRect.width) + 'px';
+      this.sidebar.style.left = wrapperRect.width - sidebarRect.width + 'px';
     }
-  },
+  }
 
   get isFloating() {
     return document.getElementById('zen-sidebar-web-panel').hasAttribute('pinned');
-  },
+  }
 
   handleEvent() {
     this._hasChangedConfig = true;
@@ -229,7 +234,7 @@ var gZenBrowserManagerSidebar = {
       this._closeSidebarPanel();
       return;
     }
-  },
+  }
 
   _handleClickOutside(event) {
     let sidebar = document.getElementById('zen-sidebar-web-panel');
@@ -248,7 +253,7 @@ var gZenBrowserManagerSidebar = {
       return;
     }
     this.close();
-  },
+  }
 
   toggle() {
     if (!this._currentPanel) {
@@ -259,20 +264,20 @@ var gZenBrowserManagerSidebar = {
       return;
     }
     this.close();
-  },
+  }
 
   open() {
     let sidebar = document.getElementById('zen-sidebar-web-panel');
     sidebar.removeAttribute('hidden');
     this.update();
-  },
+  }
 
   update() {
     this._updateWebPanels();
     this._updateSidebarButton();
     this._updateWebPanel();
     this._updateButtons();
-  },
+  }
 
   _updateSidebarButton() {
     let button = document.getElementById('zen-sidepanel-button');
@@ -282,7 +287,7 @@ var gZenBrowserManagerSidebar = {
     } else {
       button.removeAttribute('open');
     }
-  },
+  }
 
   _updateWebPanels() {
     if (Services.prefs.getBoolPref('zen.sidebar.enabled')) {
@@ -322,7 +327,7 @@ var gZenBrowserManagerSidebar = {
     } else {
       addButton.setAttribute('hidden', 'true');
     }
-  },
+  }
 
   async _openAddPanelDialog() {
     let dialogURL = 'chrome://browser/content/places/zenNewWebPanel.xhtml';
@@ -334,26 +339,26 @@ var gZenBrowserManagerSidebar = {
     } else {
       aParentWindow.openDialog(dialogURL, '', features, {});
     }
-  },
+  }
 
   _setPinnedToElements() {
     let sidebar = document.getElementById('zen-sidebar-web-panel');
     sidebar.setAttribute('pinned', 'true');
     document.getElementById('zen-sidebar-web-panel-pinned').setAttribute('pinned', 'true');
-  },
+  }
 
   _removePinnedFromElements() {
     let sidebar = document.getElementById('zen-sidebar-web-panel');
     sidebar.removeAttribute('pinned');
     document.getElementById('zen-sidebar-web-panel-pinned').removeAttribute('pinned');
-  },
+  }
 
   _closeSidebarPanel() {
     let sidebar = document.getElementById('zen-sidebar-web-panel');
     sidebar.setAttribute('hidden', 'true');
     this._lastOpenedPanel = this._currentPanel;
     this._currentPanel = null;
-  },
+  }
 
   _handleClick(event) {
     let target = event.target;
@@ -363,7 +368,7 @@ var gZenBrowserManagerSidebar = {
     }
     this._currentPanel = panelId;
     this._updateWebPanel();
-  },
+  }
 
   _handleDragStart(event) {
     this.__dragingElement = event.target;
@@ -373,9 +378,9 @@ var gZenBrowserManagerSidebar = {
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/html', event.target.innerHTML);
     event.dataTransfer.setData('text/plain', event.target.id);
-  },
+  }
 
-  _handleDragOver(event) {},
+  _handleDragOver(event) {}
 
   _handleDragEnter(event) {
     if (typeof this.__dragingElement === 'undefined') {
@@ -389,7 +394,7 @@ var gZenBrowserManagerSidebar = {
     }
     target.after(this.__dragingElement);
     this.__dragingIndex = elIndex + 1;
-  },
+  }
 
   _handleDragEnd(event) {
     event.target.style.opacity = '1';
@@ -405,7 +410,7 @@ var gZenBrowserManagerSidebar = {
     this._currentPanel = this.__dragingElement.getAttribute('zen-sidebar-id');
     this.open();
     this.__dragingElement = undefined;
-  },
+  }
 
   _createNewPanel(url) {
     let data = this.sidebarData;
@@ -418,7 +423,7 @@ var gZenBrowserManagerSidebar = {
     Services.prefs.setStringPref('zen.sidebar.data', JSON.stringify(data));
     this._currentPanel = newName;
     this.open();
-  },
+  }
 
   _updateButtons() {
     for (let button of this.sidebarElement.querySelectorAll('.zen-sidebar-panel-button')) {
@@ -428,7 +433,7 @@ var gZenBrowserManagerSidebar = {
         button.removeAttribute('selected');
       }
     }
-  },
+  }
 
   _hideAllWebPanels() {
     let sidebar = document.getElementById('zen-sidebar-web-panel');
@@ -436,11 +441,11 @@ var gZenBrowserManagerSidebar = {
       browser.setAttribute('hidden', 'true');
       browser.docShellIsActive = false;
     }
-  },
+  }
 
   get introductionPanel() {
     return document.getElementById('zen-sidebar-introduction-panel');
-  },
+  }
 
   _updateWebPanel() {
     this._updateButtons();
@@ -470,7 +475,7 @@ var gZenBrowserManagerSidebar = {
       browser.reload();
     }
     browser.docShellIsActive = true;
-  },
+  }
 
   _getWebPanelData(id) {
     let data = this.sidebarData;
@@ -482,7 +487,7 @@ var gZenBrowserManagerSidebar = {
       id: id,
       ...panel,
     };
-  },
+  }
 
   _createWebPanelBrowser(data) {
     const titleContainer = document.getElementById('zen-sidebar-web-panel-title');
@@ -512,7 +517,7 @@ var gZenBrowserManagerSidebar = {
       }.bind(this)
     );
     return browser;
-  },
+  }
 
   _getWebPanelIcon(url, element) {
     let { preferredURI } = Services.uriFixup.getFixupURIInfo(url);
@@ -527,50 +532,50 @@ var gZenBrowserManagerSidebar = {
         reader.readAsDataURL(blob);
       }
     });
-  },
+  }
 
   _getBrowserById(id) {
     let sidebar = document.getElementById('zen-sidebar-web-panel');
     return sidebar.querySelector(`browser[zen-sidebar-id="${id}"]`);
-  },
+  }
 
   _getCurrentBrowser() {
     return this._getBrowserById(this._currentPanel);
-  },
+  }
 
   reload() {
     let browser = this._getCurrentBrowser();
     if (browser) {
       browser.reload();
     }
-  },
+  }
 
   forward() {
     let browser = this._getCurrentBrowser();
     if (browser) {
       browser.goForward();
     }
-  },
+  }
 
   back() {
     let browser = this._getCurrentBrowser();
     if (browser) {
       browser.goBack();
     }
-  },
+  }
 
   home() {
     let browser = this._getCurrentBrowser();
     if (browser) {
       browser.gotoIndex();
     }
-  },
+  }
 
   close() {
     this._hideAllWebPanels();
     this._closeSidebarPanel();
     this._updateSidebarButton();
-  },
+  }
 
   togglePinned(elem) {
     let sidebar = document.getElementById('zen-sidebar-web-panel');
@@ -580,49 +585,49 @@ var gZenBrowserManagerSidebar = {
       this._setPinnedToElements();
     }
     this.update();
-  },
+  }
 
   get sidebarElement() {
     if (!this._sidebarElement) {
       this._sidebarElement = document.getElementById('zen-sidebar-panels-sites');
     }
     return this._sidebarElement;
-  },
+  }
 
   get splitterElement() {
     if (!this._splitterElement) {
       this._splitterElement = document.getElementById('zen-sidebar-web-panel-splitter');
     }
     return this._splitterElement;
-  },
+  }
 
   get hSplitterElement() {
     if (!this._hSplitterElement) {
       this._hSplitterElement = document.getElementById('zen-sidebar-web-panel-hsplitter');
     }
     return this._hSplitterElement;
-  },
+  }
 
   get sidebarHeader() {
     if (!this._sidebarHeader) {
       this._sidebarHeader = document.getElementById('zen-sidebar-web-header');
     }
     return this._sidebarHeader;
-  },
+  }
 
   get sidebarWrapper() {
     if (!this._sideBarWrapper) {
-      this._sideBarWrapper =  document.getElementById('zen-sidebar-web-panel-wrapper');
+      this._sideBarWrapper = document.getElementById('zen-sidebar-web-panel-wrapper');
     }
     return this._sideBarWrapper;
-  },
+  }
 
   get sidebarHeaderButtons() {
     if (!this._sidebarHeaderButtons) {
       this._sidebarHeaderButtons = [...this.sidebarHeader.querySelectorAll('.toolbarbutton-1')];
     }
     return this._sidebarHeaderButtons;
-  },
+  }
 
   // Context menu
 
@@ -656,7 +661,7 @@ var gZenBrowserManagerSidebar = {
     } else {
       document.getElementById('context_zenUnloadWebPanel').removeAttribute('disabled');
     }
-  },
+  }
 
   contextOpenNewTab() {
     let browser = this._getBrowserById(this.contextTab);
@@ -665,7 +670,7 @@ var gZenBrowserManagerSidebar = {
     let url = browser == null ? panel.url : browser.currentURI.spec;
     gZenUIManager.openAndChangeToTab(url);
     this.close();
-  },
+  }
 
   contextToggleMuteAudio() {
     let browser = this._getBrowserById(this.contextTab);
@@ -674,7 +679,7 @@ var gZenBrowserManagerSidebar = {
     } else {
       browser.mute();
     }
-  },
+  }
 
   contextToggleUserAgent() {
     let browser = this._getBrowserById(this.contextTab);
@@ -683,7 +688,7 @@ var gZenBrowserManagerSidebar = {
     data.data[this.contextTab].ua = !data.data[this.contextTab].ua;
     Services.prefs.setStringPref('zen.sidebar.data', JSON.stringify(data));
     browser.reload();
-  },
+  }
 
   contextDelete() {
     let data = this.sidebarData;
@@ -698,7 +703,7 @@ var gZenBrowserManagerSidebar = {
     this._lastOpenedPanel = null;
     this.update();
     Services.prefs.setStringPref('zen.sidebar.data', JSON.stringify(data));
-  },
+  }
 
   contextUnload() {
     let browser = this._getBrowserById(this.contextTab);
@@ -707,7 +712,7 @@ var gZenBrowserManagerSidebar = {
     this._closeSidebarPanel();
     this.close();
     this._lastOpenedPanel = null;
-  },
+  }
 
   insertIntoContextMenu() {
     const sibling = document.getElementById('context-stripOnShareLink');
@@ -717,12 +722,12 @@ var gZenBrowserManagerSidebar = {
     menuitem.setAttribute('oncommand', 'gZenBrowserManagerSidebar.addPanelFromContextMenu();');
     menuitem.setAttribute('data-l10n-id', 'zen-web-side-panel-context-add-to-panel');
     sibling.insertAdjacentElement('afterend', menuitem);
-  },
+  }
 
   addPanelFromContextMenu() {
     const url = gContextMenu.linkURL || gContextMenu.target.ownerDocument.location.href;
     this._createNewPanel(url);
-  },
-};
+  }
+}
 
-gZenBrowserManagerSidebar.init();
+window.gZenBrowserManagerSidebar = new ZenBrowserManagerSidebar();

@@ -1,10 +1,9 @@
-
 const lazyCompactMode = {};
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazyCompactMode,
-  "COMPACT_MODE_FLASH_DURATION",
-  "zen.view.compact.toolbar-flash-popup.duration",
+  'COMPACT_MODE_FLASH_DURATION',
+  'zen.view.compact.toolbar-flash-popup.duration',
   800
 );
 
@@ -43,7 +42,7 @@ var gZenCompactModeManager = {
 
   get sidebar() {
     if (!this._sidebar) {
-      this._sidebar= document.getElementById('navigator-toolbox');
+      this._sidebar = document.getElementById('navigator-toolbox');
     }
     return this._sidebar;
   },
@@ -90,8 +89,9 @@ var gZenCompactModeManager = {
   },
 
   updateContextMenu() {
-    document.getElementById('zen-context-menu-compact-mode-toggle')
-        .setAttribute('checked', Services.prefs.getBoolPref('zen.view.compact'));
+    document
+      .getElementById('zen-context-menu-compact-mode-toggle')
+      .setAttribute('checked', Services.prefs.getBoolPref('zen.view.compact'));
 
     const hideTabBar = Services.prefs.getBoolPref('zen.view.compact.hide-tabbar');
     const hideToolbar = Services.prefs.getBoolPref('zen.view.compact.hide-toolbar');
@@ -104,14 +104,13 @@ var gZenCompactModeManager = {
   },
 
   _disableTabsOnHoverIfConflict() {
-    if (Services.prefs.getBoolPref('zen.view.compact')
-      && Services.prefs.getBoolPref('zen.view.compact.hide-tabbar')) {
+    if (Services.prefs.getBoolPref('zen.view.compact') && Services.prefs.getBoolPref('zen.view.compact.hide-tabbar')) {
       Services.prefs.setBoolPref('zen.view.sidebar-expanded.on-hover', false);
     }
   },
 
   toggle() {
-    return this.preference = !this.prefefence;
+    return (this.preference = !this.prefefence);
   },
 
   _updateSidebarIsOnRight() {
@@ -133,12 +132,12 @@ var gZenCompactModeManager = {
     return [
       {
         element: this.sidebar,
-        screenEdge: this.sidebarIsOnRight ? "right" : "left",
+        screenEdge: this.sidebarIsOnRight ? 'right' : 'left',
       },
       {
         element: document.getElementById('zen-appcontent-navbar-container'),
-        screenEdge:"top",
-      }
+        screenEdge: 'top',
+      },
     ];
   },
 
@@ -181,7 +180,7 @@ var gZenCompactModeManager = {
 
       target.addEventListener('mouseleave', (event) => {
         if (this.hoverableElements[i].keepHoverDuration) {
-          this.flashElement(target, keepHoverDuration, "has-hover" + target.id, 'zen-has-hover');
+          this.flashElement(target, keepHoverDuration, 'has-hover' + target.id, 'zen-has-hover');
         } else {
           this._removeHoverFrames[target.id] = window.requestAnimationFrame(() => target.removeAttribute('zen-has-hover'));
         }
@@ -194,18 +193,22 @@ var gZenCompactModeManager = {
       for (let entry of this.hoverableElements) {
         if (screenEdgeCrossed !== entry.screenEdge) continue;
         const target = entry.element;
-        const boundAxis = (entry.screenEdge === "right" || entry.screenEdge === "left" ? "y" : "x");
+        const boundAxis = entry.screenEdge === 'right' || entry.screenEdge === 'left' ? 'y' : 'x';
         if (!this._positionInBounds(boundAxis, target, event.pageX, event.pageY, 7)) {
           continue;
         }
         window.cancelAnimationFrame(this._removeHoverFrames[target.id]);
 
-        this.flashElement(target, this.hideAfterHoverDuration, "has-hover" + target.id, 'zen-has-hover');
-        document.addEventListener('mousemove', () => {
-          if (target.matches(':hover')) return;
-          target.removeAttribute('zen-has-hover');
-          this.clearFlashTimeout('has-hover' + target.id);
-        }, {once: true});
+        this.flashElement(target, this.hideAfterHoverDuration, 'has-hover' + target.id, 'zen-has-hover');
+        document.addEventListener(
+          'mousemove',
+          () => {
+            if (target.matches(':hover')) return;
+            target.removeAttribute('zen-has-hover');
+            this.clearFlashTimeout('has-hover' + target.id);
+          },
+          { once: true }
+        );
       }
     });
   },
@@ -214,15 +217,15 @@ var gZenCompactModeManager = {
     const targetBox = element.getBoundingClientRect();
     posX = Math.max(targetBox.left, Math.min(posX, targetBox.right));
     posY = Math.max(targetBox.top, Math.min(posY, targetBox.bottom));
-    return ["top", "bottom", "left", "right"].find((edge, i) => {
+    return ['top', 'bottom', 'left', 'right'].find((edge, i) => {
       const distance = Math.abs((i < 2 ? posY : posX) - targetBox[edge]);
       return distance <= maxDistance;
     });
   },
 
-  _positionInBounds(axis = "x", element, x, y, error = 0) {
+  _positionInBounds(axis = 'x', element, x, y, error = 0) {
     const bBox = element.getBoundingClientRect();
-    if (axis === "y") return bBox.top - error < y && y < bBox.bottom + error;
+    if (axis === 'y') return bBox.top - error < y && y < bBox.bottom + error;
     else return bBox.left - error < x && x < bBox.right + error;
   },
 

@@ -1,4 +1,3 @@
-
 const KEYCODE_MAP = {
   F1: 'VK_F1',
   F2: 'VK_F2',
@@ -26,75 +25,75 @@ const KEYCODE_MAP = {
 
 const defaultKeyboardGroups = {
   windowAndTabManagement: [
-    "zen-window-new-shortcut",
-    "zen-tab-new-shortcut",
-    "zen-key-enter-full-screen",
-    "zen-key-exit-full-screen",
-    "zen-quit-app-shortcut",
-    "zen-close-tab-shortcut",
-    "zen-close-shortcut",
-    "id:key_selectTab1",
-    "id:key_selectTab2",
-    "id:key_selectTab3",
-    "id:key_selectTab4",
-    "id:key_selectTab5",
-    "id:key_selectTab6",
-    "id:key_selectTab7",
-    "id:key_selectTab8",
-    "id:key_selectLastTab",
+    'zen-window-new-shortcut',
+    'zen-tab-new-shortcut',
+    'zen-key-enter-full-screen',
+    'zen-key-exit-full-screen',
+    'zen-quit-app-shortcut',
+    'zen-close-tab-shortcut',
+    'zen-close-shortcut',
+    'id:key_selectTab1',
+    'id:key_selectTab2',
+    'id:key_selectTab3',
+    'id:key_selectTab4',
+    'id:key_selectTab5',
+    'id:key_selectTab6',
+    'id:key_selectTab7',
+    'id:key_selectTab8',
+    'id:key_selectLastTab',
   ],
   navigation: [
-    "zen-nav-back-shortcut-alt",
-    "zen-nav-fwd-shortcut-alt",
-    "zen-nav-reload-shortcut-2",
-    "zen-nav-reload-shortcut-skip-cache",
-    "zen-nav-reload-shortcut",
-    "zen-key-stop",
-    "zen-window-new-shortcut",
-    "zen-private-browsing-shortcut",
-    "id:goHome",
-    "id:key_gotoHistory",
-    "id:goBackKb",
-    "id:goForwardKb",
+    'zen-nav-back-shortcut-alt',
+    'zen-nav-fwd-shortcut-alt',
+    'zen-nav-reload-shortcut-2',
+    'zen-nav-reload-shortcut-skip-cache',
+    'zen-nav-reload-shortcut',
+    'zen-key-stop',
+    'zen-window-new-shortcut',
+    'zen-private-browsing-shortcut',
+    'id:goHome',
+    'id:key_gotoHistory',
+    'id:goBackKb',
+    'id:goForwardKb',
   ],
   searchAndFind: [
-    "zen-search-focus-shortcut",
-    "zen-search-focus-shortcut-alt",
-    "zen-find-shortcut",
-    "zen-search-find-again-shortcut-2",
-    "zen-search-find-again-shortcut",
-    "zen-search-find-again-shortcut-prev",
+    'zen-search-focus-shortcut',
+    'zen-search-focus-shortcut-alt',
+    'zen-find-shortcut',
+    'zen-search-find-again-shortcut-2',
+    'zen-search-find-again-shortcut',
+    'zen-search-find-again-shortcut-prev',
   ],
   pageOperations: [
-    "zen-location-open-shortcut",
-    "zen-location-open-shortcut-alt",
-    "zen-save-page-shortcut",
-    "zen-print-shortcut",
-    "zen-page-source-shortcut",
-    "zen-page-info-shortcut",
-    "zen-reader-mode-toggle-shortcut-other",
-    "zen-picture-in-picture-toggle-shortcut"
+    'zen-location-open-shortcut',
+    'zen-location-open-shortcut-alt',
+    'zen-save-page-shortcut',
+    'zen-print-shortcut',
+    'zen-page-source-shortcut',
+    'zen-page-info-shortcut',
+    'zen-reader-mode-toggle-shortcut-other',
+    'zen-picture-in-picture-toggle-shortcut',
   ],
   historyAndBookmarks: [
-    "zen-history-show-all-shortcut",
-    "zen-bookmark-this-page-shortcut",
-    "zen-bookmark-show-library-shortcut"
+    'zen-history-show-all-shortcut',
+    'zen-bookmark-this-page-shortcut',
+    'zen-bookmark-show-library-shortcut',
   ],
   mediaAndDisplay: [
-    "zen-mute-toggle-shortcut",
-    "zen-full-zoom-reduce-shortcut",
-    "zen-full-zoom-enlarge-shortcut",
-    "zen-full-zoom-reset-shortcut",
-    "zen-bidi-switch-direction-shortcut",
-    "zen-screenshot-shortcut"
+    'zen-mute-toggle-shortcut',
+    'zen-full-zoom-reduce-shortcut',
+    'zen-full-zoom-enlarge-shortcut',
+    'zen-full-zoom-reset-shortcut',
+    'zen-bidi-switch-direction-shortcut',
+    'zen-screenshot-shortcut',
   ],
 };
 
 const fixedL10nIds = {
   cmd_findPrevious: 'zen-search-find-again-shortcut-prev',
-  "Browser:ReloadSkipCache": "zen-nav-reload-shortcut-skip-cache",
-  cmd_close: "zen-close-tab-shortcut",
-  "History:RestoreLastClosedTabOrWindowOrSession": "zen-restore-last-closed-tab-shortcut",
+  'Browser:ReloadSkipCache': 'zen-nav-reload-shortcut-skip-cache',
+  cmd_close: 'zen-close-tab-shortcut',
+  'History:RestoreLastClosedTabOrWindowOrSession': 'zen-restore-last-closed-tab-shortcut',
 };
 
 const ZEN_COMPACT_MODE_SHORTCUTS_GROUP = 'zen-compact-mode';
@@ -103,10 +102,12 @@ const ZEN_OTHER_SHORTCUTS_GROUP = 'zen-other';
 const ZEN_SPLIT_VIEW_SHORTCUTS_GROUP = 'zen-split-view';
 const FIREFOX_SHORTCUTS_GROUP = 'zen-kbs-invalid';
 const VALID_SHORTCUT_GROUPS = [
-  ZEN_COMPACT_MODE_SHORTCUTS_GROUP, 
-  ZEN_WORKSPACE_SHORTCUTS_GROUP, 
+  ZEN_COMPACT_MODE_SHORTCUTS_GROUP,
+  ZEN_WORKSPACE_SHORTCUTS_GROUP,
   ZEN_SPLIT_VIEW_SHORTCUTS_GROUP,
-  ...Object.keys(defaultKeyboardGroups), ZEN_OTHER_SHORTCUTS_GROUP, 'other'
+  ...Object.keys(defaultKeyboardGroups),
+  ZEN_OTHER_SHORTCUTS_GROUP,
+  'other',
 ];
 
 class KeyShortcutModifiers {
@@ -159,7 +160,7 @@ class KeyShortcutModifiers {
   }
 
   // used to avoid any future changes to the object
-  static fromObject({ctrl = false, alt = false, shift = false, meta = false, accel = false}) {
+  static fromObject({ ctrl = false, alt = false, shift = false, meta = false, accel = false }) {
     return new KeyShortcutModifiers(ctrl, alt, shift, meta, accel);
   }
 
@@ -192,10 +193,9 @@ class KeyShortcutModifiers {
       this.#alt == other.#alt &&
       this.#shift == other.#shift &&
       this.#control == other.#control &&
-      (AppConstants.platform == 'macosx' ? 
-        (this.#meta || this.#accel) == (other.#meta || other.#accel) :
-        (this.#meta == other.#meta && this.#accel == other.#accel)
-      )
+      (AppConstants.platform == 'macosx'
+        ? (this.#meta || this.#accel) == (other.#meta || other.#accel)
+        : this.#meta == other.#meta && this.#accel == other.#accel)
     );
   }
 
@@ -302,7 +302,7 @@ class KeyShortcut {
     // Find inside defaultKeyboardGroups
     for (let group of Object.keys(defaultKeyboardGroups)) {
       for (let shortcut of defaultKeyboardGroups[group]) {
-        if (shortcut == l10nId || shortcut == "id:" + id) {
+        if (shortcut == l10nId || shortcut == 'id:' + id) {
           return group;
         }
       }
@@ -472,12 +472,7 @@ class KeyShortcut {
   }
 
   isUserEditable() {
-    if (
-      !this.#id ||
-      this.#internal ||
-      this.#reserved ||
-      (this.#group == FIREFOX_SHORTCUTS_GROUP && this.#disabled)
-    ) {
+    if (!this.#id || this.#internal || this.#reserved || (this.#group == FIREFOX_SHORTCUTS_GROUP && this.#disabled)) {
       return false;
     }
     return true;
@@ -502,9 +497,7 @@ class KeyShortcut {
 }
 
 class ZenKeyboardShortcutsLoader {
-
-  constructor() {
-  }
+  constructor() {}
 
   get shortcutsFile() {
     return PathUtils.join(PathUtils.profileDir, 'zen-keyboard-shortcuts.json');
@@ -555,7 +548,7 @@ function zenGetDefaultShortcuts() {
       'C',
       '',
       ZEN_COMPACT_MODE_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
+      KeyShortcutModifiers.fromObject({ accel: true, alt: true }),
       'code:gZenCompactModeManager.toggle()',
       'zen-compact-mode-shortcut-toggle'
     )
@@ -566,7 +559,7 @@ function zenGetDefaultShortcuts() {
       'S',
       '',
       ZEN_COMPACT_MODE_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
+      KeyShortcutModifiers.fromObject({ accel: true, alt: true }),
       'code:gZenCompactModeManager.toggleSidebar()',
       'zen-compact-mode-shortcut-show-sidebar'
     )
@@ -577,7 +570,7 @@ function zenGetDefaultShortcuts() {
       'T',
       '',
       ZEN_COMPACT_MODE_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
+      KeyShortcutModifiers.fromObject({ accel: true, alt: true }),
       'code:gZenCompactModeManager.toggleToolbar()',
       'zen-compact-mode-shortcut-show-toolbar'
     )
@@ -603,7 +596,7 @@ function zenGetDefaultShortcuts() {
       'E',
       '',
       ZEN_WORKSPACE_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
+      KeyShortcutModifiers.fromObject({ accel: true, alt: true }),
       'code:ZenWorkspaces.changeWorkspaceShortcut()',
       'zen-workspace-shortcut-forward'
     )
@@ -614,7 +607,7 @@ function zenGetDefaultShortcuts() {
       'Q',
       '',
       ZEN_WORKSPACE_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
+      KeyShortcutModifiers.fromObject({ accel: true, alt: true }),
       'code:ZenWorkspaces.changeWorkspaceShortcut(-1)',
       'zen-workspace-shortcut-backward'
     )
@@ -627,7 +620,7 @@ function zenGetDefaultShortcuts() {
       'P',
       '',
       ZEN_OTHER_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({alt: true}),
+      KeyShortcutModifiers.fromObject({ alt: true }),
       'code:gZenBrowserManagerSidebar.toggle()',
       'zen-web-panel-shortcut-toggle'
     )
@@ -638,7 +631,7 @@ function zenGetDefaultShortcuts() {
       'B',
       '',
       ZEN_OTHER_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({alt: true}),
+      KeyShortcutModifiers.fromObject({ alt: true }),
       'code:gZenVerticalTabsManager.toggleExpand()',
       'zen-sidebar-shortcut-toggle'
     )
@@ -651,8 +644,8 @@ function zenGetDefaultShortcuts() {
       'G',
       '',
       ZEN_SPLIT_VIEW_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
-      'code:gZenViewSplitter.toggleShortcut(\'grid\')',
+      KeyShortcutModifiers.fromObject({ accel: true, alt: true }),
+      "code:gZenViewSplitter.toggleShortcut('grid')",
       'zen-split-view-shortcut-grid'
     )
   );
@@ -662,8 +655,8 @@ function zenGetDefaultShortcuts() {
       'V',
       '',
       ZEN_SPLIT_VIEW_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
-      'code:gZenViewSplitter.toggleShortcut(\'vsep\')',
+      KeyShortcutModifiers.fromObject({ accel: true, alt: true }),
+      "code:gZenViewSplitter.toggleShortcut('vsep')",
       'zen-split-view-shortcut-vertical'
     )
   );
@@ -673,8 +666,8 @@ function zenGetDefaultShortcuts() {
       'H',
       '',
       ZEN_SPLIT_VIEW_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
-      'code:gZenViewSplitter.toggleShortcut(\'hsep\')',
+      KeyShortcutModifiers.fromObject({ accel: true, alt: true }),
+      "code:gZenViewSplitter.toggleShortcut('hsep')",
       'zen-split-view-shortcut-horizontal'
     )
   );
@@ -684,8 +677,8 @@ function zenGetDefaultShortcuts() {
       'U',
       '',
       ZEN_SPLIT_VIEW_SHORTCUTS_GROUP,
-      KeyShortcutModifiers.fromObject({accel: true, alt: true}),
-      'code:gZenViewSplitter.toggleShortcut(\'unsplit\')',
+      KeyShortcutModifiers.fromObject({ accel: true, alt: true }),
+      "code:gZenViewSplitter.toggleShortcut('unsplit')",
       'zen-split-view-shortcut-unsplit'
     )
   );
@@ -696,8 +689,7 @@ function zenGetDefaultShortcuts() {
 class ZenKeyboardShortcutsVersioner {
   static LATEST_KBS_VERSION = 1;
 
-  constructor() {
-  }
+  constructor() {}
 
   get version() {
     return Services.prefs.getIntPref('zen.keyboard.shortcuts.version', 0);
@@ -728,7 +720,12 @@ class ZenKeyboardShortcutsVersioner {
 
     if (this.isVersionOutdated()) {
       const version = this.version;
-      console.info('Zen CKS: Migrating shortcuts from version', version, 'to', ZenKeyboardShortcutsVersioner.LATEST_KBS_VERSION);
+      console.info(
+        'Zen CKS: Migrating shortcuts from version',
+        version,
+        'to',
+        ZenKeyboardShortcutsVersioner.LATEST_KBS_VERSION
+      );
       const newData = this.migrate(data, version);
       this.version = ZenKeyboardShortcutsVersioner.LATEST_KBS_VERSION;
       return newData;
@@ -748,7 +745,7 @@ class ZenKeyboardShortcutsVersioner {
   }
 }
 
-var gZenKeyboardShortcutsManager = {
+var ZenKeyboardShortcutsManager = {
   loader: new ZenKeyboardShortcutsLoader(),
   async init() {
     if (window.location.href == 'chrome://browser/content/browser.xhtml') {
@@ -766,7 +763,7 @@ var gZenKeyboardShortcutsManager = {
   },
 
   async _loadSaved() {
-    var innerLoad = async() => {
+    var innerLoad = async () => {
       let data = await this.loader.load();
       if (!data || data.length == 0) {
         return zenGetDefaultShortcuts();
@@ -778,12 +775,10 @@ var gZenKeyboardShortcutsManager = {
         console.error('Zen CKS: Error parsing saved shortcuts. Resetting to defaults...', e);
         return zenGetDefaultShortcuts();
       }
-    }
+    };
 
     const loadedShortcuts = await innerLoad();
-    this.versioner = new ZenKeyboardShortcutsVersioner(
-      loadedShortcuts,
-    );
+    this.versioner = new ZenKeyboardShortcutsVersioner(loadedShortcuts);
     return loadedShortcuts;
   },
 
@@ -881,7 +876,7 @@ var gZenKeyboardShortcutsManager = {
       }
 
       if (targetShortcut.getModifiers().equals(modifiers) && targetShortcut.getKeyNameOrCode() == shortcut) {
-        return true
+        return true;
       }
     }
 

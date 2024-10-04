@@ -1,52 +1,36 @@
-
 {
   const lazy = {};
 
-  XPCOMUtils.defineLazyPreferenceGetter(
-    lazy,
-    "zenTabUnloaderEnabled",
-    "zen.tab-unloader.enabled",
-    false
-  );
+  XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenTabUnloaderEnabled', 'zen.tab-unloader.enabled', false);
 
-  XPCOMUtils.defineLazyPreferenceGetter(
-    lazy,
-    "zenTabUnloaderTimeout",
-    "zen.tab-unloader.timeout-minutes",
-    20
-  );
+  XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenTabUnloaderTimeout', 'zen.tab-unloader.timeout-minutes', 20);
 
-  XPCOMUtils.defineLazyPreferenceGetter(
-    lazy,
-    "zenTabUnloaderExcludedUrls",
-    "zen.tab-unloader.excluded-urls",
-    ""
-  );
+  XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenTabUnloaderExcludedUrls', 'zen.tab-unloader.excluded-urls', '');
 
   const ZEN_TAB_UNLOADER_DEFAULT_EXCLUDED_URLS = [
-    "^about:",
-    "^chrome:",
-    "^devtools:",    
-    "^file:",
-    "^resource:",
-    "^view-source:",
-    "^view-image:",
+    '^about:',
+    '^chrome:',
+    '^devtools:',
+    '^file:',
+    '^resource:',
+    '^view-source:',
+    '^view-image:',
   ];
 
   class ZenTabsObserver {
     static ALL_EVENTS = [
-      "TabAttrModified",
-      "TabPinned",
-      "TabUnpinned",
-      "TabBrowserInserted",
-      "TabBrowserDiscarded",
-      "TabShow",
-      "TabHide",
-      "TabOpen",
-      "TabClose",
-      "TabSelect",
-      "TabMultiSelect",
-    ]
+      'TabAttrModified',
+      'TabPinned',
+      'TabUnpinned',
+      'TabBrowserInserted',
+      'TabBrowserDiscarded',
+      'TabShow',
+      'TabHide',
+      'TabOpen',
+      'TabClose',
+      'TabSelect',
+      'TabMultiSelect',
+    ];
 
     #listeners = [];
 
@@ -59,7 +43,7 @@
       for (const event of ZenTabsObserver.ALL_EVENTS) {
         window.addEventListener(event, eventListener);
       }
-      window.addEventListener("unload", () => {
+      window.addEventListener('unload', () => {
         for (const event of ZenTabsObserver.ALL_EVENTS) {
           window.removeEventListener(event, eventListener);
         }
@@ -79,7 +63,7 @@
 
   class ZenTabsIntervalUnloader {
     static INTERVAL = 1000 * 60; // 1 minute
-    
+
     interval = null;
     unloader = null;
 
@@ -95,7 +79,7 @@
     get lazyExcludeUrls() {
       return [
         ...ZEN_TAB_UNLOADER_DEFAULT_EXCLUDED_URLS,
-        ...lazy.zenTabUnloaderExcludedUrls.split(",").map(url => url.trim())
+        ...lazy.zenTabUnloaderExcludedUrls.split(',').map((url) => url.trim()),
       ];
     }
 
@@ -103,24 +87,24 @@
       if (a === b) return true;
       if (a == null || b == null) return false;
       if (a.length !== b.length) return false;
-    
+
       // If you don't care about the order of the elements inside
       // the array, you should sort both arrays here.
       // Please note that calling sort on an array will modify that array.
       // you might want to clone your array first.
-    
+
       for (var i = 0; i < a.length; ++i) {
         if (a[i] !== b[i]) return false;
       }
       return true;
-    }    
+    }
 
     get excludedUrls() {
       // Check if excludedrls is the same as the pref value
       const excludedUrls = this.lazyExcludeUrls;
       if (!this.arraysEqual(this.#excludedUrls, excludedUrls) || !this.#compiledExcludedUrls.length) {
         this.#excludedUrls = excludedUrls;
-        this.#compiledExcludedUrls = excludedUrls.map(url => new RegExp(url));
+        this.#compiledExcludedUrls = excludedUrls.map((url) => new RegExp(url));
       }
       return this.#compiledExcludedUrls;
     }
@@ -136,16 +120,10 @@
     }
   }
 
+  class ZenTabUnloader extends ZenDOMOperatedFeature {
+    static ACTIVITY_MODIFIERS = ['muted', 'soundplaying', 'label', 'attention'];
 
-  class ZenTabUnloader {
-    static ACTIVITY_MODIFIERS = [
-      "muted",
-      "soundplaying",
-      "label",
-      "attention",
-    ]
-
-    constructor() {
+    init() {
       if (!lazy.zenTabUnloaderEnabled) {
         return;
       }
@@ -158,28 +136,28 @@
     onTabEvent(action, event) {
       const tab = event.target;
       switch (action) {
-        case "TabPinned":
-        case "TabUnpinned":
-        case "TabBrowserInserted":
-        case "TabBrowserDiscarded":
-        case "TabShow":
-        case "TabHide":
+        case 'TabPinned':
+        case 'TabUnpinned':
+        case 'TabBrowserInserted':
+        case 'TabBrowserDiscarded':
+        case 'TabShow':
+        case 'TabHide':
           break;
-        case "TabAttrModified":
+        case 'TabAttrModified':
           this.handleTabAttrModified(tab, event);
           break;
-        case "TabOpen":
+        case 'TabOpen':
           this.handleTabOpen(tab);
           break;
-        case "TabClose":
+        case 'TabClose':
           this.handleTabClose(tab);
           break;
-        case "TabSelect":
-        case "TabMultiSelect":
+        case 'TabSelect':
+        case 'TabMultiSelect':
           this.updateTabActivity(tab);
           break;
         default:
-          console.warn("ZenTabUnloader: Unhandled tab event", action);
+          console.warn('ZenTabUnloader: Unhandled tab event', action);
           break;
       }
     }
@@ -260,11 +238,19 @@
     }
 
     canUnloadTab(tab, currentTimestamp, excludedUrls) {
-      if (tab.pinned || tab.selected || tab.multiselected
-        || tab.hasAttribute("busy") || tab.hasAttribute("pending")
-        || !tab.linkedPanel || tab.splitView || tab.attention || tab.soundPlaying
-        || tab.zenIgnoreUnload
-        || excludedUrls.some(url => url.test(tab.linkedBrowser.currentURI.spec))) {
+      if (
+        tab.pinned ||
+        tab.selected ||
+        tab.multiselected ||
+        tab.hasAttribute('busy') ||
+        tab.hasAttribute('pending') ||
+        !tab.linkedPanel ||
+        tab.splitView ||
+        tab.attention ||
+        tab.soundPlaying ||
+        tab.zenIgnoreUnload ||
+        excludedUrls.some((url) => url.test(tab.linkedBrowser.currentURI.spec))
+      ) {
         return false;
       }
       const lastActivity = tab.lastActivity;
@@ -276,6 +262,6 @@
       return diff > lazy.zenTabUnloaderTimeout * 60 * 1000;
     }
   }
-  
+
   window.gZenTabUnloader = new ZenTabUnloader();
 }

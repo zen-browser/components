@@ -69,7 +69,9 @@ var ZenThemesCommon = {
       return newThemePreferences;
     }
 
-    return preferences.filter(({ disabledOn = [] }) => !disabledOn.includes(gZenOperatingSystemCommonUtils.currentOperatingSystem));
+    return preferences.filter(
+      ({ disabledOn = [] }) => !disabledOn.includes(gZenOperatingSystemCommonUtils.currentOperatingSystem)
+    );
   },
 
   throttle(mainFunction, delay) {

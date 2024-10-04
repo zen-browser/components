@@ -1,4 +1,3 @@
-
 var gZenOperatingSystemCommonUtils = {
   kZenOSToSmallName: {
     WINNT: 'windows',
@@ -38,5 +37,11 @@ class ZenMultiWindowFeature {
         console.error(e);
       }
     }
-  }  
+  }
+}
+
+class ZenDOMOperatedFeature {
+  constructor() {
+    window.addEventListener('DOMContentLoaded', this.init.bind(this));
+  }
 }
