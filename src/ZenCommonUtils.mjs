@@ -42,6 +42,7 @@ class ZenMultiWindowFeature {
 
 class ZenDOMOperatedFeature {
   constructor() {
-    window.addEventListener('DOMContentLoaded', this.init.bind(this));
+    var initBound = this.init.bind(this);
+    window.addEventListener('DOMContentLoaded', initBound, { once: true });
   }
 }
