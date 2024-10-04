@@ -3,7 +3,6 @@ class SplitNode {
    * @type {number}
    * @type
    */
-  splitters = [];
   widthInParent ;
   /**
    * @type {number}
@@ -176,8 +175,8 @@ var gZenViewSplitter = new class {
    */
   _removeNodeSplitters(node, recursive ) {
     this.getSplitters(node)?.forEach(s => s.remove());
-    if (!recursive) return;
     this._splitNodeToSplitters.delete(node);
+    if (!recursive) return;
     if (node.children) node.children.forEach(c => this._removeNodeSplitters(c));
   }
 
@@ -338,7 +337,6 @@ var gZenViewSplitter = new class {
   removeGroup(groupIndex) {
     if (this.currentView === groupIndex) {
       this.deactivateCurrentSplitView();
-      gBrowser.selectedBrowser.closest('.browserSidebarContainer').classList.add('deck-selected');
     }
     for (const tab of this._data[groupIndex].tabs) {
       this.resetTabState(tab, true);
@@ -478,18 +476,21 @@ var gZenViewSplitter = new class {
     const existingSplitTab = tabs.find((tab) => tab.splitView);
     if (existingSplitTab) {
       const groupIndex = this._data.findIndex((group) => group.tabs.includes(existingSplitTab));
-      if (groupIndex >= 0) {
+      const group = this._data[groupIndex];
+      if (group.gridType === gridType) {
         // Add any tabs that are not already in the group
         for (const tab of tabs) {
-          if (!this._data[groupIndex].tabs.includes(tab)) {
-            this._data[groupIndex].tabs.push(tab);
-            this.addTabToSplit(tab, this._data[groupIndex].layoutTree);
+          if (!group.tabs.includes(tab)) {
+            group.tabs.push(tab);
+            this.addTabToSplit(tab, group.layoutTree);
           }
         }
-        this._data[groupIndex].gridType = gridType;
-        this.applyGridLayout(this._data[groupIndex].layoutTree);
-        return;
+      } else {
+        group.gridType = gridType;
+        group.layoutTree = this.calculateLayoutTree(tabs, gridType);
       }
+      this.activateSplitView(group);
+      return;
     }
 
     const splitData = {
@@ -552,11 +553,12 @@ var gZenViewSplitter = new class {
    *
    * @param {object} splitData - The split data.
    */
-  activateSplitView(splitData) {
+  activateSplitView(splitData, reset = false) {
     const oldView = this.currentView;
     const newView = this._data.indexOf(splitData);
     if (oldView >= 0 && oldView !== newView) this.deactivateCurrentSplitView();
     this.currentView = newView;
+    if (reset) this.removeSplitters();
 
     this.tabBrowserPanel.setAttribute('zen-split-view', 'true');
 
@@ -691,7 +693,7 @@ var gZenViewSplitter = new class {
   }
 
   removeSplitters() {
-    Array.from(this._splitNodeToSplitters.values()).forEach(e => e[0].remove())
+    Array.from(this._splitNodeToSplitters.values()).flatMap(v => v).forEach(e => e.remove());
     this._splitNodeToSplitters.clear();
   }
 
@@ -799,8 +801,7 @@ var gZenViewSplitter = new class {
    * @param {Element} container - The container element.
    */
   resetContainerStyle(container) {
-    container.removeAttribute('zen-split-active');
-    container.classList.remove('deck-selected');
+    container.removeAttribute('zen-split');
     container.style.inset = '';
   }
 
@@ -889,8 +890,10 @@ var gZenViewSplitter = new class {
     if (gridType === 'unsplit') {
       this.unsplitCurrentView();
     } else {
-      this._data[this.currentView].gridType = gridType;
-      this.updateSplitView(window.gBrowser.selectedTab);
+      const group = this._data[this.currentView];
+      group.gridType = gridType;
+      group.layoutTree = this.calculateLayoutTree(group.tabs, gridType);
+      this.activateSplitView(group, true);
     }
     panel.hidePopup();
   }
@@ -900,14 +903,9 @@ var gZenViewSplitter = new class {
    */
   unsplitCurrentView() {
     if (this.currentView < 0) return;
+    this.removeGroup(this.currentView);
     const currentTab = window.gBrowser.selectedTab;
-    const tabs = this._data[this.currentView].tabs;
-    // note: This MUST be an index loop, as we are removing tabs from the array
-    for (let i = tabs.length - 1; i >= 0; i--) {
-      this.handleTabClose({ target: tabs[i], forUnsplit: true });
-    }
     window.gBrowser.selectedTab = currentTab;
-    this.updateSplitViewButton(true);
   }
 
   /**
