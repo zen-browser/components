@@ -67,6 +67,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
   _tabToSplitNode = new Map();
   dropZone;
   _edgeHoverSize = 20;
+  _minResizeWidth;
 
   init() {
     XPCOMUtils.defineLazyPreferenceGetter(this, 'canChangeTabOnHover', 'zen.splitView.change-on-hover', false);
@@ -133,15 +134,17 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
       this.removeGroup(groupIndex);
     } else {
       const node = this.getSplitNodeFromTab(tab);
-      this.applyRemoveNode(node);
+      const toUpdate = this.removeNode(node);
+      this.applyGridLayout(toUpdate);
     }
   }
 
   /**
    * Remove a SplitNode from its tree and the view
    * @param {SplitNode} toRemove
+   * @return {SplitNode} that has to be updated
    */
-  applyRemoveNode(toRemove) {
+  removeNode(toRemove) {
     this._removeNodeSplitters(toRemove, true);
     const parent = toRemove.parent;
     const childIndex = parent.children.indexOf(toRemove);
@@ -149,8 +152,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     if (parent.children.length !== 1) {
       const nodeToResize = parent.children[Math.max(0, childIndex - 1)];
       nodeToResize.sizeInParent += toRemove.sizeInParent;
-      this.applyGridLayout(parent);
-      return;
+      return parent;
     }
     // node that is not a leaf cannot have less than 2 children, this makes for better resizing
     // node takes place of parent
@@ -160,12 +162,13 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
       leftOverChild.parent = parent.parent;
       parent.parent.children[parent.parent.children.indexOf(parent)] = leftOverChild;
       this._removeNodeSplitters(parent, false);
-      this.applyGridLayout(parent.parent);
+      return parent.parent;
     } else {
       const viewData = Object.values(this._data).find(s => s.layoutTree === parent);
-      viewData.layoutTree = parent;
-      parent.positionToRoot = null;
-      this.applyGridLayout(parent);
+      viewData.layoutTree = leftOverChild;
+      leftOverChild.positionToRoot = null;
+      leftOverChild.parent = null;
+      return leftOverChild;
     }
   }
 
@@ -196,6 +199,8 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     this.tabBrowserPanel.addEventListener('dragstart', this.onBrowserDragStart);
     this.tabBrowserPanel.addEventListener('dragover', this.onBrowserDragOver);
     this.tabBrowserPanel.addEventListener('drop', this.onBrowserDrop);
+    this.tabBrowserPanel.addEventListener('dragend', this.onBrowserDragEnd)
+    document.addEventListener('click', this.disableTabSwitchView, {once: true});
   }
 
   disableTabSwitchView = () => {
@@ -217,6 +222,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     if (!browser) {
       return;
     }
+    this.dropZone.setAttribute('enabled', true);
     const browserContainer = browser.closest('.browserSidebarContainer');
     event.dataTransfer.setData('text/plain', browserContainer.id);
 
@@ -288,7 +294,6 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
   }
 
   onBrowserDragOver = (event) => {
-    if (!this.splitViewActive) return;
     event.preventDefault();
     const browser = event.target.querySelector('browser');
     if (!browser) return;
@@ -313,6 +318,10 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     }
   }
 
+  onBrowserDragEnd = (event) => {
+    this.dropZone.removeAttribute('enabled');
+  }
+
   _oppositeSide(side) {
     if (side === 'top') return 'bottom';
     if (side === 'bottom') return 'top';
@@ -331,29 +340,89 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
   }
 
   onBrowserDrop = (event) => {
-    if (!this.splitViewActive) return;
-    console.log(event);
-    const containerId = event.dataTransfer.getData('text/plain');
+    const browserDroppedOn = event.target.querySelector('browser');
+    if (!browserDroppedOn) return;
 
-    const startTab = gBrowser.getTabForBrowser(
-      document.getElementById(containerId).querySelector('browser')
+    const droppedContainerId= event.dataTransfer.getData('text/plain');
+
+    const droppedTab = gBrowser.getTabForBrowser(
+      document.getElementById(droppedContainerId).querySelector('browser')
     );
-    const endTab = gBrowser.getTabForBrowser(
+    if (!droppedTab) return;
+    const droppedOnTab = gBrowser.getTabForBrowser(
       event.target.querySelector('browser')
     );
-    if (!startTab || !endTab) {
+
+    const hoverSide = this.calculateHoverSide(event.clientX, event.clientY, browserDroppedOn.getBoundingClientRect());
+    const droppedSplitNode = this.getSplitNodeFromTab(droppedTab);
+    const droppedOnSplitNode = this.getSplitNodeFromTab(droppedOnTab);
+    if (hoverSide === 'center') {
+      this.swapNodes(droppedSplitNode, droppedOnSplitNode);
+      this.applyGridLayout(this._data[this.currentView].layoutTree);
       return;
     }
+    this.removeNode(droppedSplitNode);
+    this.splitIntoNode(droppedOnSplitNode, droppedSplitNode, hoverSide, .5);
+    this.applyGridLayout(this._data[this.currentView].layoutTree);
+  }
 
-    const currentData = this._data[this.currentView];
+  /**
+   *
+   * @param node1
+   * @param node2
+   */
+  swapNodes(node1, node2) {
+    this._swapField('sizeInParent', node1, node2);
 
-    const startIdx = currentData.tabs.indexOf(startTab);
-    const endIdx = currentData.tabs.indexOf(endTab);
+    const node1Idx = node1.parent.children.indexOf(node1);
+    const node2Idx = node2.parent.children.indexOf(node2);
+    node1.parent.children[node1Idx] = node2;
+    node2.parent.children[node2Idx] = node1;
 
-    currentData.tabs[startIdx] = endTab;
-    currentData.tabs[endIdx] = startTab;
-    this.dropZone.style.inset =
-      `${nodeRootPosition.top}% ${nodeRootPosition.right}% ${nodeRootPosition.bottom}% ${nodeRootPosition.left}%`;
+    this._swapField('parent', node1, node2);
+  }
+
+  /**
+   *
+   * @param node
+   * @param nodeToInsert
+   * @param side
+   * @param sizeOfInsertedNode percentage of node width or height that nodeToInsert will take
+   */
+  splitIntoNode(node, nodeToInsert, side, sizeOfInsertedNode) {
+    const splitDirection = side === 'left' || side === 'right' ? 'row' : 'column';
+    const splitPosition = side === 'left' || side === 'top' ? 0 : 1;
+
+    let nodeSize;
+    let newParent;
+    if (splitDirection === node.parent.direction) {
+      newParent = node.parent;
+      nodeSize = node.sizeInParent;
+    } else {
+      nodeSize = 100;
+      const nodeIndex = node.parent.children.indexOf(node);
+      newParent = new SplitNode(splitDirection, node.sizeInParent);
+      if (node.parent) {
+        newParent.parent = node.parent;
+      } else {
+        const viewData = Object.values(this._data).find(s => s.layoutTree === node.parent);
+        viewData.layoutTree = newParent;
+      }
+      node.parent.children[nodeIndex] = newParent;
+      newParent.addChild(node);
+    }
+    node.sizeInParent = 100 - (nodeSize * sizeOfInsertedNode);
+    nodeToInsert.sizeInParent = nodeSize * sizeOfInsertedNode;
+
+    const index = newParent.children.indexOf(node);
+    newParent.children.splice(index + splitPosition, 0, nodeToInsert);
+    nodeToInsert.parent = newParent;
+  }
+
+  _swapField(fieldName, obj1, obj2) {
+   const swap = obj1[fieldName];
+   obj1[fieldName] = obj2[fieldName];
+   obj2[fieldName] = swap;
   }
 
   /**
