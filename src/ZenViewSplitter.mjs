@@ -411,7 +411,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
       node.parent.children[nodeIndex] = newParent;
       newParent.addChild(node);
     }
-    node.sizeInParent = 100 - (nodeSize * sizeOfInsertedNode);
+    node.sizeInParent = (1 - sizeOfInsertedNode) * nodeSize;
     nodeToInsert.sizeInParent = nodeSize * sizeOfInsertedNode;
 
     const index = newParent.children.indexOf(node);
