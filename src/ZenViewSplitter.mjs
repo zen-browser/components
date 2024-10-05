@@ -780,6 +780,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
   };
 
   handleSplitterMouseDown = (event) => {
+    this.tabBrowserPanel.setAttribute('zen-split-resizing', true);
     const isVertical = event.target.getAttribute('orient') === 'vertical';
     const dimension = isVertical ? 'width' : 'height';
     const dimensionInParent = dimension + 'InParent';
@@ -821,6 +822,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     document.addEventListener('mouseup', () => {
       document.removeEventListener('mousemove', dragFunc);
       setCursor('auto');
+      this.tabBrowserPanel.removeAttribute('zen-split-resizing');
     }, {once: true});
   }
 
