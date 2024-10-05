@@ -57,9 +57,11 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
   _tabBrowserPanel = null;
   __modifierElement = null;
   __hasSetMenuListener = false;
-  splitterBox = null;
+  overlay = null;
   _splitNodeToSplitters = new Map();
   _tabToSplitNode = new Map();
+  dropZone;
+  _edgeHoverSize = 20;
 
   init() {
     XPCOMUtils.defineLazyPreferenceGetter(this, 'canChangeTabOnHover', 'zen.splitView.change-on-hover', false);
@@ -67,8 +69,14 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
 
     ChromeUtils.defineLazyGetter(
       this,
-      'splitterBox',
-      () => document.getElementById('zen-splitview-splitterbox')
+      'overlay',
+      () => document.getElementById('zen-splitview-overlay')
+    );
+
+    ChromeUtils.defineLazyGetter(
+      this,
+      'dropZone',
+      () => document.getElementById('zen-splitview-dropzone')
     );
 
     window.addEventListener('TabClose', this.handleTabClose.bind(this));
@@ -119,7 +127,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     if (group.tabs.length < 2) {
       this.removeGroup(groupIndex);
     } else {
-      const node = this._tabToSplitNode.get(tab);
+      const node = this.getSplitNodeFromTab(tab);
       this.applyRemoveNode(node);
     }
   }
@@ -177,6 +185,11 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
       this._thumnailCanvas.height = 140 * devicePixelRatio;
     }
 
+    const browsers = this._data[this.currentView].tabs.map(t => t.linkedBrowser);
+    browsers.forEach(b => {
+      b.style.pointerEvents = 'none';
+      b.style.opacity = '.7';
+    });
     this.tabBrowserPanel.addEventListener('dragstart', this.onBrowserDragStart);
     this.tabBrowserPanel.addEventListener('dragover', this.onBrowserDragOver);
     this.tabBrowserPanel.addEventListener('drop', this.onBrowserDrop);
@@ -274,6 +287,44 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
   onBrowserDragOver = (event) => {
     if (!this.splitViewActive) return;
     event.preventDefault();
+    const browser = event.target.querySelector('browser');
+    if (!browser) return;
+    const tab = gBrowser.getTabForBrowser(browser);
+    const splitNode = this.getSplitNodeFromTab(tab);
+
+    const posToRoot = {...splitNode.positionToRoot};
+    const browserRect = browser.getBoundingClientRect();
+    const hoverSide = this.calculateHoverSide(event.clientX, event.clientY, browserRect);
+
+    if (hoverSide !== 'center') {
+      const isVertical = hoverSide === 'top' || hoverSide === 'bottom';
+      const browserSize = 100 - (isVertical ? posToRoot.top + posToRoot.bottom : posToRoot.right + posToRoot.left);
+      const reduce= browserSize * .5;
+
+      posToRoot[this._oppositeSide(hoverSide)] += reduce;
+    }
+    const newInset =
+      `${posToRoot.top}% ${posToRoot.right}% ${posToRoot.bottom}% ${posToRoot.left}%`;
+    if (this.dropZone.style.inset !== newInset) {
+      window.requestAnimationFrame(() => this.dropZone.style.inset = newInset);
+    }
+  }
+
+  _oppositeSide(side) {
+    if (side === 'top') return 'bottom';
+    if (side === 'bottom') return 'top';
+    if (side === 'left') return 'right';
+    if (side === 'right') return 'left';
+  }
+
+  calculateHoverSide(x, y, elementRect) {
+    const hPixelHoverSize = (elementRect.right - elementRect.left) * this._edgeHoverSize / 100;
+    const vPixelHoverSize = (elementRect.bottom - elementRect.top) * this._edgeHoverSize / 100;
+    if (x <= elementRect.left + hPixelHoverSize) return 'left';
+    if (x > elementRect.right - hPixelHoverSize) return 'right';
+    if (y <= elementRect.top + vPixelHoverSize) return 'top';
+    if (y > elementRect.bottom - vPixelHoverSize) return 'bottom';
+    return 'center';
   }
 
   onBrowserDrop = (event) => {
@@ -298,7 +349,8 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
 
     currentData.tabs[startIdx] = endTab;
     currentData.tabs[endIdx] = startTab;
-    this.applyGridToTabs(currentData.tabs, currentData.gridType);
+    this.dropZone.style.inset =
+      `${nodeRootPosition.top}% ${nodeRootPosition.right}% ${nodeRootPosition.bottom}% ${nodeRootPosition.left}%`;
   }
 
   /**
@@ -660,7 +712,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     splitter.className = 'zen-split-view-splitter';
     splitter.setAttribute('orient', orient);
     splitter.setAttribute('gridIdx', idx);
-    this.splitterBox.insertAdjacentElement("afterbegin", splitter);
+    this.overlay.insertAdjacentElement("afterbegin", splitter);
 
     splitter.addEventListener('mousedown', this.handleSplitterMouseDown);
     return splitter;
@@ -688,8 +740,16 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
   }
 
   removeSplitters() {
-    [...this.splitterBox.children].forEach(s => s.remove());
+    [...this.overlay.children].filter(c => c.classList.contains('zen-split-view-splitter')).forEach(s => s.remove());
     this._splitNodeToSplitters.clear();
+  }
+
+  /**
+   * @param {Tab} tab
+   * @return {SplitNode} splitNode
+   */
+  getSplitNodeFromTab(tab) {
+    return this._tabToSplitNode.get(tab);
   }
 
   /**
