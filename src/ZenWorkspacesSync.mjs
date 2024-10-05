@@ -326,7 +326,7 @@ ZenWorkspacesTracker.prototype.onStop = function () {
  * Handles observed events and marks workspaces as changed accordingly.
  * @param {nsISupports} subject - The subject of the notification.
  * @param {String} topic - The topic of the notification.
- * @param {String} data - Additional data (workspace UUID).
+ * @param {String} data - Additional data (JSON stringified array of UUIDs).
  */
 ZenWorkspacesTracker.prototype.observe = async function (subject, topic, data) {
     if (this.ignoreAll) {
@@ -341,12 +341,38 @@ ZenWorkspacesTracker.prototype.observe = async function (subject, topic, data) {
             case "zen-workspace-removed":
             case "zen-workspace-updated":
             case "zen-workspace-added":
-                const workspaceID = data;
-                this._log.trace(`Observed ${topic} for ${workspaceID}`);
-                // Inform the store about the change
-                await this.engine._store.markChanged(workspaceID);
-                // Bump the score to indicate a high-priority sync
-                this.score += SCORE_INCREMENT_XLARGE;
+                let workspaceIDs;
+                if (data) {
+                    try {
+                        workspaceIDs = JSON.parse(data);
+                        if (!Array.isArray(workspaceIDs)) {
+                            throw new Error("Parsed data is not an array");
+                        }
+                    } catch (parseError) {
+                        this._log.error(`Failed to parse workspace UUIDs from data: ${data}`, parseError);
+                        return;
+                    }
+                } else {
+                    this._log.error(`No data received for event ${topic}`);
+                    return;
+                }
+
+                this._log.trace(`Observed ${topic} for UUIDs: ${workspaceIDs.join(", ")}`);
+
+                // Process each UUID
+                for (const workspaceID of workspaceIDs) {
+                    if (typeof workspaceID === "string") {
+                        // Inform the store about the change
+                        await this.engine._store.markChanged(workspaceID);
+                    } else {
+                        this._log.warn(`Invalid workspace ID encountered: ${workspaceID}`);
+                    }
+                }
+
+                // Bump the score once after processing all changes
+                if (workspaceIDs.length > 0) {
+                    this.score += SCORE_INCREMENT_XLARGE;
+                }
                 break;
         }
     } catch (error) {
