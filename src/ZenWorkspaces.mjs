@@ -348,7 +348,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
         currentContainer.appendChild(currentWorkspace);
 
         if (activeWorkspace.themeColor) {
-          this.generateZenColorsComplementary(activeWorkspace.themeColor);
+          this.generateZenGradientTheme(activeWorkspace.themeColor);
         } else {
           // If no themeColor is set, reset to default colors
           this.resetZenColors();
@@ -933,116 +933,189 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
 
   shiftHue = (h, shift) => (h + shift + 360) % 360; // Ensuring positive hue values
 
-  generateZenColorsComplementary(baseHex) {
+  generateZenGradientTheme(baseHex) {
     const isDarkTheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
     // Get HSL from base hex color
     let [h, s, l] = this.hexToHsl(baseHex);
 
-    // Apply desaturation and adjust lightness for pastel effect
-    s = Math.min(s, 40); // Cap saturation at 40%
+    // Adjust saturation based on user preference
+    const desaturate = Services.prefs.getBoolPref('zen.workspaces.gradient.desaturate', false);
+    s = desaturate ? Math.min(s, 55) : Math.min(s, 80);
 
-    if (!isDarkTheme) {
-      l = Math.max(l, 70); // Ensure lightness is at least 70% in light mode
+    // Control lightness/intensity based on theme
+    let lightness, accentLightness;
+    if (isDarkTheme) {
+      lightness = 12; // Default lightness for dark theme
+      accentLightness = 40;
     } else {
-      l = 30; // Set base lightness to 30% in dark mode
+      lightness = 80; // Default lightness for light theme
+      accentLightness = 58;
     }
-    baseHex = this.hslToHex(h, s, l);
 
-    let colors = {};
+    // Set CSS variables for saturation and lightness
+    document.documentElement.style.setProperty('--saturation', `${s}%`);
+    document.documentElement.style.setProperty('--lightness', `${lightness}%`);
+    document.documentElement.style.setProperty('--accent-color-lightness', `${accentLightness}%`);
 
-    if (s < 15) {
-      // Neutral color selected (e.g., grey shade)
-      // Generate a primary color that pops
-      const popHues = [0, 30, 60, 120, 180, 240, 300]; // Array of hues for vibrant colors
-      const popHue = popHues[Math.floor(Math.random() * popHues.length)]; // Randomly select a hue
-      const popSaturation = 80; // High saturation for popping color
-      const popLightness = isDarkTheme ? 40 : 50; // Adjusted lightness based on theme
-
-      const l_tertiary = isDarkTheme ? 15 : l; // Much darker in dark mode
-
-      colors = {
-        "--zen-colors-primary": this.hslToHex(popHue, popSaturation, popLightness), // Vibrant color
-        "--zen-colors-secondary": this.hslToHex(h, s, Math.min(l_tertiary + 10, 100)), // Slightly lighter neutral
-        "--zen-colors-tertiary": this.hslToHex(h, s, l_tertiary), // Darker neutral color (background)
-        "--zen-colors-border": this.hslToHex(h, s, Math.max(l_tertiary - 5, 0)), // Even darker neutral
-        "--zen-dialog-background": this.hslToHex(h, s, Math.min(l_tertiary + 5, 100)), // Slightly lighter neutral
-      };
-    } else {
-      // Non-neutral color selected
-      const primaryH = this.shiftHue(h, isDarkTheme ? 0 : -10); // No hue shift in dark mode
-      const secondaryH = this.shiftHue(h, isDarkTheme ? 0 : 10);
-
-      if (!isDarkTheme) {
-        // Light mode
-        colors = {
-          "--zen-colors-primary": this.hslToHex(primaryH, s, Math.max(l - 10, 0)), // Slightly darker shade with shifted hue
-          "--zen-colors-secondary": this.hslToHex(secondaryH, s, Math.min(l + 10, 100)), // Slightly lighter shade with shifted hue
-          "--zen-colors-tertiary": baseHex, // Base color (background)
-          "--zen-colors-border": this.hslToHex(h, s, Math.max(l - 20, 0)), // Darker version for border
-          "--zen-dialog-background": this.hslToHex(h, s, Math.min(l + 5, 100)), // Slightly lighter
-        };
+    // Determine the target hue based on the base hue category
+    function getColorCategory(hue) {
+      if ((hue >= 0 && hue < 30) || (hue >= 330 && hue <= 360)) {
+        return 'red';
+      } else if (hue >= 30 && hue < 60) {
+        return 'orange';
+      } else if (hue >= 60 && hue < 90) {
+        return 'yellow';
+      } else if (hue >= 90 && hue < 150) {
+        return 'green';
+      } else if (hue >= 150 && hue < 210) {
+        return 'cyan';
+      } else if (hue >= 210 && hue < 270) {
+        return 'blue';
+      } else if (hue >= 270 && hue < 330) {
+        return 'purple';
       } else {
-        // Dark mode
-        const l_tertiary = 15; // Much darker for tertiary color
-        const l_primary = 40;  // Lightness adjusted for white text
-
-        colors = {
-          "--zen-colors-primary": this.hslToHex(h, s, l_primary), // Similar to baseHex but dark enough for white text
-          "--zen-colors-secondary": this.hslToHex(h, s, Math.max(l_primary - 10, 0)), // Slightly darker than primary
-          "--zen-colors-tertiary": this.hslToHex(h, s, l_tertiary), // Much darker base color (background)
-          "--zen-colors-border": this.hslToHex(h, s, Math.max(l_tertiary - 5, 0)), // Even darker for border
-          "--zen-dialog-background": this.hslToHex(h, s, Math.min(l_tertiary + 5, 100)), // Slightly lighter
-        };
+        return 'unknown';
       }
     }
 
-    // Apply the colors to the document's root style
-    Object.keys(colors).forEach(key => {
-      document.documentElement.style.setProperty(key, colors[key]);
-    });
+    function getTargetHue(category) {
+      switch (category) {
+        case 'red':
+          // Last color should be yellowish (60-90)
+          return 75; // Midpoint of yellow range
+        case 'orange':
+          // Last color should be blueish (210-270)
+          return 240; // Midpoint of blue range
+        case 'yellow':
+          // Last color should be purplish (270-330)
+          return 300; // Midpoint of purple range
+        case 'green':
+          // Last color should be reddish (0-30 or 330-360)
+          return 0; // Red hue
+        case 'cyan':
+          // Last color should be orangeish (30-60)
+          return 45; // Midpoint of orange range
+        case 'blue':
+          // Last color should be greenish (90-150)
+          return 120; // Midpoint of green range
+        case 'purple':
+          // Last color should be cyan (150-210)
+          return 180; // Midpoint of cyan range
+        default:
+          // If unknown, pick a complementary hue
+          return (h + 180) % 360;
+      }
+    }
 
-    return colors;
+    function hueDifference(h1, h2) {
+      let diff = h2 - h1;
+      if (diff > 180) {
+        diff -= 360;
+      } else if (diff < -180) {
+        diff += 360;
+      }
+      return diff;
+    }
+
+    function interpolateHue(h1, h2, t) {
+      let diff = hueDifference(h1, h2);
+      return (h1 + diff * t + 360) % 360;
+    }
+
+    const baseCategory = getColorCategory(h);
+    const targetHue = getTargetHue(baseCategory);
+
+    const numberOfColors = 4; // Number of gradient colors
+    const gradientColors = [];
+
+    for (let i = 0; i < numberOfColors; i++) {
+      let t = i / (numberOfColors - 1); // Normalized position (0 to 1)
+      let newHue = interpolateHue(h, targetHue, t);
+      let colorVar = `--gradient-color${i + 1}`;
+      let colorValue = `hsl(${newHue}, var(--saturation), var(--lightness))`;
+      document.documentElement.style.setProperty(colorVar, colorValue);
+      gradientColors.push(colorValue);
+    }
+
+    // Set custom accent color using base hue
+    let accentColor = `hsla(${h}, 50%, var(--accent-color-lightness), 0.7)`;
+    document.documentElement.style.setProperty('--custom-accent-color', accentColor);
+
+    // Optionally switch colors if preference is set
+    const switchColors = Services.prefs.getBoolPref('zen.workspaces.gradient.switch-colors', true);
+    if (switchColors) {
+      gradientColors.forEach((color, index) => {
+        let switchedColorVar = `--switched-color${index + 1}`;
+        document.documentElement.style.setProperty(switchedColorVar, color);
+      });
+      // Update accent color if needed
+      document.documentElement.style.setProperty('--custom-accent-color', accentColor);
+    }
+
+    document.documentElement.setAttribute('zen-gradient-theme', 'true');
   }
+
+
 
   resetZenColors() {
     // Remove custom properties
     const properties = [
-      "--zen-colors-primary",
-      "--zen-colors-secondary",
-      "--zen-colors-tertiary",
-      "--zen-colors-border",
-      "--zen-dialog-background"
+      '--saturation',
+      '--lightness',
+      '--accent-color-lightness',
+      '--gradient-color1',
+      '--gradient-color2',
+      '--gradient-color3',
+      '--gradient-color4',
+      '--switched-color1',
+      '--switched-color2',
+      '--switched-color3',
+      '--switched-color4',
+      '--custom-accent-color',
+      '--gradient-start',
+      '--zen-main-browser-background',
+      '--zen-themed-toolbar-bg',
+      '--toolbarbutton-hover-background',
+      '--toolbarbutton-active-background',
+      '--panel-item-hover-bgcolor',
+      '--zen-workspaces-strip-background-color',
+      '--zen-webview-border-radius',
+      '--zen-border-radius',
     ];
     properties.forEach(prop => {
       document.documentElement.style.removeProperty(prop);
     });
+
+    document.documentElement.removeAttribute('zen-gradient-theme');
   }
+
 
   zenColorOptions = [
     null,
-    "#FFD1DC", // Pastel Pink
-    "#FFB347", // Pastel Orange
-    "#FFFF99", // Pastel Yellow
-    "#77DD77", // Pastel Green
-    "#AEC6CF", // Pastel Blue
-    "#D8BFD8", // Pastel Lilac
-    "#98FF98", // Pastel Mint
-    "#FFDAB9", // Pastel Peach
-    "#E6E6FA", // Pastel Lavender
-    "#F5F5DC", // Pastel Beige
-    "#F0E68C", // Khaki
-    "#E0FFFF", // Light Cyan
-    "#FFB6C1", // Light Pink
-    "#ADD8E6", // Light Blue
-    "#CD5C5C", // Darker Red
-    "#F08080", // Light Coral
-    "#AFEEEE", // Pale Turquoise
-    "#20B2AA", // Light Sea Green
-    "#8470FF", // Light Slate Blue
-    "#FFA07A", // Light Salmon
-    "#000000" // Black
+    "#FF5733", // Vibrant Orange
+    "#FFC300", // Vibrant Yellow
+    "#DAF7A6", // Light Green
+    "#33FF57", // Vibrant Green
+    "#33FFF6", // Aqua
+    "#3357FF", // Vibrant Blue
+    "#9D33FF", // Vibrant Purple
+    "#FF33A8", // Vibrant Pink
+    "#FF3333", // Vibrant Red
+    "#FF8C33", // Vibrant Coral
+    "#FFD133", // Vibrant Gold
+    "#8CFF33", // Lime Green
+    "#33FF8C", // Mint Green
+    "#33FFD1", // Turquoise
+    "#338CFF", // Sky Blue
+    "#8C33FF", // Deep Purple
+    "#D133FF", // Magenta
+    "#FF33D1", // Hot Pink
+    "#FF338C", // Rose
+    "#333333", // Dark Gray
+    "#FFFFFF"  // White
   ];
+
 
 // Function to initialize the color picker
   initializeZenColorPicker(containerId, onColorSelected, initialColor = null) {
