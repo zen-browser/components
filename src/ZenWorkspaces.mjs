@@ -670,7 +670,6 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     let window = {
       uuid: gZenUIManager.generateUuidv4(),
       default: isDefault,
-      used: true,
       icon: icon,
       name: name,
     };
