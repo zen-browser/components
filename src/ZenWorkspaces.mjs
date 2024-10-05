@@ -84,6 +84,8 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
         // Set the active workspace ID to the first one if active workspace doesn't exist
         Services.prefs.setStringPref('zen.workspaces.active', this._workspaceCache.workspaces[0]?.uuid);
       }
+      // sort by position
+      this._workspaceCache.workspaces.sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity));
     }
     return this._workspaceCache;
   }
