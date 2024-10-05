@@ -1,13 +1,10 @@
-class SplitNode {
+class SplitLeafNode {
   /**
-   * @type {number}
-   * @type
-   */
-  widthInParent ;
-  /**
+   * The percentage of the size of the parent the node takes up, dependent on parent direction this is either
+   * width or height.
    * @type {number}
    */
-  heightInParent ;
+  sizeInParent;
   /**
    * @type {Object}
    */
@@ -16,16 +13,31 @@ class SplitNode {
    * @type {SplitNode}
    */
   parent;
+  constructor(tab, sizeInParent) {
+    this.tab = tab;
+    this.sizeInParent = sizeInParent;
+  }
+
+  get heightInParent() {
+    return this.parent.direction === 'column' ? this.sizeInParent : 100;
+  }
+
+  get widthInParent() {
+    return this.parent.direction === 'row' ? this.sizeInParent : 100;
+  }
+}
+
+class SplitNode extends SplitLeafNode {
   /**
    * @type {string}
    */
   direction;
+  _children = [];
 
-  constructor(direction, widthInParent = 100, heightInParent = 100) {
-    this.widthInParent = widthInParent;
-    this.heightInParent = heightInParent;
+  constructor(direction, sizeInParent) {
+    super(null, sizeInParent);
+    this.sizeInParent = sizeInParent;
     this.direction = direction; // row or column
-    this._children = [];
   }
 
   set children(children) {
@@ -40,13 +52,6 @@ class SplitNode {
   addChild(child) {
     child.parent = this;
     this._children.push(child);
-  }
-}
-class SplitLeafNode {
-  constructor(tab, widthInParent = 100, heightInParent = 100) {
-    this.tab = tab;
-    this.widthInParent = widthInParent;
-    this.heightInParent = heightInParent;
   }
 }
 
@@ -143,16 +148,14 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     parent.children.splice(childIndex, 1);
     if (parent.children.length !== 1) {
       const nodeToResize = parent.children[Math.max(0, childIndex - 1)];
-      if (parent.direction === 'column') nodeToResize.heightInParent += toRemove.heightInParent;
-      else nodeToResize.widthInParent += toRemove.widthInParent;
+      nodeToResize.sizeInParent += toRemove.sizeInParent;
       this.applyGridLayout(parent);
       return;
     }
     // node that is not a leaf cannot have less than 2 children, this makes for better resizing
     // node takes place of parent
     const leftOverChild = parent.children[0];
-    leftOverChild.widthInParent = parent.widthInParent;
-    leftOverChild.heightInParent = parent.heightInParent;
+    leftOverChild.sizeInParent = parent.sizeInParent;
     if (parent.parent) {
       leftOverChild.parent = parent.parent;
       parent.parent.children[parent.parent.children.indexOf(parent)] = leftOverChild;
@@ -510,7 +513,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
    * @param {Tab[]} tabs - The tabs to split.
    * @param {string} gridType - The type of grid layout.
    */
-  splitTabs(tabs, gridType = 'grid') {
+  splitTabs(tabs, gridType) {
     if (tabs.length < 2) {
       return;
     }
@@ -519,7 +522,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     if (existingSplitTab) {
       const groupIndex = this._data.findIndex((group) => group.tabs.includes(existingSplitTab));
       const group = this._data[groupIndex];
-      if (group.gridType !== gridType || tabs.length !== tabs.length) {
+      if (gridType && (group.gridType !== gridType)) {
         // reset layout
         group.gridType = gridType;
         group.layoutTree = this.calculateLayoutTree([...new Set(group.tabs.concat(tabs))], gridType);
@@ -535,6 +538,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
       this.activateSplitView(group, true);
       return;
     }
+    gridType ??= 'grid';
 
     const splitData = {
       tabs,
@@ -547,15 +551,9 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
   }
 
   addTabToSplit(tab, splitNode) {
-    if (splitNode.direction === 'row') {
-      const reduce = splitNode.children.length / (splitNode.children.length + 1);
-      splitNode.children.forEach(c => c.widthInParent *= reduce);
-      splitNode.addChild(new SplitLeafNode(tab, (1 - reduce) * 100, 100));
-    } else if (splitNode.direction === 'column') {
-      const reduce = splitNode.children.length / (splitNode.children.length + 1);
-      splitNode.children.forEach(c => c.heightInParent *= reduce);
-      splitNode.addChild(new SplitLeafNode(tab, (1 - reduce) * 100, 100));
-    }
+    const reduce = splitNode.children.length / (splitNode.children.length + 1);
+    splitNode.children.forEach(c => c.sizeInParent *= reduce);
+    splitNode.addChild(new SplitLeafNode(tab, (1 - reduce) * 100));
   }
 
   /**
@@ -620,20 +618,20 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     let rootNode;
     if (gridType === 'vsep' || (tabs.length === 2 && gridType === 'grid')) {
       rootNode = new SplitNode('row');
-      rootNode.children = tabs.map(tab => new SplitLeafNode(tab, 100 / tabs.length, 100));
+      rootNode.children = tabs.map(tab => new SplitLeafNode(tab, 100 / tabs.length));
     } else if (gridType === 'hsep') {
       rootNode = new SplitNode('column');
-      rootNode.children = tabs.map(tab => new SplitLeafNode(tab, 100, 100 / tabs.length));
+      rootNode.children = tabs.map(tab => new SplitLeafNode(tab, 100 / tabs.length));
     } else if (gridType === 'grid') {
       rootNode = new SplitNode('row');
       const rowWidth = 100 / Math.ceil(tabs.length / 2);
       for (let i = 0; i < tabs.length - 1; i += 2) {
         const columnNode = new SplitNode('column', rowWidth, 100);
-        columnNode.children = [new SplitLeafNode(tabs[i], 100, 50), new SplitLeafNode(tabs[i + 1], 100, 50)];
+        columnNode.children = [new SplitLeafNode(tabs[i],  50), new SplitLeafNode(tabs[i + 1], 50)];
         rootNode.addChild(columnNode);
       }
       if (tabs.length % 2 !== 0) {
-        rootNode.addChild(new SplitLeafNode(tabs[tabs.length - 1], rowWidth, 100));
+        rootNode.addChild(new SplitLeafNode(tabs[tabs.length - 1], rowWidth));
       }
     }
 
@@ -685,9 +683,9 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
       this.applyGridLayout(childNode);
 
       if (splitNode.direction === 'column') {
-        topOffset += childNode.heightInParent * rootToNodeHeightRatio;
+        topOffset += childNode.sizeInParent * rootToNodeHeightRatio;
       } else {
-        leftOffset += childNode.widthInParent * rootToNodeWidthRatio;
+        leftOffset += childNode.sizeInParent * rootToNodeWidthRatio;
       }
 
       if (i < splittersNeeded) {
@@ -783,7 +781,6 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     this.tabBrowserPanel.setAttribute('zen-split-resizing', true);
     const isVertical = event.target.getAttribute('orient') === 'vertical';
     const dimension = isVertical ? 'width' : 'height';
-    const dimensionInParent = dimension + 'InParent';
     const clientAxis = isVertical ? 'screenX' : 'screenY';
 
     const gridIdx = parseInt(event.target.getAttribute('gridIdx'));
@@ -792,11 +789,11 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     let rootToNodeSize;
     if (isVertical) rootToNodeSize = 100 / (100 - splitNode.positionToRoot.right - splitNode.positionToRoot.left);
     else rootToNodeSize = 100 / (100 - splitNode.positionToRoot.bottom - splitNode.positionToRoot.top);
-    const originalSizes = splitNode.children.map(c => c[dimensionInParent]);
+    const originalSizes = splitNode.children.map(c => c.sizeInParent);
 
     const dragFunc = (dEvent) => {
       requestAnimationFrame(() => {
-        originalSizes.forEach((s, i) => splitNode.children[i][dimensionInParent] = s); // reset changes
+        originalSizes.forEach((s, i) => splitNode.children[i].sizeInParent = s); // reset changes
 
         const movement = dEvent[clientAxis] - startPosition;
         let movementPercent = (movement / this.tabBrowserPanel.getBoundingClientRect()[dimension] * rootToNodeSize) * 100;
@@ -805,14 +802,14 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
         for (let i = gridIdx + (movementPercent < 0 ? 0 : 1); 0 <= i && i < originalSizes.length; i += movementPercent < 0 ? -1 : 1) {
           const current = originalSizes[i];
           const newSize = Math.max(this.minResizeWidth, current - reducingMovement);
-          splitNode.children[i][dimensionInParent] = newSize;
+          splitNode.children[i].sizeInParent = newSize;
           const amountReduced = current - newSize;
           reducingMovement -= amountReduced;
           if (reducingMovement <= 0) break;
         }
         const increasingMovement = Math.max(movementPercent, - movementPercent) - reducingMovement;
         const increaseIndex = gridIdx + (movementPercent < 0 ? 1 : 0);
-        splitNode.children[increaseIndex][dimensionInParent] = originalSizes[increaseIndex] + increasingMovement;
+        splitNode.children[increaseIndex].sizeInParent = originalSizes[increaseIndex] + increasingMovement;
         this.applyGridLayout(splitNode);
       });
     }
