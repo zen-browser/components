@@ -68,7 +68,7 @@ ZenWorkspacesStore.prototype.changeItemID = async function (oldID, newID) {
         const workspace = workspaces.find(ws => ws.uuid === oldID);
         if (workspace) {
             workspace.uuid = newID;
-            await ZenWorkspacesStorage.saveWorkspace(workspace);
+            await ZenWorkspacesStorage.saveWorkspace(workspace,false);
             // Mark the new ID as changed for sync
             await ZenWorkspacesStorage.markChanged(newID);
         }
@@ -138,7 +138,7 @@ ZenWorkspacesStore.prototype.create = async function (record) {
             containerTabId: record.containerTabId,
             position: record.position
         };
-        await ZenWorkspacesStorage.saveWorkspace(workspace);
+        await ZenWorkspacesStorage.saveWorkspace(workspace,false);
     } catch (error) {
         this._log.error(`Error creating workspace with ID ${record.id}`, error);
         throw error;
@@ -165,8 +165,7 @@ ZenWorkspacesStore.prototype.update = async function (record) {
  */
 ZenWorkspacesStore.prototype.remove = async function (record) {
     try {
-        await ZenWorkspacesStorage.removeWorkspace(record.id);
-        // Changes are already marked within ZenWorkspacesStorage.removeWorkspace
+        await ZenWorkspacesStorage.removeWorkspace(record.id, false);
     } catch (error) {
         this._log.error(`Error removing workspace with ID ${record.id}`, error);
         throw error;

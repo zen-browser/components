@@ -17,7 +17,7 @@ var ZenWorkspacesStorage = {
           container_id INTEGER,
           position INTEGER NOT NULL DEFAULT 0,
           created_at INTEGER NOT NULL,
-          updated_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
         )
       `);
 
@@ -47,7 +47,7 @@ var ZenWorkspacesStorage = {
     }
   },
 
-  async saveWorkspace(workspace) {
+  async saveWorkspace(workspace, notifyObservers = true) {
     await PlacesUtils.withConnectionWrapper('ZenWorkspacesStorage.saveWorkspace', async (db) => {
       const now = Date.now();
 
@@ -114,6 +114,10 @@ var ZenWorkspacesStorage = {
         });
       });
     });
+
+    if(notifyObservers) {
+      Services.obs.notifyObservers(null, "zen-workspace-updated", workspace.uuid);
+    }
   },
 
   async getWorkspaces() {
@@ -131,7 +135,7 @@ var ZenWorkspacesStorage = {
     }));
   },
 
-  async removeWorkspace(uuid) {
+  async removeWorkspace(uuid, notifyObservers = true) {
     await PlacesUtils.withConnectionWrapper('ZenWorkspacesStorage.removeWorkspace', async (db) => {
       await db.execute(
         `
@@ -150,6 +154,10 @@ var ZenWorkspacesStorage = {
         timestamp: Math.floor(now / 1000)
       });
     });
+
+    if(notifyObservers) {
+      Services.obs.notifyObservers(null, "zen-workspace-removed", uuid);
+    }
   },
 
   async wipeAllWorkspaces() {
