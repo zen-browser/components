@@ -19,8 +19,25 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     );
     ChromeUtils.defineLazyGetter(this, 'tabContainer', () => document.getElementById('tabbrowser-tabs'));
     await ZenWorkspacesStorage.init();
+    if(!Weave.Service.engineManager.get("workspaces")) {
+      Weave.Service.engineManager.register(ZenWorkspacesEngine);
+    }
     await this.initializeWorkspaces();
     console.info('ZenWorkspaces: ZenWorkspaces initialized');
+
+    // Add observer for sync completion
+    Services.obs.addObserver(this, "weave:engine:sync:finish");
+  }
+
+  observe(subject, topic, data) {
+    if (topic === "weave:engine:sync:finish" && data === "workspaces") {
+      this._workspaceCache = null; // Clear cache to fetch fresh data
+      this.updateWorkspaceStrip();
+    }
+  }
+
+  updateWorkspaceStrip() {
+    this._propagateWorkspaceData().catch(console.error);
   }
 
   get shouldHaveWorkspaces() {
@@ -69,6 +86,8 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
         // Set the active workspace ID to the first one if active workspace doesn't exist
         Services.prefs.setStringPref('zen.workspaces.active', this._workspaceCache.workspaces[0]?.uuid);
       }
+      // sort by position
+      this._workspaceCache.workspaces.sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity));
     }
     return this._workspaceCache;
   }
@@ -540,7 +559,6 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     workspaceData.icon = icon?.label;
     await this.saveWorkspace(workspaceData);
     await this._propagateWorkspaceData();
-    this.closeWorkspacesSubView();
   }
 
   onWorkspaceCreationNameChange(event) {
@@ -650,7 +668,6 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     let window = {
       uuid: gZenUIManager.generateUuidv4(),
       default: isDefault,
-      used: true,
       icon: icon,
       name: name,
     };
