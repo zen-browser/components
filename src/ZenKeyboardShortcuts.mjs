@@ -795,6 +795,10 @@ var gZenKeyboardShortcutsManager = {
       const children = mainKeyset.children;
       for (let i = children.length - 1; i >= 0; i--) {
         let key = children[i];
+        // Do NOT remove the internal keys
+        if (key.getAttribute('internal') == 'true') {
+          continue;
+        }
         key.remove();
       }
       if (mainKeyset.children.length > 0) {
@@ -802,7 +806,7 @@ var gZenKeyboardShortcutsManager = {
       }
 
       for (let key of this._currentShortcutList) {
-        if (key.isEmpty()) {
+        if (key.isEmpty() || key.isInternal()) {
           continue;
         }
         let child = key.toXHTMLElement(browser);
