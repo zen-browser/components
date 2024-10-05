@@ -247,6 +247,7 @@
         !tab.linkedPanel ||
         tab.splitView ||
         tab.attention ||
+        tab.pictureinpicture ||
         tab.soundPlaying ||
         tab.zenIgnoreUnload ||
         excludedUrls.some((url) => url.test(tab.linkedBrowser.currentURI.spec))
