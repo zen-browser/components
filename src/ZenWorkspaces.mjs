@@ -539,9 +539,9 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     let icon = document.querySelector('#PanelUI-zen-workspaces-create-icons-container [selected]');
     icon?.removeAttribute('selected');
     await this.createAndSaveWorkspace(workspaceName, false, icon?.label);
-    document.getElementById('PanelUI-zen-workspaces').hidePopup(true);
     await this._updateWorkspacesButton();
     await this._propagateWorkspaceData();
+    this.closeWorkspacesSubView();
   }
 
   async saveWorkspaceFromEdit() {
@@ -559,6 +559,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     workspaceData.icon = icon?.label;
     await this.saveWorkspace(workspaceData);
     await this._propagateWorkspaceData();
+    this.closeWorkspacesSubView();
   }
 
   onWorkspaceCreationNameChange(event) {

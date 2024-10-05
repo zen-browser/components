@@ -801,9 +801,10 @@ var gZenKeyboardShortcutsManager = {
         }
         key.remove();
       }
-      if (mainKeyset.children.length > 0) {
-        throw new Error('Child list not empty');
-      }
+      // We dont check this anymore since we are skiping internal keys
+      //if (mainKeyset.children.length > 0) {
+      //  throw new Error('Child list not empty');
+      //}
 
       for (let key of this._currentShortcutList) {
         if (key.isEmpty() || key.isInternal()) {
