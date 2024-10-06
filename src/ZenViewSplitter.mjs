@@ -419,20 +419,20 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
 
     let nodeSize;
     let newParent;
-    if (splitDirection === node.parent.direction) {
+    if (splitDirection === node.parent?.direction) {
       newParent = node.parent;
       nodeSize = node.sizeInParent;
     } else {
       nodeSize = 100;
-      const nodeIndex = node.parent.children.indexOf(node);
       newParent = new SplitNode(splitDirection, node.sizeInParent);
       if (node.parent) {
         newParent.parent = node.parent;
+        const nodeIndex = node.parent.children.indexOf(node);
+        node.parent.children[nodeIndex] = newParent;
       } else {
-        const viewData = Object.values(this._data).find(s => s.layoutTree === node.parent);
+        const viewData = Object.values(this._data).find(s => s.layoutTree === node);
         viewData.layoutTree = newParent;
       }
-      node.parent.children[nodeIndex] = newParent;
       newParent.addChild(node);
     }
     node.sizeInParent = (1 - sizeOfInsertedNode) * nodeSize;
