@@ -66,12 +66,13 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
   _splitNodeToSplitters = new Map();
   _tabToSplitNode = new Map();
   dropZone;
-  _edgeHoverSize = 20;
+  _edgeHoverSize;
   minResizeWidth;
 
   init() {
     XPCOMUtils.defineLazyPreferenceGetter(this, 'canChangeTabOnHover', 'zen.splitView.change-on-hover', false);
     XPCOMUtils.defineLazyPreferenceGetter(this, 'minResizeWidth', 'zen.splitView.min-resize-width', 7);
+    XPCOMUtils.defineLazyPreferenceGetter(this, '_edgeHoverSize', 'zen.splitView.rearrange-edge-hover-size', 24);
 
     ChromeUtils.defineLazyGetter(
       this,
