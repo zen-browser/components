@@ -929,6 +929,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
       // zenModeActive allow us to avoid setting docShellisActive to false later on,
       // see browser-custom-elements.js's patch
       tab.linkedBrowser.zenModeActive = active;
+      if (!active && tab === gBrowser.selectedTab) continue;
       try {
         tab.linkedBrowser.docShellIsActive = active;
       } catch (e) {
