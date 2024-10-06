@@ -378,9 +378,15 @@ class KeyShortcut {
         key.setAttribute('command', this.#action);
       }
     }
-    key.setAttribute('disabled', this.#disabled);
-    key.setAttribute('reserved', this.#reserved);
-    key.setAttribute('internal', this.#internal);
+    if (this.#disabled) {
+      key.setAttribute('disabled', this.#disabled);
+    }
+    if (this.#reserved) {
+      key.setAttribute('reserved', this.#reserved);
+    }
+    if (this.#internal) {
+      key.setAttribute('internal', this.#internal);
+    }
     key.setAttribute('zen-keybind', 'true');
 
     return key;
@@ -731,7 +737,9 @@ class ZenKeyboardShortcutsVersioner {
       return newData;
     }
 
-    throw new Error('Unknown keyboar shortcuts version');
+    console.error('Unknown keyboar shortcuts version');
+    this.version = 0;
+    return this.migrateIfNeeded(data);
   }
 
   migrate(data, version) {
@@ -888,3 +896,7 @@ var gZenKeyboardShortcutsManager = {
     return false;
   },
 };
+
+window.addEventListener("MozBeforeInitialXULLayout", async () => {
+  await gZenKeyboardShortcutsManager.init();
+});
