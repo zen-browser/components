@@ -614,7 +614,9 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     if (existingSplitTab) {
       const groupIndex = this._data.findIndex((group) => group.tabs.includes(existingSplitTab));
       const group = this._data[groupIndex];
-      if (gridType && (group.gridType !== gridType)) {
+      const gridTypeChange = gridType && (group.gridType !== gridType);
+      const newTabsAdded = tabs.find(t => !group.tabs.includes(t));
+      if (gridTypeChange || !newTabsAdded) {
         // reset layout
         group.gridType = gridType;
         group.layoutTree = this.calculateLayoutTree([...new Set(group.tabs.concat(tabs))], gridType);
