@@ -185,10 +185,10 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     if (node.children) node.children.forEach(c => this._removeNodeSplitters(c));
   }
 
-  enableTabSwitchView() {
-    if (this.switchViewEnabled) return;
-    this.switchViewEnabled = true;
-    this.switchViewView = this.currentView;
+  enableTabRearrangeView() {
+    if (this.rearrangeViewEnabled) return;
+    this.rearrangeViewEnabled = true;
+    this.rearrangeViewView = this.currentView;
     if (!this._thumnailCanvas) {
       this._thumnailCanvas = document.createElement("canvas");
       this._thumnailCanvas.width = 280 * devicePixelRatio;
@@ -204,30 +204,30 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     this.tabBrowserPanel.addEventListener('dragover', this.onBrowserDragOver);
     this.tabBrowserPanel.addEventListener('drop', this.onBrowserDrop);
     this.tabBrowserPanel.addEventListener('dragend', this.onBrowserDragEnd)
-    this.tabBrowserPanel.addEventListener('click', this.disableTabSwitchView);
+    this.tabBrowserPanel.addEventListener('click', this.disableTabRearrangeView);
   }
 
-  disableTabSwitchView = (event = null) => {
-    if (!this.switchViewEnabled) return;
+  disableTabRearrangeView = (event = null) => {
+    if (!this.rearrangeViewEnabled) return;
     if (event) {
       if (event.type === 'click' && event.button !== 0) return;
     }
 
-    if (!this.switchViewEnabled || (event && event.target.classList.contains('zen-split-view-splitter'))) {
+    if (!this.rearrangeViewEnabled || (event && event.target.classList.contains('zen-split-view-splitter'))) {
       return;
     }
 
     this.tabBrowserPanel.removeEventListener('dragstart', this.onBrowserDragStart);
     this.tabBrowserPanel.removeEventListener('dragover', this.onBrowserDragOver);
     this.tabBrowserPanel.removeEventListener('drop', this.onBrowserDrop);
-    this.tabBrowserPanel.removeEventListener('click', this.disableTabSwitchView);
-    const browsers = this._data[this.switchViewView].tabs.map(t => t.linkedBrowser);
+    this.tabBrowserPanel.removeEventListener('click', this.disableTabRearrangeView);
+    const browsers = this._data[this.rearrangeViewView].tabs.map(t => t.linkedBrowser);
     browsers.forEach(b => {
       b.style.pointerEvents = '';
       b.style.opacity = '';
     });
-    this.switchViewEnabled = false;
-    this.switchViewView = null;
+    this.rearrangeViewEnabled = false;
+    this.rearrangeViewView = null;
   }
 
   onBrowserDragStart = (event) => {
@@ -666,7 +666,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
       this.deactivateCurrentSplitView();
       return;
     }
-    this.disableTabSwitchView();
+    this.disableTabRearrangeView();
     this.activateSplitView(this._data[newView]);
   }
 
@@ -863,7 +863,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
    * @param {Event} event - The event.
    */
   handleTabEvent = (event) => {
-    if (this.switchViewEnabled || (event.type === 'mouseover' && !this.canChangeTabOnHover)) {
+    if (this.rearrangeViewEnabled || (event.type === 'mouseover' && !this.canChangeTabOnHover)) {
       return;
     }
     const container = event.currentTarget;
