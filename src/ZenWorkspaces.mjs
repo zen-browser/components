@@ -21,6 +21,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     await ZenWorkspacesStorage.init();
     if(!Weave.Service.engineManager.get("workspaces")) {
       Weave.Service.engineManager.register(ZenWorkspacesEngine);
+      await ZenWorkspacesStorage.migrateWorkspacesFromJSON();
     }
     await this.initializeWorkspaces();
     console.info('ZenWorkspaces: ZenWorkspaces initialized');
