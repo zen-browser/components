@@ -185,6 +185,22 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     if (node.children) node.children.forEach(c => this._removeNodeSplitters(c));
   }
 
+  get rearangeActionTarget() {
+    return document.getElementById("urlbar-container");
+  }
+
+  afterRearangeAction() {
+    document.getElementById("zenSplitViewModifier").hidePopup();
+    ConfirmationHint.show(document.getElementById("zen-split-views-box"), "zen-split-view-modifier-enabled-toast", {
+      descriptionId: "zen-split-view-modifier-enabled-toast-description",
+      showDescription: true,
+    });
+  }
+
+  afterRearangeRemove() {
+    ConfirmationHint.show(document.getElementById("zen-split-views-box"), "zen-split-view-modifier-disabled-toast");
+  }
+
   enableTabRearrangeView() {
     if (this.rearrangeViewEnabled) return;
     this.rearrangeViewEnabled = true;
@@ -205,12 +221,18 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     this.tabBrowserPanel.addEventListener('drop', this.onBrowserDrop);
     this.tabBrowserPanel.addEventListener('dragend', this.onBrowserDragEnd)
     this.tabBrowserPanel.addEventListener('click', this.disableTabRearrangeView);
+    window.addEventListener('keydown', this.disableTabRearrangeView);
+    this.afterRearangeAction();
   }
 
   disableTabRearrangeView = (event = null) => {
     if (!this.rearrangeViewEnabled) return;
     if (event) {
-      if (event.type === 'click' && event.button !== 0) return;
+      // Click or "ESC" key
+      if (event.type === 'click' && event.button !== 0
+        || event.type === 'keydown' && event.key !== 'Escape') {
+        return;
+      }
     }
 
     if (!this.rearrangeViewEnabled || (event && event.target.classList.contains('zen-split-view-splitter'))) {
@@ -221,6 +243,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     this.tabBrowserPanel.removeEventListener('dragover', this.onBrowserDragOver);
     this.tabBrowserPanel.removeEventListener('drop', this.onBrowserDrop);
     this.tabBrowserPanel.removeEventListener('click', this.disableTabRearrangeView);
+    window.removeEventListener('keydown', this.disableTabRearrangeView);
     const browsers = this._data[this.rearrangeViewView].tabs.map(t => t.linkedBrowser);
     browsers.forEach(b => {
       b.style.pointerEvents = '';
@@ -228,6 +251,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     });
     this.rearrangeViewEnabled = false;
     this.rearrangeViewView = null;
+    this.afterRearangeRemove();
   }
 
   onBrowserDragStart = (event) => {
@@ -592,6 +616,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
    * @param {Browser} browser - The browser instance.
    */
   async onLocationChange(browser) {
+    this.disableTabRearrangeView();
     const tab = window.gBrowser.getTabForBrowser(browser);
     this.updateSplitViewButton(!tab?.splitView);
     if (tab) {
