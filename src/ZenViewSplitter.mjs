@@ -67,7 +67,7 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
   _tabToSplitNode = new Map();
   dropZone;
   _edgeHoverSize = 20;
-  _minResizeWidth;
+  minResizeWidth;
 
   init() {
     XPCOMUtils.defineLazyPreferenceGetter(this, 'canChangeTabOnHover', 'zen.splitView.change-on-hover', false);
@@ -150,8 +150,8 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     const childIndex = parent.children.indexOf(toRemove);
     parent.children.splice(childIndex, 1);
     if (parent.children.length !== 1) {
-      const nodeToResize = parent.children[Math.max(0, childIndex - 1)];
-      nodeToResize.sizeInParent += toRemove.sizeInParent;
+      const otherNodeIncrease = 100 / (100 - toRemove.sizeInParent);
+      parent.children.forEach(c => c.sizeInParent *= otherNodeIncrease);
       return parent;
     }
     // node that is not a leaf cannot have less than 2 children, this makes for better resizing
