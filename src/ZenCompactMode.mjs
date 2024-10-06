@@ -103,6 +103,14 @@ var gZenCompactModeManager = {
     document.getElementById(idName + 'both').setAttribute('checked', hideBoth);
   },
 
+  _removeOpenStateOnUnifiedExtensions() {
+    // Fix for bug https://github.com/zen-browser/desktop/issues/1925
+    const buttons = document.querySelectorAll('toolbarbutton:is(#unified-extensions-button, .webextension-browser-action)');
+    for (let button of buttons) {
+      button.removeAttribute('open');
+    }
+  },
+
   _disableTabsOnHoverIfConflict() {
     if (Services.prefs.getBoolPref('zen.view.compact') && Services.prefs.getBoolPref('zen.view.compact.hide-tabbar')) {
       Services.prefs.setBoolPref('zen.view.sidebar-expanded.on-hover', false);
