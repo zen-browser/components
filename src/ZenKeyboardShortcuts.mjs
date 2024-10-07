@@ -798,8 +798,8 @@ var gZenKeyboardShortcutsManager = {
       }
 
       let parent = mainKeyset.parentElement;
+      //mainKeyset.remove();
 
-      mainKeyset.remove();
       const children = mainKeyset.children;
       for (let i = children.length - 1; i >= 0; i--) {
         let key = children[i];
