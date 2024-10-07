@@ -33,21 +33,19 @@ class ZenPinnedTabsObserver {
 class ZenPinnedTabManager {
   init() {
     this.observer = new ZenPinnedTabsObserver();
-    this.initClosePinnedTabShortcut();
-    this.insertResetTabIntoContextMenu();
-    this.observer.addPinnedTabListener(this.onPinnedTabEvent.bind(this));
+    this._initClosePinnedTabShortcut();
+    this.insertItemsIntoTabContextMenu();
+    this.observer.addPinnedTabListener(this._onPinnedTabEvent.bind(this));
   }
 
-  onPinnedTabEvent(action, event) {
+  _onPinnedTabEvent(action, event) {
     const tab = event.target;
     switch (action) {
       case "TabPinned":
-        tab.setAttribute("zen-pinned-url", tab.linkedBrowser.currentURI.spec);
-        tab.setAttribute("zen-pinned-title", tab.getAttribute("label"));
+        this._setPinnedAttributes(tab);
         break;
       case "TabUnpinned":
-        tab.removeAttribute("zen-pinned-url");
-        tab.removeAttribute("zen-pinned-title");
+        this._removePinnedAttributes(tab);
         break;
       default:
         console.warn('ZenPinnedTabManager: Unhandled tab event', action);
@@ -67,29 +65,59 @@ class ZenPinnedTabManager {
 
     const url = tab.getAttribute("zen-pinned-url");
     const title = tab.getAttribute("zen-pinned-title");
+    const icon = tab.getAttribute("zen-pinned-icon");
 
     if (url) {
       const tabState = SessionStore.getTabState(tab);
       const state = JSON.parse(tabState);
 
-      let activeIndex = (state.index || state.entries.length) - 1;
-      activeIndex = Math.min(activeIndex, state.entries.length - 1);
-      activeIndex = Math.max(activeIndex, 0);
-      state.entries[activeIndex].url = url;
-      state.entries[activeIndex].title = title;
+      if(!!state.entries.length) {
+        let activeIndex = (state.index || state.entries.length) - 1;
+        activeIndex = Math.min(activeIndex, state.entries.length - 1);
+        activeIndex = Math.max(activeIndex, 0);
+
+        state.entries[activeIndex].url = url;
+        state.entries[activeIndex].title = title;
+        state.image = icon;
+      } else {
+        state.entries.push({ url, title, image: icon });
+      }
+
+
       SessionStore.setTabState(tab, state);
     }
   }
 
-  initClosePinnedTabShortcut() {
+  replacePinnedUrlWithCurrent(){
+    const tab = TabContextMenu.contextTab;
+    if (!tab || !tab.pinned) {
+      return;
+    }
+
+    this._setPinnedAttributes(tab);
+  }
+
+  _setPinnedAttributes(tab) {
+    tab.setAttribute("zen-pinned-url", tab.linkedBrowser.currentURI.spec);
+    tab.setAttribute("zen-pinned-title", tab.getAttribute("label"));
+    tab.setAttribute("zen-pinned-icon", tab.linkedBrowser.mIconURL);
+  }
+
+  _removePinnedAttributes(tab) {
+    tab.removeAttribute("zen-pinned-url");
+    tab.removeAttribute("zen-pinned-title");
+    tab.removeAttribute("zen-pinned-icon");
+  }
+
+  _initClosePinnedTabShortcut() {
     let cmdClose = document.getElementById('cmd_close');
 
     if (cmdClose) {
-      cmdClose.addEventListener('command', this.onCloseTabShortcut.bind(this));
+      cmdClose.addEventListener('command', this._onCloseTabShortcut.bind(this));
     }
   }
 
-  onCloseTabShortcut(event) {
+  _onCloseTabShortcut(event) {
     if (
         event &&
         (event.ctrlKey || event.metaKey || event.altKey) &&
@@ -98,6 +126,7 @@ class ZenPinnedTabManager {
       const selectedTab = gBrowser.selectedTab;
       const url = selectedTab.getAttribute("zen-pinned-url");
       const title = selectedTab.getAttribute("zen-pinned-title");
+      const icon = selectedTab.getAttribute("zen-pinned-icon");
 
       let nextTab = gBrowser.tabContainer.findNextTab(selectedTab, {
         direction: 1,
@@ -117,11 +146,19 @@ class ZenPinnedTabManager {
         if (url && Services.prefs.getBoolPref('zen.pinned-tab-manager.reset-pinned-tab-on-close-shortcut',false)) {
           const tabState = SessionStore.getTabState(selectedTab);
           const state = JSON.parse(tabState);
-          let activeIndex = (state.index || state.entries.length) - 1;
-          activeIndex = Math.min(activeIndex, state.entries.length - 1);
-          activeIndex = Math.max(activeIndex, 0);
-          state.entries[activeIndex].url = url;
-          state.entries[activeIndex].title = title;
+
+          if(!!state.entries.length) {
+            let activeIndex = (state.index || state.entries.length) - 1;
+            activeIndex = Math.min(activeIndex, state.entries.length - 1);
+            activeIndex = Math.max(activeIndex, 0);
+
+            state.entries[activeIndex].url = url;
+            state.entries[activeIndex].title = title;
+            state.image = icon;
+          } else {
+            state.entries.push({ url, title, image: icon });
+          }
+
           SessionStore.setTabState(selectedTab, state);
         }
 
@@ -133,15 +170,18 @@ class ZenPinnedTabManager {
     }
   }
 
-  insertResetTabIntoContextMenu() {
-    console.log('insertResetTabIntoContextMenu');
-    const element = window.MozXULElement.parseXULToFragment(`
+  insertItemsIntoTabContextMenu() {
+    const elements = window.MozXULElement.parseXULToFragment(`
+            <menuitem id="context_zen-replace-pinned-url-with-current"
+                      data-lazy-l10n-id="tab-context-zen-replace-pinned-url-with-current"
+                      hidden="true"
+                      oncommand="gZenPinnedTabManager.replacePinnedUrlWithCurrent();"/>
             <menuitem id="context_zen-reset-pinned-tab"
                       data-lazy-l10n-id="tab-context-zen-reset-pinned-tab"
                       hidden="true"
                       oncommand="gZenPinnedTabManager.resetPinnedTab();"/>
         `);
-    document.getElementById('tabContextMenu').appendChild(element);
+    document.getElementById('tabContextMenu').appendChild(elements);
   }
 }
 
