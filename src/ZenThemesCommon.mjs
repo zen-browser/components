@@ -21,6 +21,10 @@ var ZenThemesCommon = {
     return PathUtils.join(this.themesRootPath, themeId);
   },
 
+  resetThemesCache() {
+    this.themes = null;
+  },
+
   async getThemes() {
     if (!this.themes) {
       if (!(await IOUtils.exists(this.themesDataFile))) {
