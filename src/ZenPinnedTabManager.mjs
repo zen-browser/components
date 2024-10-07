@@ -71,18 +71,9 @@ class ZenPinnedTabManager {
       const tabState = SessionStore.getTabState(tab);
       const state = JSON.parse(tabState);
 
-      if(!!state.entries.length) {
-        let activeIndex = (state.index || state.entries.length) - 1;
-        activeIndex = Math.min(activeIndex, state.entries.length - 1);
-        activeIndex = Math.max(activeIndex, 0);
-
-        state.entries[activeIndex].url = url;
-        state.entries[activeIndex].title = title;
-        state.image = icon;
-      } else {
-        state.entries.push({ url, title, image: icon });
-      }
-
+      state.entries = [{url, title}];
+      state.image = icon;
+      state.index = 0;
 
       SessionStore.setTabState(tab, state);
     }
@@ -147,17 +138,9 @@ class ZenPinnedTabManager {
           const tabState = SessionStore.getTabState(selectedTab);
           const state = JSON.parse(tabState);
 
-          if(!!state.entries.length) {
-            let activeIndex = (state.index || state.entries.length) - 1;
-            activeIndex = Math.min(activeIndex, state.entries.length - 1);
-            activeIndex = Math.max(activeIndex, 0);
-
-            state.entries[activeIndex].url = url;
-            state.entries[activeIndex].title = title;
-            state.image = icon;
-          } else {
-            state.entries.push({ url, title, image: icon });
-          }
+          state.entries = [{url, title}];
+          state.image = icon;
+          state.index = 0;
 
           SessionStore.setTabState(selectedTab, state);
         }
