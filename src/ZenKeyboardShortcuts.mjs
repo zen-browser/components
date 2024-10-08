@@ -765,7 +765,7 @@ var gZenKeyboardShortcutsManager = {
     // Create the main keyset before calling the async init function,
     // This is because other browser-sets needs this element and the JS event
     //  handled wont wait for the async function to finish.
-    void(this.zenKeyset);
+    void(this.getZenKeyset());
   },
 
   async init() {
@@ -805,12 +805,18 @@ var gZenKeyboardShortcutsManager = {
     return loadedShortcuts;
   },
 
-  get zenKeyset() {
+  getZenKeyset(browser = window) {
     if (!this._zenKeyset) {
-      this._zenKeyset = document.createXULElement('keyset');
+      const existingKeyset = browser.document.getElementById(ZEN_KEYSET_ID);
+      if (existingKeyset) {
+        this._zenKeyset = existingKeyset;
+        return this._zenKeyset;
+      }
+
+      this._zenKeyset = browser.document.createXULElement('keyset');
       this._zenKeyset.id = ZEN_KEYSET_ID;
       
-      const mainKeyset = document.getElementById(ZEN_MAIN_KEYSET_ID);
+      const mainKeyset = browser.document.getElementById(ZEN_MAIN_KEYSET_ID);
       mainKeyset.after(this._zenKeyset);
     }
     return this._zenKeyset;
@@ -835,7 +841,7 @@ var gZenKeyboardShortcutsManager = {
       let parent = mainKeyset.parentElement;
       this.clearMainKeyset(mainKeyset);
 
-      const keyset = this.zenKeyset;
+      const keyset = this.getZenKeyset(browser);
       this.clearMainKeyset(keyset);
 
       // We dont check this anymore since we are skiping internal keys
