@@ -21,6 +21,7 @@ const KEYCODE_MAP = {
   ARROWDOWN: 'VK_DOWN',
   DELETE: 'VK_DELETE',
   BACKSPACE: 'VK_BACK',
+  HOME: 'VK_HOME',
 };
 
 const defaultKeyboardGroups = {
@@ -497,10 +498,12 @@ class KeyShortcut {
     for (let keycode of Object.keys(KEYCODE_MAP)) {
       if (keycode == shortcut.toUpperCase()) {
         this.#keycode = KEYCODE_MAP[keycode];
+        this.#key = '';
         return;
       }
     }
 
+    this.#keycode = ''; // Clear the keycode
     this.#key = shortcut;
   }
 }
@@ -696,7 +699,7 @@ function zenGetDefaultShortcuts() {
 }
 
 class ZenKeyboardShortcutsVersioner {
-  static LATEST_KBS_VERSION = 1;
+  static LATEST_KBS_VERSION = 2;
 
   constructor() {}
 
@@ -751,6 +754,17 @@ class ZenKeyboardShortcutsVersioner {
       // Here, we do a complet reset of the shortcuts,
       // since nothing seems to work properly.
       data = zenGetDefaultShortcuts();
+    }
+    if (version < 2) {
+      // Migrate from 1 to 2
+      // In this new version, we are resolving the conflicts between
+      //  shortcuts having keycode and key at the same time.
+      // If there's both, we remove the keycodes.
+      for (let shortcut of data) {
+        if (shortcut.getKeyCode() && shortcut.getKeyName()) {
+          shortcut.setNewBinding(shortcut.getKeyName());
+        }
+      }
     }
     return data;
   }
@@ -837,12 +851,10 @@ var gZenKeyboardShortcutsManager = {
       if (!mainKeyset) {
         throw new Error('Main keyset not found');
       }
-
-      let parent = mainKeyset.parentElement;
       this.clearMainKeyset(mainKeyset);
 
       const keyset = this.getZenKeyset(browser);
-      this.clearMainKeyset(keyset);
+      keyset.innerHTML = '';
 
       // We dont check this anymore since we are skiping internal keys
       //if (mainKeyset.children.length > 0) {
@@ -857,7 +869,7 @@ var gZenKeyboardShortcutsManager = {
         keyset.appendChild(child);
       }
 
-      parent.prepend(keyset);
+      mainKeyset.after(keyset);
       console.debug('Shortcuts applied...');
     }
   },
