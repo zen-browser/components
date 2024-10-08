@@ -1,15 +1,15 @@
 {
   const lazy = {};
 
-  XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenPinnedTabRestorePinnedTabsToPinnedUrl', 'zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url', false);
-  XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenPinnedTabCloseShortcutBehavior', 'zen.pinned-tab-manager.close-shortcut-behavior', 'switch');
-
   class ZenPinnedTabsObserver {
     static ALL_EVENTS = ['TabPinned', 'TabUnpinned'];
 
     #listeners = [];
 
     constructor() {
+      XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenPinnedTabRestorePinnedTabsToPinnedUrl', 'zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url', false);
+      XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenPinnedTabCloseShortcutBehavior', 'zen.pinned-tab-manager.close-shortcut-behavior', 'switch');
+    
       this.#listenPinnedTabEvents();
     }
 
@@ -36,7 +36,7 @@
     }
   }
 
-  class ZenPinnedTabManager {
+  class ZenPinnedTabManager extends ZenPreloadedFeature {
     init() {
       this.observer = new ZenPinnedTabsObserver();
       this._initClosePinnedTabShortcut();

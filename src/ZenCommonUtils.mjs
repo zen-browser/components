@@ -43,6 +43,13 @@ class ZenMultiWindowFeature {
 class ZenDOMOperatedFeature {
   constructor() {
     var initBound = this.init.bind(this);
-    window.addEventListener('DOMContentLoaded', initBound, { once: true });
+    document.addEventListener('DOMContentLoaded', initBound, { once: true });
+  }
+}
+
+class ZenPreloadedFeature {
+  constructor() {
+    var initBound = this.init.bind(this);
+    document.addEventListener('MozBeforeInitialXULLayout', initBound, { once: true });
   }
 }
