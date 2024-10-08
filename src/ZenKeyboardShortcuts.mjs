@@ -648,6 +648,17 @@ function zenGetDefaultShortcuts() {
       'zen-sidebar-shortcut-toggle'
     )
   );
+  newShortcutList.push(
+      new KeyShortcut(
+          'zen-pinned-tab-reset-shortcut',
+          '',
+          '',
+          ZEN_OTHER_SHORTCUTS_GROUP,
+          KeyShortcutModifiers.fromObject({}),
+          'code:gZenPinnedTabManager.resetPinnedTab(gBrowser.selectedTab)',
+          'zen-pinned-tab-shortcut-reset'
+      )
+  );
 
   // Split view
   newShortcutList.push(
