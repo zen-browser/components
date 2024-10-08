@@ -2,10 +2,7 @@
   const lazy = {};
 
   XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenPinnedTabRestorePinnedTabsToPinnedUrl', 'zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url', false);
-  XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenPinnedTabResetOnCloseShortcut', 'zen.pinned-tab-manager.reset-pinned-tab-on-close-shortcut', false);
-  XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenPinnedTabUnloadOnCloseShortcut', 'zen.pinned-tab-manager.unload-pinned-tab-on-close-shortcut', false);
-  XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenPinnedTabChangeOnCloseShortcut', 'zen.pinned-tab-manager.change-pinned-tab-on-close-shortcut', false);
-  XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenPinnedTabCloseOnCloseShortcut', 'zen.pinned-tab-manager.close-pinned-tab-on-close-shortcut', false);
+  XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenPinnedTabCloseShortcutBehavior', 'zen.pinned-tab-manager.close-shortcut-behavior', 'switch');
 
   class ZenPinnedTabsObserver {
     static ALL_EVENTS = ['TabPinned', 'TabUnpinned'];
@@ -126,51 +123,55 @@
 
     _onCloseTabShortcut(event) {
       if (
-          event &&
-          (event.ctrlKey || event.metaKey || event.altKey) &&
-          gBrowser.selectedTab?.pinned
+          !event ||
+          !(event.ctrlKey || event.metaKey || event.altKey) ||
+          !gBrowser.selectedTab?.pinned
       ) {
-        const selectedTab = gBrowser.selectedTab;
+        return;
+      }
 
-        if (selectedTab) {
+      const selectedTab = gBrowser.selectedTab;
+      if (!selectedTab) return;
 
-          if (lazy.zenPinnedTabCloseOnCloseShortcut) {
-            gBrowser.removeTab(selectedTab, { animate: true });
+      const behavior = lazy.zenPinnedTabCloseShortcutBehavior;
 
-            event.stopPropagation();
-            event.preventDefault();
-            return;
-          }
-
-          if(lazy.zenPinnedTabChangeOnCloseShortcut) {
-
-            let nextTab = gBrowser.tabContainer.findNextTab(selectedTab, {
-              direction: 1,
-              filter: tab => !tab.hidden && !tab.pinned,
-            });
-
-            if (!nextTab) {
-              nextTab = gBrowser.tabContainer.findNextTab(selectedTab, {
-                direction: -1,
-                filter: tab => !tab.hidden && !tab.pinned,
-              });
-            }
-
-            gBrowser.selectedTab = nextTab;
-          }
-
-
-          if (lazy.zenPinnedTabResetOnCloseShortcut) {
+      switch (behavior) {
+        case 'close':
+          gBrowser.removeTab(selectedTab, { animate: true });
+          break;
+        case 'reset-unload-switch':
+        case 'unload-switch':
+        case 'reset-switch':
+        case 'switch':
+          this._handleTabSwitch(selectedTab);
+          if (behavior.includes('reset')) {
             this._resetTabToStoredState(selectedTab);
           }
-
-
-          if(lazy.zenPinnedTabUnloadOnCloseShortcut) {
+          if (behavior.includes('unload')) {
             gBrowser.discardBrowser(selectedTab);
           }
-          event.stopPropagation();
-          event.preventDefault();
-        }
+          break;
+        case 'reset':
+          this._resetTabToStoredState(selectedTab);
+          break;
+        default:
+          return;
+      }
+
+      event.stopPropagation();
+      event.preventDefault();
+    }
+
+    _handleTabSwitch(selectedTab) {
+      const findNextTab = (direction) =>
+          gBrowser.tabContainer.findNextTab(selectedTab, {
+            direction,
+            filter: tab => !tab.hidden && !tab.pinned,
+          });
+
+      const nextTab = findNextTab(1) || findNextTab(-1);
+      if (nextTab) {
+        gBrowser.selectedTab = nextTab;
       }
     }
 
