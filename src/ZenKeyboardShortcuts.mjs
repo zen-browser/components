@@ -96,6 +96,9 @@ const fixedL10nIds = {
   'History:RestoreLastClosedTabOrWindowOrSession': 'zen-restore-last-closed-tab-shortcut',
 };
 
+const ZEN_MAIN_KEYSET_ID = 'mainKeyset';
+const ZEN_KEYSET_ID = 'zenKeyset';
+
 const ZEN_COMPACT_MODE_SHORTCUTS_GROUP = 'zen-compact-mode';
 const ZEN_WORKSPACE_SHORTCUTS_GROUP = 'zen-workspace';
 const ZEN_OTHER_SHORTCUTS_GROUP = 'zen-other';
@@ -537,7 +540,7 @@ function zenGetDefaultShortcuts() {
   //  and increment the version number.
 
   console.info('Zen CKS: Loading default shortcuts...');
-  let keySet = document.getElementById('mainKeyset');
+  let keySet = document.getElementById(ZEN_MAIN_KEYSET_ID);
   let newShortcutList = [];
 
   // Firefox's standard keyset. Reverse order to keep the order of the keys
@@ -755,10 +758,18 @@ class ZenKeyboardShortcutsVersioner {
 
 var gZenKeyboardShortcutsManager = {
   loader: new ZenKeyboardShortcutsLoader(),
-  async init() {
-    if (window.location.href == 'chrome://browser/content/browser.xhtml') {
-      console.info('Zen CKS: Initializing shortcuts');
+  beforeInit() {
+    if (!this.inBrowserView) {
+      return;
+    }
+    // Create the main keyset before calling the async init function,
+    // This is because other browser-sets needs this element and the JS event
+    //  handled wont wait for the async function to finish.
+    void(this.zenKeyset);
+  },
 
+  async init() {
+    if (this.inBrowserView) {
       const loadedShortcuts = await this._loadSaved();
 
       this._currentShortcutList = this.versioner.migrateIfNeeded(loadedShortcuts);
@@ -768,6 +779,10 @@ var gZenKeyboardShortcutsManager = {
 
       console.info('Zen CKS: Initialized');
     }
+  },
+
+  get inBrowserView() {
+    return window.location.href == 'chrome://browser/content/browser.xhtml';
   },
 
   async _loadSaved() {
@@ -790,25 +805,39 @@ var gZenKeyboardShortcutsManager = {
     return loadedShortcuts;
   },
 
+  get zenKeyset() {
+    if (!this._zenKeyset) {
+      this._zenKeyset = document.createXULElement('keyset');
+      this._zenKeyset.id = ZEN_KEYSET_ID;
+      
+      const mainKeyset = document.getElementById(ZEN_MAIN_KEYSET_ID);
+      mainKeyset.after(this._zenKeyset);
+    }
+    return this._zenKeyset;
+  },
+
+  clearMainKeyset(element) {
+    for (let key of element.children) {
+      if (key.getAttribute('internal') == 'true') {
+        continue;
+      }
+      key.remove();
+    }
+  },
+
   _applyShortcuts() {
     for (const browser of ZenMultiWindowFeature.browsers) {
-      let mainKeyset = browser.document.getElementById('mainKeyset');
+      let mainKeyset = browser.document.getElementById(ZEN_MAIN_KEYSET_ID);
       if (!mainKeyset) {
         throw new Error('Main keyset not found');
       }
 
       let parent = mainKeyset.parentElement;
-      //mainKeyset.remove();
+      this.clearMainKeyset(mainKeyset);
 
-      const children = mainKeyset.children;
-      for (let i = children.length - 1; i >= 0; i--) {
-        let key = children[i];
-        // Do NOT remove the internal keys
-        if (key.getAttribute('internal') == 'true') {
-          continue;
-        }
-        key.remove();
-      }
+      const keyset = this.zenKeyset;
+      this.clearMainKeyset(keyset);
+
       // We dont check this anymore since we are skiping internal keys
       //if (mainKeyset.children.length > 0) {
       //  throw new Error('Child list not empty');
@@ -819,10 +848,10 @@ var gZenKeyboardShortcutsManager = {
           continue;
         }
         let child = key.toXHTMLElement(browser);
-        mainKeyset.appendChild(child);
+        keyset.appendChild(child);
       }
 
-      parent.prepend(mainKeyset);
+      parent.prepend(keyset);
       console.debug('Shortcuts applied...');
     }
   },
@@ -897,6 +926,8 @@ var gZenKeyboardShortcutsManager = {
   },
 };
 
-window.addEventListener("MozBeforeInitialXULLayout", async () => {
-  await gZenKeyboardShortcutsManager.init();
-});
+document.addEventListener("MozBeforeInitialXULLayout", () => {
+  gZenKeyboardShortcutsManager.beforeInit();
+  // Async init
+  gZenKeyboardShortcutsManager.init();
+}, { once: true });
