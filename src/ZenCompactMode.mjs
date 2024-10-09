@@ -210,23 +210,14 @@ var gZenCompactModeManager = {
     }
   },
 
-  _fixCrossedEdge(edge) {
-    if (edge == "top") return "bottom";
-    if (edge == "bottom") return "top";
-    if (edge == "left") return "right";
-    if (edge == "right") return "left";
-    return edge;
-  },
-
   _getCrossedEdge(posX, posY, element = document.documentElement, maxDistance = 5) {
     const targetBox = element.getBoundingClientRect();
     posX = Math.max(targetBox.left, Math.min(posX, targetBox.right));
     posY = Math.max(targetBox.top, Math.min(posY, targetBox.bottom));
-    const edge = ['top', 'bottom', 'left', 'right'].find((edge, i) => {
+    return ['top', 'bottom', 'left', 'right'].find((edge, i) => {
       const distance = Math.abs((i < 2 ? posY : posX) - targetBox[edge]);
       return distance <= maxDistance;
     });
-    return edge;
   },
 
   _positionInBounds(axis = 'x', element, x, y, error = 0) {
