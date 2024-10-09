@@ -160,8 +160,19 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     const leftOverChild = parent.children[0];
     leftOverChild.sizeInParent = parent.sizeInParent;
     if (parent.parent) {
-      leftOverChild.parent = parent.parent;
-      parent.parent.children[parent.parent.children.indexOf(parent)] = leftOverChild;
+      const idx = parent.parent.children.indexOf(parent);
+      if (parent.parent.direction !== leftOverChild.direction) {
+        leftOverChild.parent = parent.parent;
+        parent.parent.children[idx] = leftOverChild;
+      } else {
+        // node cannot have same direction as it's parent
+        leftOverChild.children.forEach(c => {
+          c.sizeInParent *= leftOverChild.sizeInParent / 100
+          c.parent = parent.parent;
+        });
+        parent.parent.children.splice(idx, 1, ...leftOverChild.children);
+        this._removeNodeSplitters(leftOverChild, false);
+      }
       this._removeNodeSplitters(parent, false);
       return parent.parent;
     } else {
