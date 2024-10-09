@@ -21,12 +21,22 @@ var ZenWorkspacesStorage = {
         )
       `);
 
+      // Create an index on the uuid column
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_zen_workspaces_uuid ON zen_workspaces(uuid)
+      `);
+
       // Create the changes tracking table if it doesn't exist
       await db.execute(`
         CREATE TABLE IF NOT EXISTS zen_workspaces_changes (
           uuid TEXT PRIMARY KEY,
           timestamp INTEGER NOT NULL
         )
+      `);
+
+      // Create an index on the uuid column for changes tracking table
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_zen_workspaces_changes_uuid ON zen_workspaces_changes(uuid)
       `);
     });
   },
@@ -63,62 +73,38 @@ var ZenWorkspacesStorage = {
     const changedUUIDs = new Set();
 
     await PlacesUtils.withConnectionWrapper('ZenWorkspacesStorage.saveWorkspace', async (db) => {
-      const now = Date.now();
+      await db.executeTransaction(async () => {
+        const now = Date.now();
 
-      await db.executeTransaction(async function() {
-        // If the workspace is set as default, unset is_default for all other workspaces
+        // Handle default workspace
         if (workspace.default) {
           await db.execute(`UPDATE zen_workspaces SET is_default = 0 WHERE uuid != :uuid`, { uuid: workspace.uuid });
-
-          // Collect UUIDs of workspaces that were unset as default
           const unsetDefaultRows = await db.execute(`SELECT uuid FROM zen_workspaces WHERE is_default = 0 AND uuid != :uuid`, { uuid: workspace.uuid });
           for (const row of unsetDefaultRows) {
             changedUUIDs.add(row.getResultByName('uuid'));
           }
         }
 
-        // Get the current maximum position
-        const maxOrderResult = await db.execute(`SELECT MAX("position") as max_position FROM zen_workspaces`);
-        const maxOrder = maxOrderResult[0].getResultByName('max_position') || 0;
-
-        let newOrder;
-
-        if ('position' in workspace && workspace.position !== null && Number.isInteger(workspace.position)) {
-          // If position is provided, check if it's already occupied
-          const occupiedOrderResult = await db.execute(`
-            SELECT uuid FROM zen_workspaces WHERE "position" = :position AND uuid != :uuid
-          `, { position: workspace.position, uuid: workspace.uuid });
-
-          if (occupiedOrderResult.length > 0) {
-            // If the position is occupied, shift the positions of subsequent workspaces
-            await db.execute(`
-              UPDATE zen_workspaces
-              SET "position" = "position" + 1
-              WHERE "position" >= :position AND uuid != :uuid
-            `, { position: workspace.position, uuid: workspace.uuid });
-
-            // Collect UUIDs of workspaces whose positions were shifted
-            for (const row of occupiedOrderResult) {
-              changedUUIDs.add(row.getResultByName('uuid'));
-            }
-          }
-
-          newOrder = workspace.position;
+        let newPosition;
+        if ('position' in workspace && Number.isFinite(workspace.position)) {
+          newPosition = workspace.position;
         } else {
-          // If no position is provided, set it to the last position
-          newOrder = maxOrder + 1;
+          // Get the maximum position
+          const maxPositionResult = await db.execute(`SELECT MAX("position") as max_position FROM zen_workspaces`);
+          const maxPosition = maxPositionResult[0].getResultByName('max_position') || 0;
+          newPosition = maxPosition + 1000; // Add a large increment to avoid frequent reordering
         }
 
         // Insert or replace the workspace
         await db.executeCached(`
           INSERT OR REPLACE INTO zen_workspaces (
-            uuid, name, icon, is_default, container_id, created_at, updated_at, "position"
-          ) VALUES (
-            :uuid, :name, :icon, :is_default, :container_id, 
-            COALESCE((SELECT created_at FROM zen_workspaces WHERE uuid = :uuid), :now),
-            :now,
-            :position
-          )
+          uuid, name, icon, is_default, container_id, created_at, updated_at, "position"
+        ) VALUES (
+          :uuid, :name, :icon, :is_default, :container_id, 
+          COALESCE((SELECT created_at FROM zen_workspaces WHERE uuid = :uuid), :now),
+          :now,
+          :position
+        )
         `, {
           uuid: workspace.uuid,
           name: workspace.name,
@@ -126,20 +112,21 @@ var ZenWorkspacesStorage = {
           is_default: workspace.default ? 1 : 0,
           container_id: workspace.containerTabId || null,
           now,
-          position: newOrder
+          position: newPosition
         });
 
-        // Record the change in the changes tracking table
+        // Record the change
         await db.execute(`
           INSERT OR REPLACE INTO zen_workspaces_changes (uuid, timestamp)
-          VALUES (:uuid, :timestamp)
+        VALUES (:uuid, :timestamp)
         `, {
           uuid: workspace.uuid,
-          timestamp: Math.floor(now / 1000) // Unix timestamp in seconds
+          timestamp: Math.floor(now / 1000)
         });
 
-        // Add the main workspace UUID to the changed set
         changedUUIDs.add(workspace.uuid);
+
+        await this.updateLastChangeTimestamp(db);
       });
     });
 
@@ -150,7 +137,7 @@ var ZenWorkspacesStorage = {
 
   async getWorkspaces() {
     const db = await PlacesUtils.promiseDBConnection();
-    const rows = await db.execute(`
+    const rows = await db.executeCached(`
       SELECT * FROM zen_workspaces ORDER BY created_at ASC
     `);
     return rows.map((row) => ({
@@ -183,6 +170,8 @@ var ZenWorkspacesStorage = {
         uuid,
         timestamp: Math.floor(now / 1000)
       });
+
+      await this.updateLastChangeTimestamp(db);
     });
 
     if (notifyObservers) {
@@ -194,6 +183,7 @@ var ZenWorkspacesStorage = {
     await PlacesUtils.withConnectionWrapper('ZenWorkspacesStorage.wipeAllWorkspaces', async (db) => {
       await db.execute(`DELETE FROM zen_workspaces`);
       await db.execute(`DELETE FROM zen_workspaces_changes`);
+      await this.updateLastChangeTimestamp(db);
     });
   },
 
@@ -201,7 +191,7 @@ var ZenWorkspacesStorage = {
     const changedUUIDs = [];
 
     await PlacesUtils.withConnectionWrapper('ZenWorkspacesStorage.setDefaultWorkspace', async (db) => {
-      await db.executeTransaction(async function () {
+      await db.executeTransaction(async () => {
         const now = Date.now();
         // Unset the default flag for all other workspaces
         await db.execute(`UPDATE zen_workspaces SET is_default = 0 WHERE uuid != :uuid`, { uuid });
@@ -226,6 +216,8 @@ var ZenWorkspacesStorage = {
 
         // Add the main workspace UUID to the changed set
         changedUUIDs.push(uuid);
+
+        await this.updateLastChangeTimestamp(db);
       });
     });
 
@@ -265,79 +257,104 @@ var ZenWorkspacesStorage = {
     });
   },
 
-  async updateWorkspaceOrder(uuid, newOrder, notifyObservers = true) {
-    const changedUUIDs = [uuid];
+  async updateWorkspaceOrder(uuid, newPosition, notifyObservers = true) {
+    const changedUUIDs = new Set([uuid]);
 
     await PlacesUtils.withConnectionWrapper('ZenWorkspacesStorage.updateWorkspaceOrder', async (db) => {
-      await db.executeTransaction(async function () {
-        // Get the current position of the workspace
-        const currentOrderResult = await db.execute(`
-          SELECT "position" FROM zen_workspaces WHERE uuid = :uuid
-        `, { uuid });
-        const currentOrder = currentOrderResult[0].getResultByName('position');
+      await db.executeTransaction(async () => {
+        const now = Date.now();
 
-        if (currentOrder === newOrder) {
-          return; // No change needed
-        }
+        // Get the positions of the workspaces before and after the new position
+        const neighborPositions = await db.execute(`
+          SELECT
+            (SELECT MAX("position") FROM zen_workspaces WHERE "position" < :newPosition) as before_position,
+            (SELECT MIN("position") FROM zen_workspaces WHERE "position" > :newPosition) as after_position
+        `, { newPosition });
 
-        if (newOrder > currentOrder) {
-          // Moving down: decrement position of workspaces between old and new positions
-          const rows = await db.execute(`
-            SELECT uuid FROM zen_workspaces
-            WHERE "position" > :currentOrder AND "position" <= :newOrder
-          `, { currentOrder, newOrder });
+        let beforePosition = neighborPositions[0].getResultByName('before_position');
+        let afterPosition = neighborPositions[0].getResultByName('after_position');
 
-          await db.execute(`
-            UPDATE zen_workspaces
-            SET "position" = "position" - 1
-            WHERE "position" > :currentOrder AND "position" <= :newOrder
-          `, { currentOrder, newOrder });
-
-          for (const row of rows) {
-            changedUUIDs.push(row.getResultByName('uuid'));
-          }
+        // Calculate the new position
+        if (beforePosition === null && afterPosition === null) {
+          // This is the only workspace
+          newPosition = 1000;
+        } else if (beforePosition === null) {
+          // This will be the first workspace
+          newPosition = Math.floor(afterPosition / 2);
+        } else if (afterPosition === null) {
+          // This will be the last workspace
+          newPosition = beforePosition + 1000;
         } else {
-          // Moving up: increment position of workspaces between new and old positions
-          const rows = await db.execute(`
-            SELECT uuid FROM zen_workspaces
-            WHERE "position" >= :newOrder AND "position" < :currentOrder
-          `, { currentOrder, newOrder });
-
-          await db.execute(`
-            UPDATE zen_workspaces
-            SET "position" = "position" + 1
-            WHERE "position" >= :newOrder AND "position" < :currentOrder
-          `, { currentOrder, newOrder });
-
-          for (const row of rows) {
-            changedUUIDs.push(row.getResultByName('uuid'));
-          }
+          // This workspace will be between two others
+          newPosition = Math.floor((beforePosition + afterPosition) / 2);
         }
 
-        // Set the new position for the workspace
+        // Update the workspace's position
         await db.execute(`
           UPDATE zen_workspaces
-          SET "position" = :newOrder
+          SET "position" = :newPosition
           WHERE uuid = :uuid
-        `, { uuid, newOrder });
+        `, { uuid, newPosition });
 
-        // Record the change for the specified workspace
-        const now = Date.now();
+        // Record the change
         await db.execute(`
           INSERT OR REPLACE INTO zen_workspaces_changes (uuid, timestamp)
-          VALUES (:uuid, :timestamp)
+        VALUES (:uuid, :timestamp)
         `, {
           uuid,
           timestamp: Math.floor(now / 1000)
         });
 
-        // Add the main workspace UUID to the changed set
-        changedUUIDs.push(uuid);
+        await this.updateLastChangeTimestamp(db);
+
+        // Check if reordering is necessary
+        if (this.shouldReorderWorkspaces(beforePosition, newPosition, afterPosition)) {
+          await this.reorderAllWorkspaces(db, changedUUIDs);
+        }
       });
     });
 
     if (notifyObservers) {
-      this._notifyWorkspacesChanged("zen-workspace-updated", changedUUIDs);
+      this._notifyWorkspacesChanged("zen-workspace-updated", Array.from(changedUUIDs));
     }
+  },
+
+  shouldReorderWorkspaces(before, current, after) {
+    const minGap = 1; // Minimum allowed gap between positions
+    return (before !== null && current - before < minGap) || (after !== null && after - current < minGap);
+  },
+
+  async reorderAllWorkspaces(db, changedUUIDs) {
+    const workspaces = await db.execute(`
+      SELECT uuid
+      FROM zen_workspaces
+      ORDER BY "position" ASC
+    `);
+
+    for (let i = 0; i < workspaces.length; i++) {
+      const newPosition = (i + 1) * 1000; // Use large increments
+      await db.execute(`
+        UPDATE zen_workspaces
+        SET "position" = :newPosition
+        WHERE uuid = :uuid
+      `, { newPosition, uuid: workspaces[i].getResultByName('uuid') });
+      changedUUIDs.add(workspaces[i].getResultByName('uuid'));
+    }
+  },
+
+  async updateLastChangeTimestamp(db) {
+    const now = Date.now();
+    await db.execute(`
+      INSERT OR REPLACE INTO moz_meta (key, value)
+    VALUES ('zen_workspaces_last_change', :now)
+    `, { now });
+  },
+
+  async getLastChangeTimestamp() {
+    const db = await PlacesUtils.promiseDBConnection();
+    const result = await db.executeCached(`
+      SELECT value FROM moz_meta WHERE key = 'zen_workspaces_last_change'
+    `);
+    return result.length ? parseInt(result[0].getResultByName('value'), 10) : 0;
   },
 };
