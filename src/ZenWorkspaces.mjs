@@ -30,15 +30,19 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     Services.obs.addObserver(this, "weave:engine:sync:finish");
   }
 
-  observe(subject, topic, data) {
+  async observe(subject, topic, data) {
     if (topic === "weave:engine:sync:finish" && data === "workspaces") {
-      this._workspaceCache = null; // Clear cache to fetch fresh data
-      this.updateWorkspaceStrip();
-    }
-  }
+      try {
+        const lastChangeTimestamp = await ZenWorkspacesStorage.getLastChangeTimestamp();
 
-  updateWorkspaceStrip() {
-    this._propagateWorkspaceData().catch(console.error);
+        if (!this._workspaceCache || !this._workspaceCache.lastChangeTimestamp || lastChangeTimestamp > this._workspaceCache.lastChangeTimestamp) {
+          this._workspaceCache = null;
+          await this._propagateWorkspaceData();
+        }
+      } catch (error) {
+        console.error("Error updating workspaces after sync:", error);
+      }
+    }
   }
 
   get shouldHaveWorkspaces() {
@@ -72,7 +76,16 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
   }
 
   async _workspaces() {
-    this._workspaceCache = { workspaces: await ZenWorkspacesStorage.getWorkspaces() };
+    if (this._workspaceCache) {
+      return this._workspaceCache;
+    }
+
+    const [workspaces, lastChangeTimestamp] = await Promise.all([
+      ZenWorkspacesStorage.getWorkspaces(),
+      ZenWorkspacesStorage.getLastChangeTimestamp()
+    ]);
+
+    this._workspaceCache = { workspaces, lastChangeTimestamp };
     // Get the active workspace ID from preferences
     const activeWorkspaceId = Services.prefs.getStringPref('zen.workspaces.active', '');
 
@@ -831,6 +844,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
         delete this._lastSelectedWorkspaceTabs[previousWorkspaceID];
       }
     }
+    this._workspaceCache = null;
     const workspaces = await this._workspaces();
     await this.changeWorkspace(workspaces.workspaces.find((workspace) => workspace.uuid === workspaceID));
   }
