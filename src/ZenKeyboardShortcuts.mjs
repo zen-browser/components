@@ -848,7 +848,9 @@ var gZenKeyboardShortcutsManager = {
   },
 
   clearMainKeyset(element) {
-    for (let key of element.children) {
+    const children = element.children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const key = children[i];
       if (key.getAttribute('internal') == 'true') {
         continue;
       }
@@ -957,7 +959,9 @@ var gZenKeyboardShortcutsManager = {
 };
 
 document.addEventListener("MozBeforeInitialXULLayout", () => {
-  gZenKeyboardShortcutsManager.beforeInit();
-  // Async init
-  gZenKeyboardShortcutsManager.init();
+  if (Services.prefs.getBoolPref('zen.keyboard.shortcuts.enabled', false)) {
+    gZenKeyboardShortcutsManager.beforeInit();
+    // Async init
+    gZenKeyboardShortcutsManager.init();
+  }
 }, { once: true });
