@@ -648,17 +648,6 @@ function zenGetDefaultShortcuts() {
       'zen-sidebar-shortcut-toggle'
     )
   );
-  newShortcutList.push(
-      new KeyShortcut(
-          'zen-pinned-tab-reset-shortcut',
-          '',
-          '',
-          ZEN_OTHER_SHORTCUTS_GROUP,
-          KeyShortcutModifiers.fromObject({}),
-          'code:gZenPinnedTabManager.resetPinnedTab(gBrowser.selectedTab)',
-          'zen-pinned-tab-shortcut-reset'
-      )
-  );
 
   // Split view
   newShortcutList.push(
@@ -776,6 +765,17 @@ class ZenKeyboardShortcutsVersioner {
           shortcut.setNewBinding(shortcut.getKeyName());
         }
       }
+      data.push(
+        new KeyShortcut(
+          'zen-pinned-tab-reset-shortcut',
+          '',
+          '',
+          ZEN_OTHER_SHORTCUTS_GROUP,
+          KeyShortcutModifiers.fromObject({}),
+          'code:gZenPinnedTabManager.resetPinnedTab(gBrowser.selectedTab)',
+          'zen-pinned-tab-shortcut-reset'
+        )
+      );
     }
     return data;
   }
@@ -887,6 +887,7 @@ var gZenKeyboardShortcutsManager = {
 
   async resetAllShortcuts() {
     await this.loader.remove();
+    Services.prefs.clearUserPref('zen.keyboard.shortcuts.version');
   },
 
   async _saveShortcuts() {
