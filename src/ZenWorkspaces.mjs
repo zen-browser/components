@@ -72,24 +72,23 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
   }
 
   async _workspaces() {
-    if (!this._workspaceCache) {
-      this._workspaceCache = { workspaces: await ZenWorkspacesStorage.getWorkspaces() };
-      // Get the active workspace ID from preferences
-      const activeWorkspaceId = Services.prefs.getStringPref('zen.workspaces.active', '');
+    this._workspaceCache = { workspaces: await ZenWorkspacesStorage.getWorkspaces() };
+    // Get the active workspace ID from preferences
+    const activeWorkspaceId = Services.prefs.getStringPref('zen.workspaces.active', '');
 
-      if (activeWorkspaceId) {
-        const activeWorkspace = this._workspaceCache.workspaces.find((w) => w.uuid === activeWorkspaceId);
-        // Set the active workspace ID to the first one if the one with selected id doesn't exist
-        if (!activeWorkspace) {
-          Services.prefs.setStringPref('zen.workspaces.active', this._workspaceCache.workspaces[0]?.uuid);
-        }
-      } else {
-        // Set the active workspace ID to the first one if active workspace doesn't exist
+    if (activeWorkspaceId) {
+      const activeWorkspace = this._workspaceCache.workspaces.find((w) => w.uuid === activeWorkspaceId);
+      // Set the active workspace ID to the first one if the one with selected id doesn't exist
+      if (!activeWorkspace) {
         Services.prefs.setStringPref('zen.workspaces.active', this._workspaceCache.workspaces[0]?.uuid);
       }
-      // sort by position
-      this._workspaceCache.workspaces.sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity));
+    } else {
+      // Set the active workspace ID to the first one if active workspace doesn't exist
+      Services.prefs.setStringPref('zen.workspaces.active', this._workspaceCache.workspaces[0]?.uuid);
     }
+    // sort by position
+    this._workspaceCache.workspaces.sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity));
+
     return this._workspaceCache;
   }
 

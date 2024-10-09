@@ -150,7 +150,7 @@ var ZenWorkspacesStorage = {
 
   async getWorkspaces() {
     const db = await PlacesUtils.promiseDBConnection();
-    const rows = await db.execute(`
+    const rows = await db.executeCached(`
       SELECT * FROM zen_workspaces ORDER BY created_at ASC
     `);
     return rows.map((row) => ({
