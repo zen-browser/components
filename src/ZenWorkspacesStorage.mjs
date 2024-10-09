@@ -15,7 +15,7 @@ var ZenWorkspacesStorage = {
           icon TEXT,
           is_default INTEGER NOT NULL DEFAULT 0,
           container_id INTEGER,
-          position REAL NOT NULL DEFAULT 0,
+          position INTEGER NOT NULL DEFAULT 0,
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL
         )
@@ -280,13 +280,13 @@ var ZenWorkspacesStorage = {
           newPosition = 1000;
         } else if (beforePosition === null) {
           // This will be the first workspace
-          newPosition = afterPosition / 2;
+          newPosition = Math.floor(afterPosition / 2);
         } else if (afterPosition === null) {
           // This will be the last workspace
           newPosition = beforePosition + 1000;
         } else {
           // This workspace will be between two others
-          newPosition = (beforePosition + afterPosition) / 2;
+          newPosition = Math.floor((beforePosition + afterPosition) / 2);
         }
 
         // Update the workspace's position
@@ -320,7 +320,7 @@ var ZenWorkspacesStorage = {
   },
 
   shouldReorderWorkspaces(before, current, after) {
-    const minGap = 0.001; // Minimum allowed gap between positions
+    const minGap = 1; // Minimum allowed gap between positions
     return (before !== null && current - before < minGap) || (after !== null && after - current < minGap);
   },
 
