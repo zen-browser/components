@@ -178,6 +178,19 @@ var gZenCompactModeManager = {
     this._flashTimeouts[id] = null;
   },
 
+  closeEntry(entry, target) {
+    if (entry.keepHoverDuration) {
+      this.flashElement(target, this.hideAfterHoverDuration, 'has-hover' + target.id, 'zen-has-hover');
+    } else {
+      this._removeHoverFrames[target.id] = window.requestAnimationFrame(() => target.removeAttribute('zen-has-hover'));
+    }
+  },
+
+  shouldCloseFromEdge(expected, actual) {
+    return (expected === 'top' && actual === 'bottom') || (expected === 'bottom' && actual === 'top')
+      || (expected === 'left' && actual === 'right') || (expected === 'right' && actual === 'left');
+  },
+
   addMouseActions() {
     for (let i = 0; i < this.hoverableElements.length; i++) {
       let target = this.hoverableElements[i].element;
@@ -185,50 +198,35 @@ var gZenCompactModeManager = {
         this.clearFlashTimeout('has-hover' + target.id);
         window.requestAnimationFrame(() => target.setAttribute('zen-has-hover', 'true'));
       });
-
       target.addEventListener('mouseleave', (event) => {
-        if (this.hoverableElements[i].keepHoverDuration) {
-          this.flashElement(target, keepHoverDuration, 'has-hover' + target.id, 'zen-has-hover');
-        } else {
-          this._removeHoverFrames[target.id] = window.requestAnimationFrame(() => target.removeAttribute('zen-has-hover'));
+        const screenEdgeCrossed = this._getCrossedEdge(event.pageX, event.pageY, event.target);
+        if (!screenEdgeCrossed) return;
+        for (let entry of this.hoverableElements) {
+          if (this.shouldCloseFromEdge(entry.screenEdge, screenEdgeCrossed)) {
+            this.closeEntry(entry, entry.element);
+          }
         }
       });
     }
-
-    document.documentElement.addEventListener('mouseleave', (event) => {
-      const screenEdgeCrossed = this._getCrossedEdge(event.pageX, event.pageY);
-      if (!screenEdgeCrossed) return;
-      for (let entry of this.hoverableElements) {
-        if (screenEdgeCrossed !== entry.screenEdge) continue;
-        const target = entry.element;
-        const boundAxis = entry.screenEdge === 'right' || entry.screenEdge === 'left' ? 'y' : 'x';
-        if (!this._positionInBounds(boundAxis, target, event.pageX, event.pageY, 7)) {
-          continue;
-        }
-        window.cancelAnimationFrame(this._removeHoverFrames[target.id]);
-
-        this.flashElement(target, this.hideAfterHoverDuration, 'has-hover' + target.id, 'zen-has-hover');
-        document.addEventListener(
-          'mousemove',
-          () => {
-            if (target.matches(':hover')) return;
-            target.removeAttribute('zen-has-hover');
-            this.clearFlashTimeout('has-hover' + target.id);
-          },
-          { once: true }
-        );
-      }
-    });
   },
 
-  _getCrossedEdge(posX, posY, element = document.documentElement, maxDistance = 10) {
+  _fixCrossedEdge(edge) {
+    if (edge == "top") return "bottom";
+    if (edge == "bottom") return "top";
+    if (edge == "left") return "right";
+    if (edge == "right") return "left";
+    return edge;
+  },
+
+  _getCrossedEdge(posX, posY, element = document.documentElement, maxDistance = 5) {
     const targetBox = element.getBoundingClientRect();
     posX = Math.max(targetBox.left, Math.min(posX, targetBox.right));
     posY = Math.max(targetBox.top, Math.min(posY, targetBox.bottom));
-    return ['top', 'bottom', 'left', 'right'].find((edge, i) => {
+    const edge = ['top', 'bottom', 'left', 'right'].find((edge, i) => {
       const distance = Math.abs((i < 2 ? posY : posX) - targetBox[edge]);
       return distance <= maxDistance;
     });
+    return edge;
   },
 
   _positionInBounds(axis = 'x', element, x, y, error = 0) {
