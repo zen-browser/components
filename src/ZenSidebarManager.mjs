@@ -440,6 +440,7 @@ class ZenBrowserManagerSidebar extends ZenDOMOperatedFeature {
     for (let browser of sidebar.querySelectorAll('browser[zen-sidebar-id]')) {
       browser.setAttribute('hidden', 'true');
       browser.docShellIsActive = false;
+      browser.zenModeActive = false;
     }
   }
 
@@ -461,6 +462,7 @@ class ZenBrowserManagerSidebar extends ZenDOMOperatedFeature {
     let existantWebview = this._getCurrentBrowser();
     if (existantWebview) {
       existantWebview.docShellIsActive = true;
+      existantWebview.zenModeActive = true;
       existantWebview.removeAttribute('hidden');
       document.getElementById('zen-sidebar-web-panel-title').textContent = existantWebview.contentTitle;
       return;
@@ -475,6 +477,7 @@ class ZenBrowserManagerSidebar extends ZenDOMOperatedFeature {
       browser.reload();
     }
     browser.docShellIsActive = true;
+    browser.zenModeActive = true;
   }
 
   _getWebPanelData(id) {
