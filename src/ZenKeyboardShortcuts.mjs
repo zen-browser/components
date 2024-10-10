@@ -854,7 +854,7 @@ var gZenKeyboardShortcutsManager = {
       if (key.getAttribute('internal') == 'true') {
         continue;
       }
-      key.remove();
+      key.setAttribute('disabled', 'true');
     }
   },
 

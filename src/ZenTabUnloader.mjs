@@ -110,6 +110,9 @@
     }
 
     intervalListener() {
+      if (!lazy.zenTabUnloaderEnabled) {
+        return;
+      }
       const currentTimestamp = Date.now();
       const excludedUrls = this.excludedUrls;
       for (const tab of this.unloader.tabs) {
@@ -172,9 +175,6 @@
     }
 
     handleTabOpen(tab) {
-      if (!lazy.zenTabUnloaderEnabled) {
-        return;
-      }
       this.updateTabActivity(tab);
     }
 
