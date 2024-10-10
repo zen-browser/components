@@ -12,6 +12,7 @@ class ZenBrowserManagerSidebar extends ZenDOMOperatedFeature {
   forwardButton = null;
   backButton = null;
   progressListener = null;
+  tabBox;
 
   DEFAULT_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android 12; Mobile; rv:129.0) Gecko/20100101 Firefox/131.0';
   MAX_SIDEBAR_PANELS = 9; // +1 for the add panel button
@@ -21,6 +22,7 @@ class ZenBrowserManagerSidebar extends ZenDOMOperatedFeature {
     ChromeUtils.defineLazyGetter(this, 'sidebar', () => document.getElementById('zen-sidebar-web-panel'));
     ChromeUtils.defineLazyGetter(this, 'forwardButton', () => document.getElementById('zen-sidebar-web-panel-forward'));
     ChromeUtils.defineLazyGetter(this, 'backButton', () => document.getElementById('zen-sidebar-web-panel-back'));
+    ChromeUtils.defineLazyGetter(this, 'tabBox', () => document.getElementById('tabbrowser-tabbox'));
 
     this.onlySafeWidthAndHeight();
 
@@ -268,6 +270,9 @@ class ZenBrowserManagerSidebar extends ZenDOMOperatedFeature {
 
   open() {
     let sidebar = document.getElementById('zen-sidebar-web-panel');
+    if (!this.sidebar.hasAttribute('pinned')) {
+      this.moveToTabBoxWrapper();
+    }
     sidebar.removeAttribute('hidden');
     this.update();
   }
@@ -577,12 +582,22 @@ class ZenBrowserManagerSidebar extends ZenDOMOperatedFeature {
     this._updateSidebarButton();
   }
 
+  moveToTabBoxWrapper() {
+    this.tabBox.before(this.sidebarWrapper);
+    this.sidebarWrapper.style.order = '';
+  }
+
+  moveToTabBox() {
+    this.tabBox.prepend(this.sidebarWrapper);
+  }
+
   togglePinned(elem) {
-    let sidebar = document.getElementById('zen-sidebar-web-panel');
-    if (sidebar.hasAttribute('pinned')) {
+    if (this.sidebar.hasAttribute('pinned')) {
       this._removePinnedFromElements();
+      this.moveToTabBoxWrapper();
     } else {
       this._setPinnedToElements();
+      this.moveToTabBox();
     }
     this.update();
   }
