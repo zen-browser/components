@@ -108,17 +108,9 @@
     }
 
     updatePinnedTabForSessionRestore(tabData, tab) {
-      if (tabData.zenPinnedUrl) {
-        tab.setAttribute("zen-pinned-url", tabData.zenPinnedUrl);
-      }
-
-      if (tabData.zenPinnedTitle) {
-        tab.setAttribute("zen-pinned-title", tabData.zenPinnedTitle);
-      }
-
-      if(tabData.zenPinnedIcon) {
-        tab.setAttribute("zen-pinned-icon", tabData.zenPinnedIcon);
-      }
+      !!tabData.zenPinnedUrl ? tab.setAttribute("zen-pinned-url", tabData.zenPinnedUrl) : tab.removeAttribute("zen-pinned-url");
+      !!tabData.zenPinnedTitle ? tab.setAttribute("zen-pinned-title", tabData.zenPinnedTitle) : tab.removeAttribute("zen-pinned-title");
+      !!tabData.zenPinnedIcon ? tab.setAttribute("zen-pinned-icon", tabData.zenPinnedIcon) : tab.removeAttribute("zen-pinned-icon");
     }
 
     _onCloseTabShortcut(event) {
@@ -215,8 +207,8 @@
     }
 
     updatePinnedTabContextMenu(contextTab) {
-      const isVisible = contextTab.pinned && contextTab.getAttribute("zen-pinned-url") && !contextTab.multiselected;
-      document.getElementById("context_zen-reset-pinned-tab").hidden = !isVisible;
+      const isVisible = contextTab.pinned  && !contextTab.multiselected;
+      document.getElementById("context_zen-reset-pinned-tab").hidden = !isVisible || !contextTab.getAttribute("zen-pinned-url");
       document.getElementById("context_zen-replace-pinned-url-with-current").hidden = !isVisible;
     }
   }
