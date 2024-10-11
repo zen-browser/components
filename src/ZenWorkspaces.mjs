@@ -406,7 +406,10 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     await this._expandWorkspacesStrip();
   }
 
-  async _expandWorkspacesStrip(browser = window) {
+  async _expandWorkspacesStrip(browser = undefined) {
+    if (typeof browser === 'undefined' || typeof browser.ZenWorkspaces === 'undefined') {
+      browser = window;
+    }
     let workspaces = await browser.ZenWorkspaces._workspaces();
     let workspaceList = browser.document.getElementById('zen-workspaces-button');
     const newWorkspacesButton = browser.document.createXULElement('toolbarbutton');
