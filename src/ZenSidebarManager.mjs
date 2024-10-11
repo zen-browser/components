@@ -12,6 +12,7 @@ class ZenBrowserManagerSidebar extends ZenDOMOperatedFeature {
   forwardButton = null;
   backButton = null;
   progressListener = null;
+  _tabBrowserSet = new WeakMap();
   tabBox;
 
   DEFAULT_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android 12; Mobile; rv:129.0) Gecko/20100101 Firefox/131.0';
@@ -497,19 +498,29 @@ class ZenBrowserManagerSidebar extends ZenDOMOperatedFeature {
     };
   }
 
+  getTabForBrowser(browser) {
+    return this._tabBrowserSet.get(browser);
+  }
+
+  setTabForBrowser(browser, tab) {
+    this._tabBrowserSet.set(browser, tab);
+  }
+
+  removeTabForBrowser(browser) {
+    this._tabBrowserSet.delete(browser);
+  }
+
   _createWebPanelBrowser(data) {
     const titleContainer = document.getElementById('zen-sidebar-web-panel-title');
     titleContainer.textContent = 'Loading...';
     let browser = gBrowser.createBrowser({});
     const tab = this.sidebar.querySelector(`[zen-sidebar-id='${data.id}']`);
-    gBrowser._tabForBrowser.set(browser, tab);
+    this.setTabForBrowser(browser, tab);
     tab.linkedBrowser = browser;
+    tab.permanentKey = browser.permanentKey;
     browser.setAttribute('disablefullscreen', 'true');
     browser.setAttribute('src', data.url);
     browser.setAttribute('zen-sidebar-id', data.id);
-    browser.setAttribute('autoscroll', 'false');
-    browser.setAttribute('autocompletepopup', 'PopupAutoComplete');
-    browser.setAttribute('contextmenu', 'contentAreaContextMenu');
     browser.addEventListener(
       'pagetitlechanged',
       function (event) {
@@ -725,6 +736,7 @@ class ZenBrowserManagerSidebar extends ZenDOMOperatedFeature {
 
   contextUnload() {
     let browser = this._getBrowserById(this.contextTab);
+    this.removeTabForBrowser(browser);
     browser.remove();
     document.getElementById('zen-sidebar-web-panel-title').textContent = '';
     this._closeSidebarPanel();
