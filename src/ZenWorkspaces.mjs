@@ -726,6 +726,9 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     const parent = browser.ownerGlobal;
     let tab = gBrowser.getTabForBrowser(browser);
     let workspaceID = tab.getAttribute('zen-workspace-id');
+    if (!workspaceID) {
+      return;
+    }
     let activeWorkspace = await parent.ZenWorkspaces.getActiveWorkspace();
     if (workspaceID === activeWorkspace.uuid) {
       return;
