@@ -95,10 +95,13 @@
 
     _setPinnedAttributes(tab) {
       const browser = tab.linkedBrowser;
-      const tabState = JSON.parse(SessionStore.getTabState(tab));
-      const activeEntry = tabState.entries[tabState.index - 1];
+      const entry = {
+        url: browser.currentURI.spec,
+        title: tab.label || browser.contentTitle,
+        triggeringPrincipal_base64: lazy.E10SUtils.SERIALIZED_SYSTEMPRINCIPAL
+      };
 
-      tab.setAttribute("zen-pinned-entry", JSON.stringify(activeEntry));
+      tab.setAttribute("zen-pinned-entry", JSON.stringify(entry));
       tab.setAttribute("zen-pinned-icon", browser.mIconURL);
     }
 
