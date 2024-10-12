@@ -94,17 +94,20 @@
     }
 
     _setPinnedAttributes(tab) {
-      tab.setAttribute("zen-pinned-url", tab.linkedBrowser.currentURI.spec);
-      tab.setAttribute("zen-pinned-title", tab.getAttribute("label"));
-      tab.setAttribute("zen-pinned-icon", tab.linkedBrowser.mIconURL);
-      tab.setAttribute("zen-pinned-triggering-principal", lazy.E10SUtils.serializePrincipal(tab.linkedBrowser.contentPrincipal));
+      const browser = tab.linkedBrowser;
+      const entry = {
+        url: browser.currentURI.spec,
+        title: tab.label || browser.contentTitle,
+        triggeringPrincipal_base64: lazy.E10SUtils.SERIALIZED_SYSTEMPRINCIPAL
+      };
+
+      tab.setAttribute("zen-pinned-entry", JSON.stringify(entry));
+      tab.setAttribute("zen-pinned-icon", browser.mIconURL);
     }
 
     _removePinnedAttributes(tab) {
-      tab.removeAttribute("zen-pinned-url");
-      tab.removeAttribute("zen-pinned-title");
+      tab.removeAttribute("zen-pinned-entry");
       tab.removeAttribute("zen-pinned-icon");
-      tab.removeAttribute("zen-pinned-triggering-principal");
     }
 
     _initClosePinnedTabShortcut() {
@@ -116,17 +119,21 @@
     }
 
     setPinnedTabState(tabData, tab) {
-      tabData.zenPinnedUrl = tab.getAttribute("zen-pinned-url");
-      tabData.zenPinnedTitle = tab.getAttribute("zen-pinned-title");
+      tabData.zenPinnedEntry = tab.getAttribute("zen-pinned-entry");
       tabData.zenPinnedIcon = tab.getAttribute("zen-pinned-icon");
-      tabData.zenPinnedTriggeringPrincipal = tab.getAttribute("zen-pinned-triggering-principal");
     }
 
     updatePinnedTabForSessionRestore(tabData, tab) {
-      !!tabData.zenPinnedUrl ? tab.setAttribute("zen-pinned-url", tabData.zenPinnedUrl) : tab.removeAttribute("zen-pinned-url");
-      !!tabData.zenPinnedTitle ? tab.setAttribute("zen-pinned-title", tabData.zenPinnedTitle) : tab.removeAttribute("zen-pinned-title");
-      !!tabData.zenPinnedIcon ? tab.setAttribute("zen-pinned-icon", tabData.zenPinnedIcon) : tab.removeAttribute("zen-pinned-icon");
-      !!tabData.zenPinnedTriggeringPrincipal ? tab.setAttribute("zen-pinned-triggering-principal", tabData.zenPinnedTriggeringPrincipal) : tab.removeAttribute("zen-pinned-triggering-principal");
+      if (tabData.zenPinnedEntry) {
+        tab.setAttribute("zen-pinned-entry", tabData.zenPinnedEntry);
+      } else {
+        tab.removeAttribute("zen-pinned-entry");
+      }
+      if (tabData.zenPinnedIcon) {
+        tab.setAttribute("zen-pinned-icon", tabData.zenPinnedIcon);
+      } else {
+        tab.removeAttribute("zen-pinned-icon");
+      }
     }
 
     _onCloseTabShortcut(event, selectedTab = gBrowser.selectedTab) {
@@ -184,16 +191,14 @@
     }
 
     _resetTabToStoredState(tab) {
-      const url = tab.getAttribute("zen-pinned-url");
-      const title = tab.getAttribute("zen-pinned-title");
+      const entry = tab.getAttribute("zen-pinned-entry");
       const icon = tab.getAttribute("zen-pinned-icon");
-      const triggeringPrincipal_base64 = tab.getAttribute("zen-pinned-triggering-principal");
 
-      if (url) {
+      if (entry) {
         const tabState = SessionStore.getTabState(tab);
         const state = JSON.parse(tabState);
 
-        state.entries = [{url, title, triggeringPrincipal_base64}];
+        state.entries = [JSON.parse(entry)];
         state.image = icon;
         state.index = 0;
 
@@ -216,8 +221,8 @@
     }
 
     resetPinnedTabData(tabData) {
-      if (lazy.zenPinnedTabRestorePinnedTabsToPinnedUrl && tabData.pinned && tabData.zenPinnedUrl) {
-        tabData.entries = [{url: tabData.zenPinnedUrl, title: tabData.zenPinnedTitle, triggeringPrincipal_base64: tabData.zenPinnedTriggeringPrincipal}];
+      if (lazy.zenPinnedTabRestorePinnedTabsToPinnedUrl && tabData.pinned && tabData.zenPinnedEntry) {
+        tabData.entries = [JSON.parse(tabData.zenPinnedEntry)];
         tabData.image = tabData.zenPinnedIcon;
         tabData.index = 0;
       }
@@ -225,7 +230,7 @@
 
     updatePinnedTabContextMenu(contextTab) {
       const isVisible = contextTab.pinned  && !contextTab.multiselected;
-      document.getElementById("context_zen-reset-pinned-tab").hidden = !isVisible || !contextTab.getAttribute("zen-pinned-url");
+      document.getElementById("context_zen-reset-pinned-tab").hidden = !isVisible || !contextTab.getAttribute("zen-pinned-entry");
       document.getElementById("context_zen-replace-pinned-url-with-current").hidden = !isVisible;
     }
   }
