@@ -141,7 +141,8 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
           activeWorkspace = workspaces.workspaces[0];
           Services.prefs.setStringPref('zen.workspaces.active', activeWorkspace.uuid);
         }
-        this.changeWorkspace(activeWorkspace, true);
+        await SessionStore.promiseInitialized;
+        await this.changeWorkspace(activeWorkspace, true);
       }
     }
   }
@@ -730,10 +731,10 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
       return;
     }
     let activeWorkspace = await parent.ZenWorkspaces.getActiveWorkspace();
+    this._lastSelectedWorkspaceTabs[workspaceID] = tab;
     if (workspaceID === activeWorkspace.uuid) {
       return;
     }
-    this._lastSelectedWorkspaceTabs[workspaceID] = tab;
     await parent.ZenWorkspaces.changeWorkspace({ uuid: workspaceID });
   }
 
