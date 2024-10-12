@@ -3,6 +3,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
    * Stores workspace IDs and their last selected tabs.
    */
   _lastSelectedWorkspaceTabs = {};
+  _inChangingWorkspace = false;
 
   async init() {
     if (!this.shouldHaveWorkspaces) {
@@ -606,10 +607,11 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
   }
 
   async changeWorkspace(window, onInit = false) {
-    if (!this.workspaceEnabled) {
+    if (!this.workspaceEnabled || this._inChangingWorkspace) {
       return;
     }
 
+    this._inChangingWorkspace = true;
     Services.prefs.setStringPref('zen.workspaces.active', window.uuid);
 
     const shouldAllowPinnedTabs = this._shouldAllowPinTab;
@@ -657,13 +659,16 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     });
 
     await this._propagateWorkspaceData();
+    this._inChangingWorkspace = false;
   }
 
   async _updateWorkspacesChangeContextMenu() {
     const workspaces = await this._workspaces();
 
     const menuPopup = document.getElementById('context-zen-change-workspace-tab-menu-popup');
-
+    if (!menuPopup) {
+      return;
+    }
     menuPopup.innerHTML = '';
 
     const activeWorkspace = await this.getActiveWorkspace();
@@ -715,17 +720,18 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
   }
 
   async onLocationChange(browser) {
+    if (!this.workspaceEnabled || this._inChangingWorkspace) {
+      return;
+    }
+    const parent = browser.ownerGlobal;
     let tab = gBrowser.getTabForBrowser(browser);
     let workspaceID = tab.getAttribute('zen-workspace-id');
-    if (!workspaceID) {
-      let activeWorkspace = await this.getActiveWorkspace();
-      if (!activeWorkspace || tab.hasAttribute('hidden')) {
-        return;
-      }
-      tab.setAttribute('zen-workspace-id', activeWorkspace.uuid);
-      workspaceID = activeWorkspace.uuid;
+    let activeWorkspace = await parent.ZenWorkspaces.getActiveWorkspace();
+    if (workspaceID === activeWorkspace.uuid) {
+      return;
     }
     this._lastSelectedWorkspaceTabs[workspaceID] = tab;
+    await parent.ZenWorkspaces.changeWorkspace({ uuid: workspaceID });
   }
 
   // Context menu management
