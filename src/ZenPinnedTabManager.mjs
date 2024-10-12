@@ -9,7 +9,7 @@
     constructor() {
       XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenPinnedTabRestorePinnedTabsToPinnedUrl', 'zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url', false);
       XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenPinnedTabCloseShortcutBehavior', 'zen.pinned-tab-manager.close-shortcut-behavior', 'switch');
-    
+
       this.#listenPinnedTabEvents();
     }
 
@@ -49,13 +49,25 @@
       switch (action) {
         case "TabPinned":
           this._setPinnedAttributes(tab);
+          tab._zenClickEventListener = this._onTabClick.bind(this, tab);
+          tab.addEventListener("click", tab._zenClickEventListener);
           break;
         case "TabUnpinned":
           this._removePinnedAttributes(tab);
+          if (tab._zenClickEventListener) {
+            tab.removeEventListener("click", tab._zenClickEventListener);
+            delete tab._zenClickEventListener;
+          }
           break;
         default:
           console.warn('ZenPinnedTabManager: Unhandled tab event', action);
           break;
+      }
+    }
+
+    _onTabClick(tab, e) {
+      if (e.button === 1) {
+        this._onCloseTabShortcut(e, tab);
       }
     }
 
@@ -113,17 +125,15 @@
       !!tabData.zenPinnedIcon ? tab.setAttribute("zen-pinned-icon", tabData.zenPinnedIcon) : tab.removeAttribute("zen-pinned-icon");
     }
 
-    _onCloseTabShortcut(event) {
+    _onCloseTabShortcut(event, selectedTab = gBrowser.selectedTab) {
       if (
-          !event ||
-          !(event.ctrlKey || event.metaKey || event.altKey) ||
-          !gBrowser.selectedTab?.pinned
+          !selectedTab?.pinned
       ) {
         return;
       }
 
-      const selectedTab = gBrowser.selectedTab;
-      if (!selectedTab) return;
+      event.stopPropagation();
+      event.preventDefault();
 
       const behavior = lazy.zenPinnedTabCloseShortcutBehavior;
 
@@ -150,11 +160,13 @@
           return;
       }
 
-      event.stopPropagation();
-      event.preventDefault();
+
     }
 
     _handleTabSwitch(selectedTab) {
+      if(selectedTab !== gBrowser.selectedTab) {
+        return;
+      }
       const findNextTab = (direction) =>
           gBrowser.tabContainer.findNextTab(selectedTab, {
             direction,
