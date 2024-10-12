@@ -9,7 +9,7 @@
     constructor() {
       XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenPinnedTabRestorePinnedTabsToPinnedUrl', 'zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url', false);
       XPCOMUtils.defineLazyPreferenceGetter(lazy, 'zenPinnedTabCloseShortcutBehavior', 'zen.pinned-tab-manager.close-shortcut-behavior', 'switch');
-
+      ChromeUtils.defineESModuleGetters(lazy, {E10SUtils: "resource://gre/modules/E10SUtils.sys.mjs"});
       this.#listenPinnedTabEvents();
     }
 
@@ -97,12 +97,14 @@
       tab.setAttribute("zen-pinned-url", tab.linkedBrowser.currentURI.spec);
       tab.setAttribute("zen-pinned-title", tab.getAttribute("label"));
       tab.setAttribute("zen-pinned-icon", tab.linkedBrowser.mIconURL);
+      tab.setAttribute("zen-pinned-triggering-principal", lazy.E10SUtils.serializePrincipal(tab.linkedBrowser.contentPrincipal));
     }
 
     _removePinnedAttributes(tab) {
       tab.removeAttribute("zen-pinned-url");
       tab.removeAttribute("zen-pinned-title");
       tab.removeAttribute("zen-pinned-icon");
+      tab.removeAttribute("zen-pinned-triggering-principal");
     }
 
     _initClosePinnedTabShortcut() {
@@ -117,12 +119,14 @@
       tabData.zenPinnedUrl = tab.getAttribute("zen-pinned-url");
       tabData.zenPinnedTitle = tab.getAttribute("zen-pinned-title");
       tabData.zenPinnedIcon = tab.getAttribute("zen-pinned-icon");
+      tabData.zenPinnedTriggeringPrincipal = tab.getAttribute("zen-pinned-triggering-principal");
     }
 
     updatePinnedTabForSessionRestore(tabData, tab) {
       !!tabData.zenPinnedUrl ? tab.setAttribute("zen-pinned-url", tabData.zenPinnedUrl) : tab.removeAttribute("zen-pinned-url");
       !!tabData.zenPinnedTitle ? tab.setAttribute("zen-pinned-title", tabData.zenPinnedTitle) : tab.removeAttribute("zen-pinned-title");
       !!tabData.zenPinnedIcon ? tab.setAttribute("zen-pinned-icon", tabData.zenPinnedIcon) : tab.removeAttribute("zen-pinned-icon");
+      !!tabData.zenPinnedTriggeringPrincipal ? tab.setAttribute("zen-pinned-triggering-principal", tabData.zenPinnedTriggeringPrincipal) : tab.removeAttribute("zen-pinned-triggering-principal");
     }
 
     _onCloseTabShortcut(event, selectedTab = gBrowser.selectedTab) {
@@ -183,12 +187,13 @@
       const url = tab.getAttribute("zen-pinned-url");
       const title = tab.getAttribute("zen-pinned-title");
       const icon = tab.getAttribute("zen-pinned-icon");
+      const triggeringPrincipal_base64 = tab.getAttribute("zen-pinned-triggering-principal");
 
       if (url) {
         const tabState = SessionStore.getTabState(tab);
         const state = JSON.parse(tabState);
 
-        state.entries = [{url, title}];
+        state.entries = [{url, title, triggeringPrincipal_base64}];
         state.image = icon;
         state.index = 0;
 
@@ -212,7 +217,7 @@
 
     resetPinnedTabData(tabData) {
       if (lazy.zenPinnedTabRestorePinnedTabsToPinnedUrl && tabData.pinned && tabData.zenPinnedUrl) {
-        tabData.entries = [{url: tabData.zenPinnedUrl, title: tabData.zenPinnedTitle}];
+        tabData.entries = [{url: tabData.zenPinnedUrl, title: tabData.zenPinnedTitle, triggeringPrincipal_base64: tabData.zenPinnedTriggeringPrincipal}];
         tabData.image = tabData.zenPinnedIcon;
         tabData.index = 0;
       }
