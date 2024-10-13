@@ -290,7 +290,7 @@ class KeyShortcut {
   }
 
   isEmpty() {
-    return !this.#key && !this.#keycode;
+    return !this.#key && !this.getRealKeycode();
   }
 
   static parseFromSaved(json) {
@@ -397,6 +397,13 @@ class KeyShortcut {
     return key;
   }
 
+  getRealKeycode() {
+    if (this.#keycode === '') {
+      return null;
+    }
+    return this.#keycode;
+  }
+
   getID() {
     return this.#id;
   }
@@ -418,15 +425,15 @@ class KeyShortcut {
   }
 
   getKeyName() {
-    return this.#key;
+    return this.#key.toLowerCase();
   }
 
   getKeyCode() {
-    return this.#keycode;
+    return this.getRealKeycode();
   }
 
   getKeyNameOrCode() {
-    return this.#key ? this.#key : this.#keycode;
+    return this.#key ? this.getKeyName() : this.getKeyCode();
   }
 
   isDisabled() {
@@ -863,8 +870,13 @@ var gZenKeyboardShortcutsManager = {
       if (key.getAttribute('internal') == 'true') {
         continue;
       }
-      key.setAttribute('disabled', 'true');
+      key.remove();
     }
+
+    // Restore the keyset, https://searchfox.org/mozilla-central/rev/a59018f9ff34170810b43e12bf6f09a1512de7ab/dom/events/GlobalKeyListener.cpp#478
+    const parent = element.parentElement;
+    element.remove();
+    parent.prepend(element);
   },
 
   _applyShortcuts() {
@@ -953,12 +965,13 @@ var gZenKeyboardShortcutsManager = {
   },
 
   checkForConflicts(shortcut, modifiers, id) {
+    const realShortcut = shortcut.toLowerCase();
     for (let targetShortcut of this._currentShortcutList) {
       if (targetShortcut.getID() == id) {
         continue;
       }
 
-      if (targetShortcut.getModifiers().equals(modifiers) && targetShortcut.getKeyNameOrCode() == shortcut) {
+      if (targetShortcut.getModifiers().equals(modifiers) && targetShortcut.getKeyNameOrCode()?.toLowerCase() == realShortcut) {
         return true;
       }
     }
