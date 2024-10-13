@@ -198,8 +198,9 @@ class KeyShortcutModifiers {
       this.#shift == other.#shift &&
       this.#control == other.#control &&
       (AppConstants.platform == 'macosx'
-        ? (this.#meta || this.#accel) == (other.#meta || other.#accel)
-        : this.#meta == other.#meta && this.#accel == other.#accel)
+        ? ((this.#meta || this.#accel) == (other.#meta || other.#accel) && this.#control == other.#control)
+        // In other platforms, we can have control and accel counting as the same thing
+        : (this.#meta == other.#meta && (this.#control || this.#accel) == (other.#control || other.#accel)))
     );
   }
 
