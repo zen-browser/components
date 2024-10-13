@@ -874,7 +874,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     });
   }
 
-  getContextIdIfNeeded(userContextId, fromExternal) {
+  getContextIdIfNeeded(userContextId, fromExternal, allowInheritPrincipal) {
     if(!this.workspaceEnabled) {
       return [userContextId, false];
     }
@@ -882,7 +882,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     const activeWorkspace = this.getActiveWorkspaceFromCache();
     const activeWorkspaceUserContextId = activeWorkspace?.containerTabId;
 
-    if(fromExternal && !!activeWorkspaceUserContextId) {
+    if((fromExternal || allowInheritPrincipal === false) && !!activeWorkspaceUserContextId) {
       return [activeWorkspaceUserContextId, true];
     }
 
