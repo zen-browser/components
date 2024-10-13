@@ -792,6 +792,10 @@ var gZenKeyboardShortcutsManager = {
     // This is because other browser-sets needs this element and the JS event
     //  handled wont wait for the async function to finish.
     void(this.getZenKeyset());
+
+    this._hasCleared = Services.prefs.getBoolPref('zen.keyboard.shortcuts.disable-mainkeyset-clear', false);
+
+    window.addEventListener('DOMContentLoaded', this.init.bind(this), { once: true });
   },
 
   async init() {
@@ -832,23 +836,27 @@ var gZenKeyboardShortcutsManager = {
   },
 
   getZenKeyset(browser = window) {
-    if (!this._zenKeyset) {
+    if (!browser.gZenKeyboardShortcutsManager._zenKeyset) {
       const existingKeyset = browser.document.getElementById(ZEN_KEYSET_ID);
       if (existingKeyset) {
-        this._zenKeyset = existingKeyset;
-        return this._zenKeyset;
+        browser.gZenKeyboardShortcutsManager._zenKeyset = existingKeyset;
+        return browser.gZenKeyboardShortcutsManager._zenKeyset;
       }
 
-      this._zenKeyset = browser.document.createXULElement('keyset');
-      this._zenKeyset.id = ZEN_KEYSET_ID;
+      browser.gZenKeyboardShortcutsManager._zenKeyset = browser.document.createXULElement('keyset');
+      browser.gZenKeyboardShortcutsManager._zenKeyset.id = ZEN_KEYSET_ID;
       
       const mainKeyset = browser.document.getElementById(ZEN_MAIN_KEYSET_ID);
-      mainKeyset.after(this._zenKeyset);
+      mainKeyset.after(browser.gZenKeyboardShortcutsManager._zenKeyset);
     }
-    return this._zenKeyset;
+    return browser.gZenKeyboardShortcutsManager._zenKeyset;
   },
 
   clearMainKeyset(element) {
+    if (this._hasCleared) {
+      return;
+    }
+    this._hasCleared = true;
     const children = element.children;
     for (let i = children.length - 1; i >= 0; i--) {
       const key = children[i];
@@ -865,7 +873,7 @@ var gZenKeyboardShortcutsManager = {
       if (!mainKeyset) {
         throw new Error('Main keyset not found');
       }
-      this.clearMainKeyset(mainKeyset);
+      browser.gZenKeyboardShortcutsManager.clearMainKeyset(mainKeyset);
 
       const keyset = this.getZenKeyset(browser);
       keyset.innerHTML = '';
@@ -962,7 +970,5 @@ var gZenKeyboardShortcutsManager = {
 document.addEventListener("MozBeforeInitialXULLayout", () => {
   if (Services.prefs.getBoolPref('zen.keyboard.shortcuts.enabled', false)) {
     gZenKeyboardShortcutsManager.beforeInit();
-    // Async init
-    gZenKeyboardShortcutsManager.init();
   }
 }, { once: true });
