@@ -874,10 +874,19 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     });
   }
 
-  getContextIdIfNeeded(userContextId) {
+  getContextIdIfNeeded(userContextId, fromExternal) {
+    if(!this.workspaceEnabled) {
+      return [userContextId, false];
+    }
+
     const activeWorkspace = this.getActiveWorkspaceFromCache();
     const activeWorkspaceUserContextId = activeWorkspace?.containerTabId;
-    if ((typeof userContextId !== 'undefined' && userContextId !== activeWorkspaceUserContextId) || !this.workspaceEnabled) {
+
+    if(fromExternal && !!activeWorkspaceUserContextId) {
+      return [activeWorkspaceUserContextId, true];
+    }
+
+    if (typeof userContextId !== 'undefined' && userContextId !== activeWorkspaceUserContextId) {
       return [userContextId, false];
     }
     return [activeWorkspaceUserContextId, true];
