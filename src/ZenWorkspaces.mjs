@@ -139,7 +139,6 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     await this.initializeWorkspacesButton();
     if (this.workspaceEnabled) {
       this._initializeWorkspaceCreationIcons();
-      this._initializeWorkspaceEditIcons();
       this._initializeWorkspaceTabContextMenus();
       window.addEventListener('TabClose', this.handleTabClose.bind(this));
       window.addEventListener('TabBrowserInserted', this.onTabBrowserInserted.bind(this));
@@ -184,12 +183,13 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
   );
 
   _initializeWorkspaceCreationIcons() {
-    let container = document.getElementById('PanelUI-zen-workspaces-create-icons-container');
+    let container = document.getElementById('PanelUI-zen-workspaces-icon-picker');
     for (let icon of this._kIcons) {
       let button = document.createXULElement('toolbarbutton');
       button.className = 'toolbarbutton-1';
       button.setAttribute('label', icon);
-      button.onclick = ((event) => {
+      button.onclick = (event) => {
+        const button = event.target;
         let wasSelected = button.hasAttribute('selected');
         for (let button of container.children) {
           button.removeAttribute('selected');
@@ -197,27 +197,12 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
         if (!wasSelected) {
           button.setAttribute('selected', 'true');
         }
-      }).bind(this, button);
-      container.appendChild(button);
-    }
-  }
-
-  _initializeWorkspaceEditIcons() {
-    let container = this._workspaceEditIconsContainer;
-    for (let icon of this._kIcons) {
-      let button = document.createXULElement('toolbarbutton');
-      button.className = 'toolbarbutton-1';
-      button.setAttribute('label', icon);
-      button.onclick = ((event) => {
-        let wasSelected = button.hasAttribute('selected');
-        for (let button of container.children) {
-          button.removeAttribute('selected');
+        if (this.onIconChangeConnectedCallback) {
+          this.onIconChangeConnectedCallback(icon);
+        } else {
+          this.onWorkspaceIconChangeInner('create', icon);
         }
-        if (!wasSelected) {
-          button.setAttribute('selected', 'true');
-        }
-        this.onWorkspaceEditChange();
-      }).bind(this, button);
+      };
       container.appendChild(button);
     }
   }
@@ -265,15 +250,32 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     this._workspaceEditInput.value = workspaceData.name;
     this._workspaceEditInput.setAttribute('data-initial-value', workspaceData.name);
     this._workspaceEditIconsContainer.setAttribute('data-initial-value', workspaceData.icon);
-    document.querySelectorAll('#PanelUI-zen-workspaces-edit-icons-container toolbarbutton').forEach((button) => {
+    this.onIconChangeConnectedCallback = (...args) => {
+      this.onWorkspaceIconChangeInner('edit', ...args);
+      this.onWorkspaceEditChange();
+    };
+    document.querySelectorAll('#PanelUI-zen-workspaces-icon-picker toolbarbutton').forEach((button) => {
       if (button.label === workspaceData.icon) {
         button.setAttribute('selected', 'true');
       } else {
         button.removeAttribute('selected');
       }
     });
+    document.querySelector('.PanelUI-zen-workspaces-icons-container.edit').textContent = this.getWorkspaceIcon(workspaceData);
     let parentPanel = document.getElementById('PanelUI-zen-workspaces-multiview');
     PanelUI.showSubView('PanelUI-zen-workspaces-edit', parentPanel);
+  }
+
+  onWorkspaceIconChangeInner(type = 'create', icon) {
+    const container = document.querySelector(`.PanelUI-zen-workspaces-icons-container.${type}`);
+    container.textContent = icon;
+    document.getElementById('PanelUI-zen-workspaces-icon-picker').hidePopup();
+  }
+
+  onWorkspaceIconContainerClick(event) {
+    event.preventDefault();
+    const picker = document.getElementById('PanelUI-zen-workspaces-icon-picker');
+    picker.openPopup(event.target, 'after_start', 0, 0, false, false);
   }
 
   closeWorkspacesSubView() {
@@ -530,7 +532,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
   }
 
   get _workspaceEditIconsContainer() {
-    return document.getElementById('PanelUI-zen-workspaces-edit-icons-container');
+    return document.getElementById('PanelUI-zen-workspaces-icon-picker');
   }
 
   _deleteAllTabsInWorkspace(workspaceID) {
@@ -570,7 +572,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
       return;
     }
     this._workspaceCreateInput.value = '';
-    let icon = document.querySelector('#PanelUI-zen-workspaces-create-icons-container [selected]');
+    let icon = document.querySelector('#PanelUI-zen-workspaces-icon-picker [selected]');
     icon?.removeAttribute('selected');
     await this.createAndSaveWorkspace(workspaceName, false, icon?.label);
     await this._updateWorkspacesButton();
@@ -585,7 +587,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
       return;
     }
     this._workspaceEditInput.value = '';
-    let icon = document.querySelector('#PanelUI-zen-workspaces-edit-icons-container [selected]');
+    let icon = document.querySelector('#PanelUI-zen-workspaces-icon-picker [selected]');
     icon?.removeAttribute('selected');
     let workspaces = (await this._workspaces()).workspaces;
     let workspaceData = workspaces.find((workspace) => workspace.uuid === workspaceUuid);
@@ -608,7 +610,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
   onWorkspaceEditChange() {
     let button = document.getElementById('PanelUI-zen-workspaces-edit-save');
     let name = this._workspaceEditInput.value;
-    let icon = document.querySelector('#PanelUI-zen-workspaces-edit-icons-container [selected]')?.label;
+    let icon = document.querySelector('#PanelUI-zen-workspaces-icon-picker [selected]')?.label;
     if (
       name === this._workspaceEditInput.getAttribute('data-initial-value') &&
       icon === this._workspaceEditIconsContainer.getAttribute('data-initial-value')
