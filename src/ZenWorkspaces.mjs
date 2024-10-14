@@ -622,48 +622,44 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     Services.prefs.setStringPref('zen.workspaces.active', window.uuid);
 
     const shouldAllowPinnedTabs = this._shouldAllowPinTab;
-    await this.foreachWindowAsActive(async (browser) => {
-      browser.ZenWorkspaces.tabContainer._invalidateCachedTabs();
-      let firstTab = undefined;
-      console.info('ZenWorkspaces: Changing workspace to', window.uuid);
-      for (let tab of browser.gBrowser.tabs) {
-        if (
-          (tab.getAttribute('zen-workspace-id') === window.uuid && !(tab.pinned && !shouldAllowPinnedTabs)) ||
-          !tab.hasAttribute('zen-workspace-id')
-        ) {
-          if (!firstTab) {
-            firstTab = tab;
-          } else if (browser.gBrowser.selectedTab === tab) {
-            // If the selected tab is already in the workspace, we don't want to change it
-            firstTab = null; // note: Do not add "undefined" here, a new tab would be created
-          }
-          browser.gBrowser.showTab(tab);
-          if (!tab.hasAttribute('zen-workspace-id')) {
-            // We add the id to those tabs that got inserted before we initialize the workspaces
-            // example use case: opening a link from an external app
-            tab.setAttribute('zen-workspace-id', window.uuid);
-          }
+    this.tabContainer._invalidateCachedTabs();
+    let firstTab = undefined;
+    console.info('ZenWorkspaces: Changing workspace to', window.uuid);
+    for (let tab of gBrowser.tabs) {
+      if (
+        (tab.getAttribute('zen-workspace-id') === window.uuid && !(tab.pinned && !shouldAllowPinnedTabs)) ||
+        !tab.hasAttribute('zen-workspace-id')
+      ) {
+        if (!firstTab) {
+          firstTab = tab;
+        } else if (gBrowser.selectedTab === tab) {
+          // If the selected tab is already in the workspace, we don't want to change it
+          firstTab = null; // note: Do not add "undefined" here, a new tab would be created
+        }
+        gBrowser.showTab(tab);
+        if (!tab.hasAttribute('zen-workspace-id')) {
+          // We add the id to those tabs that got inserted before we initialize the workspaces
+          // example use case: opening a link from an external app
+          tab.setAttribute('zen-workspace-id', window.uuid);
         }
       }
-      if (firstTab) {
-        browser.gBrowser.selectedTab = browser.ZenWorkspaces._lastSelectedWorkspaceTabs[window.uuid] ?? firstTab;
+    }
+    if (firstTab) {
+      gBrowser.selectedTab = this._lastSelectedWorkspaceTabs[window.uuid] ?? firstTab;
+    }
+    if (typeof firstTab === 'undefined' && !onInit) {
+      this._createNewTabForWorkspace(window);
+    }
+    for (let tab of gBrowser.tabs) {
+      if (tab.getAttribute('zen-workspace-id') !== window.uuid) {
+        gBrowser.hideTab(tab, undefined, shouldAllowPinnedTabs);
       }
-      if (typeof firstTab === 'undefined' && !onInit) {
-        browser.ZenWorkspaces._createNewTabForWorkspace(window);
-      }
-      for (let tab of browser.gBrowser.tabs) {
-        if (tab.getAttribute('zen-workspace-id') !== window.uuid) {
-          // FOR UNLOADING TABS:
-          // gBrowser.discardBrowser(tab, true);
-          browser.gBrowser.hideTab(tab, undefined, shouldAllowPinnedTabs);
-        }
-      }
-      browser.ZenWorkspaces.tabContainer._invalidateCachedTabs();
-      browser.document.documentElement.setAttribute('zen-workspace-id', window.uuid);
-      await browser.ZenWorkspaces._updateWorkspacesChangeContextMenu();
+    }
+    this.tabContainer._invalidateCachedTabs();
+    document.documentElement.setAttribute('zen-workspace-id', window.uuid);
+    await this._updateWorkspacesChangeContextMenu();
 
-      browser.document.getElementById('tabbrowser-tabs')._positionPinnedTabs();
-    });
+    document.getElementById('tabbrowser-tabs')._positionPinnedTabs();
 
     await this._propagateWorkspaceData();
     this._inChangingWorkspace = false;
