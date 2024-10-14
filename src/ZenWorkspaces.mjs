@@ -18,6 +18,12 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
       true,
       this._expandWorkspacesStrip.bind(this)
     );
+    XPCOMUtils.defineLazyPreferenceGetter(
+        this,
+        'shouldForceContainerTabsToWorkspace',
+        'zen.workspaces.force-container-workspace',
+        true
+    );
     ChromeUtils.defineLazyGetter(this, 'tabContainer', () => document.getElementById('tabbrowser-tabs'));
     await ZenWorkspacesStorage.init();
     if(!Weave.Service.engineManager.get("workspaces")) {
@@ -877,6 +883,14 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
   getContextIdIfNeeded(userContextId, fromExternal, allowInheritPrincipal) {
     if(!this.workspaceEnabled) {
       return [userContextId, false];
+    }
+
+    if(this.shouldForceContainerTabsToWorkspace && typeof userContextId !== 'undefined' && this._workspaceCache?.workspaces) {
+      const workspace = this._workspaceCache.workspaces.find((workspace) => workspace.containerTabId === userContextId);
+      if(workspace && workspace.uuid !== this.getActiveWorkspaceFromCache().uuid) {
+        this.changeWorkspace(workspace);
+        return [userContextId, true];
+      }
     }
 
     const activeWorkspace = this.getActiveWorkspaceFromCache();
