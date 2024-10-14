@@ -879,6 +879,17 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
       return [userContextId, false];
     }
 
+    if(Services.prefs.getBoolPref('zen.workspaces.force-container-workspace', false) && typeof userContextId !== 'undefined' && this._workspaceCache?.workspaces) {
+      const workspace = this._workspaceCache.workspaces.find((workspace) => workspace.containerTabId === userContextId);
+      if(workspace && workspace.uuid !== this.getActiveWorkspaceFromCache().uuid) {
+        this.changeWorkspace(workspace).then(() => {
+
+          return [userContextId, true];
+
+        });
+      }
+    }
+
     const activeWorkspace = this.getActiveWorkspaceFromCache();
     const activeWorkspaceUserContextId = activeWorkspace?.containerTabId;
 
