@@ -11,7 +11,6 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
       return; // We are in a hidden window, don't initialize ZenWorkspaces
     }
     this.ownerWindow = window;
-    console.info('ZenWorkspaces: Initializing ZenWorkspaces...');
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
       'shouldShowIconStrip',
@@ -26,6 +25,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
         true
     );
     ChromeUtils.defineLazyGetter(this, 'tabContainer', () => document.getElementById('tabbrowser-tabs'));
+    this._activeWorkspace = Services.prefs.getStringPref('zen.workspaces.active', '');
     await ZenWorkspacesStorage.init();
     if(!Weave.Service.engineManager.get("workspaces")) {
       Weave.Service.engineManager.register(ZenWorkspacesEngine);
@@ -36,6 +36,15 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
 
     // Add observer for sync completion
     Services.obs.addObserver(this, "weave:engine:sync:finish");
+  }
+
+  get activeWorkspace() {
+    return this._activeWorkspace;
+  }
+
+  set activeWorkspace(value) {
+    this._activeWorkspace = value;
+    Services.prefs.setStringPref('zen.workspaces.active', value);
   }
 
   async observe(subject, topic, data) {
@@ -76,8 +85,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
 
   getActiveWorkspaceFromCache() {
     try {
-      const activeWorkspaceId = Services.prefs.getStringPref('zen.workspaces.active', '');
-      return this._workspaceCache.workspaces.find((workspace) => workspace.uuid === activeWorkspaceId);
+      return this._workspaceCache.workspaces.find((workspace) => workspace.uuid === this.activeWorkspace);
     } catch (e) {
       return null;
     }
@@ -95,17 +103,17 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
 
     this._workspaceCache = { workspaces, lastChangeTimestamp };
     // Get the active workspace ID from preferences
-    const activeWorkspaceId = Services.prefs.getStringPref('zen.workspaces.active', '');
+    const activeWorkspaceId = this.activeWorkspace;
 
     if (activeWorkspaceId) {
       const activeWorkspace = this._workspaceCache.workspaces.find((w) => w.uuid === activeWorkspaceId);
       // Set the active workspace ID to the first one if the one with selected id doesn't exist
       if (!activeWorkspace) {
-        Services.prefs.setStringPref('zen.workspaces.active', this._workspaceCache.workspaces[0]?.uuid);
+        this.activeWorkspace = this._workspaceCache.workspaces[0]?.uuid;
       }
     } else {
       // Set the active workspace ID to the first one if active workspace doesn't exist
-      Services.prefs.setStringPref('zen.workspaces.active', this._workspaceCache.workspaces[0]?.uuid);
+      this.activeWorkspace = this._workspaceCache.workspaces[0]?.uuid;
     }
     // sort by position
     this._workspaceCache.workspaces.sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity));
@@ -142,11 +150,11 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
         let activeWorkspace = await this.getActiveWorkspace();
         if (!activeWorkspace) {
           activeWorkspace = workspaces.workspaces.find((workspace) => workspace.default);
-          Services.prefs.setStringPref('zen.workspaces.active', activeWorkspace.uuid);
+          this.activeWorkspace = activeWorkspace.uuid;
         }
         if (!activeWorkspace) {
           activeWorkspace = workspaces.workspaces[0];
-          Services.prefs.setStringPref('zen.workspaces.active', activeWorkspace.uuid);
+          this.activeWorkspace = activeWorkspace.uuid;
         }
         await SessionStore.promiseInitialized;
         await this.changeWorkspace(activeWorkspace, true);
@@ -234,14 +242,12 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
   }
 
   isWorkspaceActive(workspace) {
-    const activeWorkspaceId = Services.prefs.getStringPref('zen.workspaces.active', '');
-    return workspace.uuid === activeWorkspaceId;
+    return workspace.uuid === this.activeWorkspace;
   }
 
   async getActiveWorkspace() {
     const workspaces = await this._workspaces();
-    const activeWorkspaceId = Services.prefs.getStringPref('zen.workspaces.active', '');
-    return workspaces.workspaces.find((workspace) => workspace.uuid === activeWorkspaceId);
+    return workspaces.workspaces.find((workspace) => workspace.uuid === this.activeWorkspace) ?? workspaces.workspaces[0];
   }
   // Workspaces dialog UI management
 
@@ -365,7 +371,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
       };
       browser.ZenWorkspaces._workspaceCache = null;
       let workspaces = await browser.ZenWorkspaces._workspaces();
-      let activeWorkspace = await this.getActiveWorkspace();
+      let activeWorkspace = await browser.ZenWorkspaces.getActiveWorkspace();
       currentContainer.innerHTML = '';
       workspaceList.innerHTML = '';
       workspaceList.parentNode.style.display = 'flex';
@@ -380,7 +386,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
         currentContainer.appendChild(currentWorkspace);
       }
       for (let workspace of workspaces.workspaces) {
-        if (this.isWorkspaceActive(workspace)) {
+        if (browser.ZenWorkspaces.isWorkspaceActive(workspace)) {
           continue;
         }
         let workspaceElement = createWorkspaceElement(workspace);
@@ -623,7 +629,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     }
 
     this._inChangingWorkspace = true;
-    Services.prefs.setStringPref('zen.workspaces.active', window.uuid);
+    this.activeWorkspace = window.uuid;
 
     const shouldAllowPinnedTabs = this._shouldAllowPinTab;
     this.tabContainer._invalidateCachedTabs();
