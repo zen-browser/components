@@ -513,7 +513,9 @@ class ZenBrowserManagerSidebar extends ZenDOMOperatedFeature {
   _createWebPanelBrowser(data) {
     const titleContainer = document.getElementById('zen-sidebar-web-panel-title');
     titleContainer.textContent = 'Loading...';
-    let browser = gBrowser.createBrowser({});
+    let browser = gBrowser.createBrowser({
+      userContextId: data.userContextId,
+    });
     const tab = this.sidebar.querySelector(`[zen-sidebar-id='${data.id}']`);
     this.setTabForBrowser(browser, tab);
     tab.linkedBrowser = browser;
@@ -689,6 +691,30 @@ class ZenBrowserManagerSidebar extends ZenDOMOperatedFeature {
       document.getElementById('context_zenUnloadWebPanel').setAttribute('disabled', 'true');
     } else {
       document.getElementById('context_zenUnloadWebPanel').removeAttribute('disabled');
+    }
+  }
+
+  createContainerTabMenu(event) {
+    let window = event.target.ownerGlobal;
+    let data = this.sidebarData;
+    let panelData = data.data[this.contextTab];
+    return window.createUserContextMenu(event, {
+      isContextMenu: true,
+      excludeUserContextId: panelData.userContextId,
+      showDefaultTab: true,
+    });
+  }
+
+  contextChangeContainerTab(event) {
+    let data = this.sidebarData;
+    let userContextId = parseInt(event.target.getAttribute('data-usercontextid'));
+    data.data[this.contextTab].userContextId = userContextId;
+    Services.prefs.setStringPref('zen.sidebar.data', JSON.stringify(data));
+    let browser = this._getBrowserById(this.contextTab);
+    if (browser) {
+      browser.remove();
+      // We need to re-apply a new browser so it takes the new userContextId
+      this._updateWebPanel();
     }
   }
 

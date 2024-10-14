@@ -10,6 +10,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
       console.warn('ZenWorkspaces: !!! ZenWorkspaces is disabled in hidden windows !!!');
       return; // We are in a hidden window, don't initialize ZenWorkspaces
     }
+    this.ownerWindow = window;
     console.info('ZenWorkspaces: Initializing ZenWorkspaces...');
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
@@ -339,24 +340,27 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
           );
         }
 
-        childs.querySelector('.zen-workspace-actions').addEventListener('command', (event) => {
+        childs.querySelector('.zen-workspace-actions').addEventListener('command', ((event) => {
           let button = event.target;
-          browser.ZenWorkspaces._contextMenuId = button
+          this._contextMenuId = button
             .closest('toolbarbutton[zen-workspace-id]')
             .getAttribute('zen-workspace-id');
           const popup = button.ownerDocument.getElementById('zenWorkspaceActionsMenu');
           popup.openPopup(button, 'after_end');
-        });
+        }).bind(browser.ZenWorkspaces));
         element.appendChild(childs);
         element.onclick = (async () => {
           if (event.target.closest('.zen-workspace-actions')) {
             return; // Ignore clicks on the actions button
           }
-          await browser.ZenWorkspaces.changeWorkspace(workspace);
-          let panel = browser.document.getElementById('PanelUI-zen-workspaces');
+          const workspaceId = element.getAttribute('zen-workspace-id');
+          const workspaces = await this._workspaces();
+          const workspace = workspaces.workspaces.find((w) => w.uuid === workspaceId);
+          await this.changeWorkspace(workspace);
+          let panel = this.ownerWindow.document.getElementById('PanelUI-zen-workspaces');
           PanelMultiView.hidePopup(panel);
-          browser.document.getElementById('zen-workspaces-button').removeAttribute('open');
-        }).bind(browser.ZenWorkspaces, workspace, browser);
+          this.ownerWindow.document.getElementById('zen-workspaces-button').removeAttribute('open');
+        }).bind(browser.ZenWorkspaces);
         return element;
       };
       browser.ZenWorkspaces._workspaceCache = null;
@@ -624,7 +628,6 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     const shouldAllowPinnedTabs = this._shouldAllowPinTab;
     this.tabContainer._invalidateCachedTabs();
     let firstTab = undefined;
-    console.info('ZenWorkspaces: Changing workspace to', window.uuid);
     for (let tab of gBrowser.tabs) {
       if (
         (tab.getAttribute('zen-workspace-id') === window.uuid && !(tab.pinned && !shouldAllowPinnedTabs)) ||
