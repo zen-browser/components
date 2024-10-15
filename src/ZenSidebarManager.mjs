@@ -15,7 +15,7 @@ class ZenBrowserManagerSidebar extends ZenDOMOperatedFeature {
   _tabBrowserSet = new WeakMap();
   tabBox;
 
-  DEFAULT_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android 12; Mobile; rv:129.0) Gecko/20100101 Firefox/131.0';
+  DEFAULT_MOBILE_USER_AGENT = `Mozilla/5.0 (Android 12; Mobile; rv:129.0) Gecko/20100101 Firefox/${AppConstants.ZEN_FIREFOX_VERSION}`;
   MAX_SIDEBAR_PANELS = 9; // +1 for the add panel button
   MAX_RUNS = 3;
 
