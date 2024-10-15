@@ -425,7 +425,7 @@ class KeyShortcut {
   }
 
   getKeyName() {
-    return this.#key.toLowerCase();
+    return this.#key?.toLowerCase();
   }
 
   getKeyCode() {
@@ -826,14 +826,14 @@ var gZenKeyboardShortcutsManager = {
     var innerLoad = async () => {
       let data = await this.loader.load();
       if (!data || data.length == 0) {
-        return zenGetDefaultShortcuts();
+        return null;
       }
 
       try {
         return KeyShortcut.parseFromSaved(data);
       } catch (e) {
         console.error('Zen CKS: Error parsing saved shortcuts. Resetting to defaults...', e);
-        return zenGetDefaultShortcuts();
+        return null;
       }
     };
 
