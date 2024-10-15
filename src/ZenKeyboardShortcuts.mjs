@@ -324,9 +324,9 @@ class KeyShortcut {
       KeyShortcutModifiers.parseFromJSON(json['modifiers']),
       json['action'],
       json['l10nId'],
-      json['disabled'] == 'true',
-      json['reserved'] == 'true',
-      json['internal'] == 'true'
+      json['disabled'],
+      json['reserved'],
+      json['internal']
     );
   }
 
