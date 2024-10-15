@@ -822,7 +822,7 @@ var gZenKeyboardShortcutsManager = {
 
     this._hasCleared = Services.prefs.getBoolPref('zen.keyboard.shortcuts.disable-mainkeyset-clear', false);
 
-    window.addEventListener('DOMContentLoaded', this.init.bind(this), { once: true });
+    this.init();
   },
 
   async init() {
