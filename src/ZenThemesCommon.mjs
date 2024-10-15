@@ -31,7 +31,22 @@ var ZenThemesCommon = {
         await IOUtils.writeJSON(this.themesDataFile, {});
       }
 
-      this.themes = await IOUtils.readJSON(this.themesDataFile);
+      try {
+        this.themes = await IOUtils.readJSON(this.themesDataFile);
+      } catch (e) {
+        // If we have a corrupted file, reset it
+        await IOUtils.writeJSON(this.themesDataFile, {});
+        this.themes = {};
+        gNotificationBox.appendNotification(
+          "zen-themes-corrupted",
+          {
+            label: { "l10n-id": "zen-themes-corrupted" },
+            image: "chrome://browser/skin/notification-icons/persistent-storage-blocked.svg",
+            priority: gNotificationBox.PRIORITY_INFO_MEDIUM,
+          },
+          []
+        );
+      }
     }
     return this.themes;
   },
