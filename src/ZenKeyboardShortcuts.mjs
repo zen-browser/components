@@ -397,6 +397,10 @@ class KeyShortcut {
     return key;
   }
 
+  _modifyInternalAttribute(value) {
+    this.#internal = value;
+  }
+
   getRealKeycode() {
     if (this.#keycode === '') {
       return null;
@@ -707,7 +711,7 @@ function zenGetDefaultShortcuts() {
 }
 
 class ZenKeyboardShortcutsVersioner {
-  static LATEST_KBS_VERSION = 2;
+  static LATEST_KBS_VERSION = 3;
 
   constructor() {}
 
@@ -784,6 +788,22 @@ class ZenKeyboardShortcutsVersioner {
           'zen-pinned-tab-shortcut-reset'
         )
       );
+    }
+    if (version < 3) {
+      // Migrate from 2 to 3
+      // In this new version, there was this *really* annoying bug. Shortcuts
+      //  detection for internal keys was not working properly, so every internal
+      //  shortcut was being saved as a user-editable shortcut.
+      // This migration will fix this issue.
+      const defaultShortcuts = zenGetDefaultShortcuts();
+      // Get the default shortcut, compare the id and set the internal flag if needed
+      for (let shortcut of data) {
+        for (let defaultShortcut of defaultShortcuts) {
+          if (shortcut.getID() == defaultShortcut.getID()) {
+            shortcut._modifyInternalAttribute(defaultShortcut.isInternal());
+          }
+        }
+      }
     }
     return data;
   }
