@@ -275,7 +275,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
   onWorkspaceIconContainerClick(event) {
     event.preventDefault();
     const picker = document.getElementById('PanelUI-zen-workspaces-icon-picker');
-    picker.openPopup(event.target, 'after_start', 0, 0, false, false);
+    picker.openPopup(event.target, 'bottomleft topleft', 0, 0, true, false, event);
   }
 
   closeWorkspacesSubView() {
