@@ -4,6 +4,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
    */
   _lastSelectedWorkspaceTabs = {};
   _inChangingWorkspace = false;
+  draggedElement = null;
 
   async init() {
     if (!this.shouldHaveWorkspaces) {
@@ -324,6 +325,66 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
           element.classList.add('identity-color-' + containerGroup.color);
           element.setAttribute('data-usercontextid', containerGroup.userContextId);
         }
+        if (this.isReorderModeOn(browser)) {
+          element.setAttribute('draggable', 'true');
+        }
+
+        element.addEventListener('dragstart', function (event) {
+          if (this.isReorderModeOn(browser)) {
+            this.draggedElement = element;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', element.getAttribute('zen-workspace-id'));
+            element.classList.add('dragging');
+          } else {
+            event.preventDefault();
+          }
+        }.bind(browser.ZenWorkspaces));
+
+        element.addEventListener('dragover', function (event) {
+          if (this.isReorderModeOn(browser) && this.draggedElement) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+          }
+        }.bind(browser.ZenWorkspaces));
+
+        element.addEventListener('dragenter', function (event) {
+          if (this.isReorderModeOn(browser) && this.draggedElement) {
+            element.classList.add('dragover');
+          }
+        }.bind(browser.ZenWorkspaces));
+
+        element.addEventListener('dragleave', function (event) {
+          element.classList.remove('dragover');
+        }.bind(browser.ZenWorkspaces));
+
+        element.addEventListener('drop', async function (event) {
+          event.preventDefault();
+          element.classList.remove('dragover');
+          if (this.isReorderModeOn(browser)) {
+            const draggedWorkspaceId = event.dataTransfer.getData('text/plain');
+            const targetWorkspaceId = element.getAttribute('zen-workspace-id');
+            if (draggedWorkspaceId !== targetWorkspaceId) {
+              await this.moveWorkspace(draggedWorkspaceId, targetWorkspaceId);
+              await this._propagateWorkspaceData();
+            }
+            if (this.draggedElement) {
+              this.draggedElement.classList.remove('dragging');
+              this.draggedElement = null;
+            }
+          }
+        }.bind(browser.ZenWorkspaces));
+
+        element.addEventListener('dragend', function (event) {
+          if (this.draggedElement) {
+            this.draggedElement.classList.remove('dragging');
+            this.draggedElement = null;
+          }
+          const workspaceElements = browser.document.querySelectorAll('.zen-workspace-button');
+          for (const elem of workspaceElements) {
+            elem.classList.remove('dragover');
+          }
+        }.bind(browser.ZenWorkspaces));
+
         let childs = browser.MozXULElement.parseXULToFragment(`
           <div class="zen-workspace-icon">
           </div>
@@ -333,15 +394,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
             <div class="zen-workspace-container" ${containerGroup ? '' : 'hidden="true"'}>
             </div>
           </vbox>
-          <div style="margin-left: auto;display: flex; align-items: center; gap: 5px; flex-shrink: 0;">
-           <toolbarbutton closemenu="none" class="toolbarbutton-1 zen-workspace-order-up zen-workspace-reorder-button">
-            <image class="toolbarbutton-icon" id="zen-workspace-actions-order-up-icon"></image> 
-           </toolbarbutton>
-           <toolbarbutton closemenu="none" class="toolbarbutton-1 zen-workspace-order-down zen-workspace-reorder-button">
-            <image class="toolbarbutton-icon" id="zen-workspace-actions-order-down-icon"></image> 
-           </toolbarbutton>
-          </div>
-       
+            <image class="toolbarbutton-icon zen-workspace-actions-reorder-icon" ></image> 
           <toolbarbutton closemenu="none" class="toolbarbutton-1 zen-workspace-actions">
             <image class="toolbarbutton-icon" id="zen-workspace-actions-menu-icon"></image>
           </toolbarbutton>
@@ -349,16 +402,6 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
 
         // use text content instead of innerHTML to avoid XSS
         childs.querySelector('.zen-workspace-icon').textContent = browser.ZenWorkspaces.getWorkspaceIcon(workspace);
-        childs.querySelector('.zen-workspace-order-up').addEventListener('click', (async (event) => {
-          event.stopPropagation();
-          event.preventDefault();
-          await browser.ZenWorkspaces.moveWorkspaceUp(event, workspace.uuid);
-        }).bind(browser.ZenWorkspaces));
-        childs.querySelector('.zen-workspace-order-down').addEventListener('click', (async (event) => {
-          event.stopPropagation();
-          event.preventDefault();
-          await browser.ZenWorkspaces.moveWorkspaceDown(event, workspace.uuid);
-        }).bind(browser.ZenWorkspaces));
         childs.querySelector('.zen-workspace-name').textContent = workspace.name;
         if (containerGroup) {
           childs.querySelector('.zen-workspace-container').textContent = ContextualIdentityService.getUserContextLabel(
@@ -376,6 +419,9 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
         }).bind(browser.ZenWorkspaces));
         element.appendChild(childs);
         element.onclick = (async () => {
+          if (this.isReorderModeOn(browser)) {
+            return; // Return early if reorder mode is on
+          }
           if (event.target.closest('.zen-workspace-actions')) {
             return; // Ignore clicks on the actions button
           }
@@ -410,37 +456,45 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     });
   }
 
-  isLastWorkspace(workspace) {
-    let workspaces = this._workspaceCache;
-    return workspaces.workspaces.indexOf(workspace) === workspaces.workspaces.length - 1;
+  isReorderModeOn(browser) {
+    return browser.document.getElementById('PanelUI-zen-workspaces-list').getAttribute('reorder-mode') === 'true';
   }
 
-  isFirstWorkspace(workspace) {
-    let workspaces = this._workspaceCache;
-    return workspaces.workspaces.indexOf(workspace) === 0;
-  }
-
-  async moveWorkspaceUp(event, uuid) {
-    await ZenWorkspacesStorage.moveWorkspaceUp(uuid);
-    await this._propagateWorkspaceData();
-  }
-
-  async moveWorkspaceDown(event, uuid) {
-    await ZenWorkspacesStorage.moveWorkspaceDown(uuid);
-    await this._propagateWorkspaceData();
-  }
-
-  toggleReorderMode () {
+  toggleReorderMode() {
     const workspacesList = document.getElementById("PanelUI-zen-workspaces-list");
     const reorderModeButton = document.getElementById("PanelUI-zen-workspaces-reorder-mode");
-    if(workspacesList.getAttribute('reorder-mode') === 'true' && reorderModeButton.getAttribute('active') === 'true') {
+    const isActive = workspacesList.getAttribute('reorder-mode') === 'true';
+    if (isActive) {
       workspacesList.removeAttribute('reorder-mode');
       reorderModeButton.removeAttribute('active');
     } else {
       workspacesList.setAttribute('reorder-mode', 'true');
       reorderModeButton.setAttribute('active', 'true');
     }
+
+    // Update draggable attribute
+    const workspaceElements = document.querySelectorAll('.zen-workspace-button');
+    workspaceElements.forEach(elem => {
+      if (isActive) {
+        elem.removeAttribute('draggable');
+      } else {
+        elem.setAttribute('draggable', 'true');
+      }
+    });
   }
+
+
+  async moveWorkspace(draggedWorkspaceId, targetWorkspaceId) {
+    const workspaces = (await this._workspaces()).workspaces;
+    const draggedIndex = workspaces.findIndex(w => w.uuid === draggedWorkspaceId);
+    const draggedWorkspace = workspaces.splice(draggedIndex, 1)[0];
+    const targetIndex = workspaces.findIndex(w => w.uuid === targetWorkspaceId);
+    workspaces.splice(targetIndex, 0, draggedWorkspace);
+
+    await ZenWorkspacesStorage.updateWorkspacePositions(workspaces);
+  }
+
+
 
   async openWorkspacesDialog(event) {
     if (!this.workspaceEnabled) {
