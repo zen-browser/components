@@ -93,15 +93,13 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
   }
 
   insertIntoContextMenu() {
-    const sibling = document.getElementById('context-stripOnShareLink');
+    const sibling = document.getElementById('context-sep-open');
     const menuitem = document.createXULElement('menuitem');
     menuitem.setAttribute('id', 'context-zenSplitLink');
     menuitem.setAttribute('hidden', 'true');
     menuitem.setAttribute('oncommand', 'gZenViewSplitter.splitLinkInNewTab();');
     menuitem.setAttribute('data-l10n-id', 'zen-split-link');
-    sibling.insertAdjacentElement('afterend', document.createXULElement('menuseparator'));
-    sibling.insertAdjacentElement('afterend', menuitem);
-    sibling.insertAdjacentElement('afterend', document.createXULElement('menuseparator'));
+    sibling.insertAdjacentElement('beforebegin', menuitem);
   }
 
   /**
