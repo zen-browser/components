@@ -187,6 +187,15 @@ var gZenCompactModeManager = {
       });
 
       target.addEventListener('mouseleave', (event) => {
+        // If on Mac, ignore mouseleave in the area of window buttons
+        if (AppConstants.platform == 'macosx') {
+          const MAC_WINDOW_BUTTONS_X_BORDER = 75;
+          const MAC_WINDOW_BUTTONS_Y_BORDER = 40;
+          if (event.clientX < MAC_WINDOW_BUTTONS_X_BORDER && event.clientY < MAC_WINDOW_BUTTONS_Y_BORDER) {
+            return;
+          }
+        }
+
         if (this.hoverableElements[i].keepHoverDuration) {
           this.flashElement(target, keepHoverDuration, 'has-hover' + target.id, 'zen-has-hover');
         } else {
