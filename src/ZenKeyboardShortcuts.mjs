@@ -535,6 +535,8 @@ class ZenKeyboardShortcutsLoader {
     try {
       return await IOUtils.readJSON(this.shortcutsFile);
     } catch (e) {
+      // Recreate shortcuts file
+      Services.prefs.clearUserPref('zen.keyboard.shortcuts.version');
       console.error('Error loading shortcuts file', e);
       return null;
     }
