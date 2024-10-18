@@ -48,6 +48,7 @@ var ZenThemesCommon = {
         );
       }
     }
+
     return this.themes;
   },
 
@@ -103,6 +104,17 @@ var ZenThemesCommon = {
           timerFlag = null;
         }, delay);
       }
+    };
+  },
+
+  debounce(mainFunction, wait) {
+    let timerFlag;
+
+    return (...args) => {
+      clearTimeout(timerFlag);
+      timerFlag = setTimeout(() => {
+        mainFunction(...args);
+      }, wait);
     };
   },
 };
