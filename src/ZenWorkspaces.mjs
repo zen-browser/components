@@ -576,11 +576,10 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
       this._workspaceButtonContextMenuListener = null;
     }
 
+    button.setAttribute('removable', 'true');
+    button.setAttribute('showInPrivateBrowsing', 'false');
+    button.setAttribute('tooltiptext', 'Workspaces');
     if (this.shouldShowIconStrip) {
-      button.setAttribute('removable', 'true');
-      button.setAttribute('showInPrivateBrowsing', 'false');
-      button.setAttribute('tooltiptext', 'Workspaces');
-
       let workspaces = await this._workspaces();
 
       for (let workspace of workspaces.workspaces) {

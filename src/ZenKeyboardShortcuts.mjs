@@ -738,6 +738,11 @@ class ZenKeyboardShortcutsVersioner {
   }
 
   migrateIfNeeded(data) {
+    if (!data) {
+      // Rebuid the shortcuts
+      this.version = 0;
+    }
+
     if (this.isVersionUpToDate()) {
       return data;
     }
