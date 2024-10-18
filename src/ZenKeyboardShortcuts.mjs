@@ -494,7 +494,7 @@ class KeyShortcut {
   }
 
   isUserEditable() {
-    if (!this.#id || this.#internal || this.#reserved || (this.#group == FIREFOX_SHORTCUTS_GROUP && this.#disabled)) {
+    if (!this.#id || this.#internal || (this.#group == FIREFOX_SHORTCUTS_GROUP && this.#disabled)) {
       return false;
     }
     return true;
