@@ -739,7 +739,7 @@ class ZenKeyboardShortcutsVersioner {
 
   migrateIfNeeded(data) {
     if (!data) {
-      // Rebuid the shortcuts
+      // Rebuid the shortcuts, just in case
       this.version = 0;
     }
 
