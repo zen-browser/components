@@ -104,12 +104,16 @@ export class ZenThemeMarketplaceParent extends JSWindowActorParent {
     await this.checkForThemeChanges();
   }
 
-  getStyleSheetFullContent(style) {
-    return `
-      @-moz-document url-prefix("chrome:") {
-        ${style}
-      }
-    `;
+  getStyleSheetFullContent(style = '') {
+    let stylesheet = '@-moz-document url-prefix("chrome:") {';
+
+    for (const line of style.split('\n')) {
+      stylesheet += `  ${line}`;
+    }
+
+    stylesheet += '}';
+
+    return stylesheet;
   }
 
   async downloadUrlToFile(url, path, isStyleSheet = false) {
