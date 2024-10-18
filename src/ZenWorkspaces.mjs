@@ -172,9 +172,9 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     }
     let tab = event.target;
     let workspaceID = tab.getAttribute('zen-workspace-id');
-    // If the tab is the last one in the workspace, create a new tab
+    // If the tab is the last unpinned one in the workspace, create a new tab
     if (workspaceID) {
-      let tabs = gBrowser.tabs.filter((tab) => tab.getAttribute('zen-workspace-id') === workspaceID);
+      let tabs = gBrowser.tabs.filter((tab) => tab.getAttribute('zen-workspace-id') === workspaceID && !tab.pinned);
       if (tabs.length === 1) {
         this._createNewTabForWorkspace({ uuid: workspaceID });
         // We still need to close other tabs in the workspace
@@ -697,7 +697,10 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
 
   _createNewTabForWorkspace(window) {
     let tab = gZenUIManager.openAndChangeToTab(Services.prefs.getStringPref('browser.startup.homepage'));
-    tab.setAttribute('zen-workspace-id', window.uuid);
+
+    if(window.uuid){
+      tab.setAttribute('zen-workspace-id', window.uuid);
+    }
   }
 
   async saveWorkspaceFromCreate() {
@@ -774,7 +777,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
         (tab.getAttribute('zen-workspace-id') === window.uuid && !(tab.pinned && !shouldAllowPinnedTabs)) ||
         !tab.hasAttribute('zen-workspace-id')
       ) {
-        if (!firstTab) {
+        if (!firstTab && (onInit || !tab.pinned)) {
           firstTab = tab;
         } else if (gBrowser.selectedTab === tab) {
           // If the selected tab is already in the workspace, we don't want to change it
@@ -1026,10 +1029,16 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     }
 
     if (this.shouldForceContainerTabsToWorkspace && typeof userContextId !== 'undefined' && this._workspaceCache?.workspaces) {
-      const workspace = this._workspaceCache.workspaces.find((workspace) => workspace.containerTabId === userContextId);
-      if (workspace && workspace.uuid !== this.getActiveWorkspaceFromCache().uuid) {
-        this.changeWorkspace(workspace);
-        return [userContextId, true];
+      // Find all workspaces that match the given userContextId
+      const matchingWorkspaces = this._workspaceCache.workspaces.filter((workspace) => workspace.containerTabId === userContextId);
+
+      // Check if exactly one workspace matches
+      if (matchingWorkspaces.length === 1) {
+        const workspace = matchingWorkspaces[0];
+        if (workspace.uuid !== this.getActiveWorkspaceFromCache().uuid) {
+          this.changeWorkspace(workspace);
+          return [userContextId, true];
+        }
       }
     }
 
