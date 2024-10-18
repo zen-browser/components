@@ -184,7 +184,14 @@
             filter: tab => !tab.hidden && !tab.pinned,
           });
 
-      const nextTab = findNextTab(1) || findNextTab(-1);
+      let nextTab = findNextTab(1) || findNextTab(-1);
+
+      if (!nextTab) {
+        ZenWorkspaces._createNewTabForWorkspace({ uuid: ZenWorkspaces.activeWorkspace  });
+
+        nextTab = findNextTab(1) || findNextTab(-1);
+      }
+
       if (nextTab) {
         gBrowser.selectedTab = nextTab;
       }
