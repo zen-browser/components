@@ -210,6 +210,13 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     ConfirmationHint.show(document.getElementById("zen-split-views-box"), "zen-split-view-modifier-disabled-toast");
   }
 
+  toggleWrapperDisplay(value) {
+    const wrapper = this.overlay?.parentNode;
+    if (!wrapper) return;
+
+    wrapper.setAttribute('hidden', !value);
+  }
+
   enableTabRearrangeView() {
     if (this.rearrangeViewEnabled) return;
     this.rearrangeViewEnabled = true;
@@ -219,6 +226,8 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
       this._thumnailCanvas.width = 280 * devicePixelRatio;
       this._thumnailCanvas.height = 140 * devicePixelRatio;
     }
+
+    this.toggleWrapperDisplay(true);
 
     const browsers = this._data[this.currentView].tabs.map(t => t.linkedBrowser);
     browsers.forEach(b => {
@@ -247,6 +256,8 @@ class ZenViewSplitter extends ZenDOMOperatedFeature {
     if (!this.rearrangeViewEnabled || (event && event.target.classList.contains('zen-split-view-splitter'))) {
       return;
     }
+
+    this.toggleWrapperDisplay(false);
 
     this.tabBrowserPanel.removeEventListener('dragstart', this.onBrowserDragStart);
     this.tabBrowserPanel.removeEventListener('dragover', this.onBrowserDragOver);
