@@ -651,6 +651,11 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     }
   }
 
+  closeWorkspacesSubView() {
+    let parentPanel = document.getElementById('PanelUI-zen-workspaces-multiview');
+    parentPanel.goBack(parentPanel);
+  }
+
   // Workspaces management
 
   get _workspaceCreateInput() {
