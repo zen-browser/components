@@ -25,6 +25,12 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
       'zen.workspaces.force-container-workspace',
       true
     );
+    XPCOMUtils.defineLazyPreferenceGetter(
+        this,
+        'shouldOpenNewTabIfLastUnpinnedTabIsClosed',
+        'zen.workspaces.open-new-tab-if-last-unpinned-tab-is-closed',
+        false
+    );
     ChromeUtils.defineLazyGetter(this, 'tabContainer', () => document.getElementById('tabbrowser-tabs'));
     this._activeWorkspace = Services.prefs.getStringPref('zen.workspaces.active', '');
     await ZenWorkspacesStorage.init();
@@ -145,7 +151,6 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     if (this.workspaceEnabled) {
       this._initializeWorkspaceCreationIcons();
       this._initializeWorkspaceTabContextMenus();
-      window.addEventListener('TabClose', this.handleTabClose.bind(this));
       window.addEventListener('TabBrowserInserted', this.onTabBrowserInserted.bind(this));
       let workspaces = await this._workspaces();
       if (workspaces.workspaces.length === 0) {
@@ -166,21 +171,38 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     }
   }
 
-  handleTabClose(event) {
-    if (this.__contextIsDelete) {
-      return; // Bug when closing tabs from the context menu
+  handleTabBeforeClose(tab) {
+    if (!this.workspaceEnabled || this.__contextIsDelete) {
+      return null;
     }
-    let tab = event.target;
+
     let workspaceID = tab.getAttribute('zen-workspace-id');
-    // If the tab is the last unpinned one in the workspace, create a new tab
-    if (workspaceID) {
-      let tabs = gBrowser.tabs.filter((tab) => tab.getAttribute('zen-workspace-id') === workspaceID && !tab.pinned);
-      if (tabs.length === 1) {
-        this._createNewTabForWorkspace({ uuid: workspaceID });
-        // We still need to close other tabs in the workspace
-        this.changeWorkspace({ uuid: workspaceID }, true);
-      }
+    if (!workspaceID) {
+      return null;
     }
+
+    const shouldOpenNewTabIfLastUnpinnedTabIsClosed = this.shouldOpenNewTabIfLastUnpinnedTabIsClosed;
+
+    let tabs = gBrowser.tabs.filter(t =>
+        t.getAttribute('zen-workspace-id') === workspaceID &&
+        (!shouldOpenNewTabIfLastUnpinnedTabIsClosed ||!t.pinned || t.getAttribute("pending") !== "true")
+    );
+
+    if (tabs.length === 1 && tabs[0] === tab) {
+      let newTab = this._createNewTabForWorkspace({ uuid: workspaceID });
+      return newTab;
+    }
+
+    return null;
+  }
+
+  _createNewTabForWorkspace(window) {
+    let tab = gZenUIManager.openAndChangeToTab(Services.prefs.getStringPref('browser.startup.homepage'));
+
+    if(window.uuid){
+      tab.setAttribute('zen-workspace-id', window.uuid);
+    }
+    return tab;
   }
 
   _kIcons = JSON.parse(Services.prefs.getStringPref('zen.workspaces.icons')).map((icon) =>
