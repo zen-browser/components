@@ -279,7 +279,7 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     this._workspaceEditIconsContainer.setAttribute('data-initial-value', workspaceData.icon);
     this.onIconChangeConnectedCallback = (...args) => {
       this.onWorkspaceIconChangeInner('edit', ...args);
-      this.onWorkspaceEditChange();
+      this.onWorkspaceEditChange(...args);
     };
     document.querySelectorAll('#PanelUI-zen-workspaces-icon-picker-wrapper toolbarbutton').forEach((button) => {
       if (button.label === workspaceData.icon) {
@@ -295,7 +295,9 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
 
   onWorkspaceIconChangeInner(type = 'create', icon) {
     const container = document.querySelector(`.PanelUI-zen-workspaces-icons-container.${type}`);
-    container.textContent = icon;
+    if (container.textContent !== icon) {
+      container.textContent = icon;
+    }
     this.goToPreviousSubView();
   }
 
@@ -770,10 +772,9 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
     button.removeAttribute('disabled');
   }
 
-  onWorkspaceEditChange() {
+  onWorkspaceEditChange(icon) {
     let button = document.getElementById('PanelUI-zen-workspaces-edit-save');
     let name = this._workspaceEditInput.value;
-    let icon = document.querySelector('#PanelUI-zen-workspaces-icon-picker-wrapper [selected]')?.label;
     if (
       name === this._workspaceEditInput.getAttribute('data-initial-value') &&
       icon === this._workspaceEditIconsContainer.getAttribute('data-initial-value')
