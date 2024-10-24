@@ -480,6 +480,59 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
         }).bind(browser.ZenWorkspaces);
         return element;
       };
+
+      const createLastPositionDropTarget = () => {
+        const element = browser.document.createXULElement('div');
+        element.className = 'zen-workspace-last-place-drop-target';
+
+        element.addEventListener(
+            'dragover',
+            function (event) {
+              if (this.isReorderModeOn(browser) && this.draggedElement) {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+              }
+            }.bind(browser.ZenWorkspaces)
+        );
+
+        element.addEventListener(
+            'dragenter',
+            function (event) {
+              if (this.isReorderModeOn(browser) && this.draggedElement) {
+                element.classList.add('dragover');
+              }
+            }.bind(browser.ZenWorkspaces)
+        );
+
+        element.addEventListener(
+            'dragleave',
+            function (event) {
+              element.classList.remove('dragover');
+            }.bind(browser.ZenWorkspaces)
+        );
+
+        element.addEventListener(
+            'drop',
+            async function (event) {
+              event.preventDefault();
+              element.classList.remove('dragover');
+
+              if (this.isReorderModeOn(browser)) {
+                const draggedWorkspaceId = event.dataTransfer.getData('text/plain');
+                await this.moveWorkspaceToEnd(draggedWorkspaceId);
+                await this._propagateWorkspaceData();
+
+                if (this.draggedElement) {
+                  this.draggedElement.classList.remove('dragging');
+                  this.draggedElement = null;
+                }
+              }
+            }.bind(browser.ZenWorkspaces)
+        );
+
+        return element;
+      };
+
       browser.ZenWorkspaces._workspaceCache = null;
       let workspaces = await browser.ZenWorkspaces._workspaces();
       workspaceList.innerHTML = '';
@@ -495,10 +548,30 @@ var ZenWorkspaces = new (class extends ZenMultiWindowFeature {
         let workspaceElement = createWorkspaceElement(workspace);
         workspaceList.appendChild(workspaceElement);
       }
+
+      workspaceList.appendChild(createLastPositionDropTarget());
+
       if (!ignoreStrip) {
         await browser.ZenWorkspaces._expandWorkspacesStrip(browser);
       }
     });
+  }
+
+  handlePanelHidden() {
+    const workspacesList = document.getElementById('PanelUI-zen-workspaces-list');
+    const reorderModeButton = document.getElementById('PanelUI-zen-workspaces-reorder-mode');
+
+    workspacesList?.removeAttribute('reorder-mode');
+    reorderModeButton?.removeAttribute('active');
+  }
+
+  async moveWorkspaceToEnd(draggedWorkspaceId) {
+    const workspaces = (await this._workspaces()).workspaces;
+    const draggedIndex = workspaces.findIndex((w) => w.uuid === draggedWorkspaceId);
+    const draggedWorkspace = workspaces.splice(draggedIndex, 1)[0];
+    workspaces.push(draggedWorkspace);
+
+    await ZenWorkspacesStorage.updateWorkspacePositions(workspaces);
   }
 
   isReorderModeOn(browser) {
